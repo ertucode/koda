@@ -1,6 +1,6 @@
 export async function captureDivAsBase64(
   element: HTMLElement,
-  filter?: (node: Element) => boolean,
+  _filter?: (node: Element) => boolean,
 ): Promise<string> {
   const clone = element.cloneNode(true) as HTMLElement;
 
@@ -11,7 +11,7 @@ export async function captureDivAsBase64(
   clone.style.left = "0";
   document.body.appendChild(clone);
 
-  const rect = clone.getBoundingClientRect();
+  // const _rect = clone.getBoundingClientRect();
   const base64 = await window.electron.captureRect({
     width: 0,
     height: 0,

@@ -20,6 +20,11 @@ import z from "zod";
 import { useLocalStorage } from "./lib/hooks/useLocalStorage";
 import { captureDivAsBase64 } from "./lib/functions/captureDiv";
 import { useTableSort } from "./lib/libs/table/useTableSort";
+import {
+  ContextMenu,
+  ContextMenuList,
+  useContextMenu,
+} from "./lib/components/context-menu";
 
 const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
   {
@@ -155,7 +160,7 @@ export function FileBrowser() {
           {<ArrowRightIcon />}
         </button>
         <div>
-          <FolderBreadcrumb dir={d.directory.fullName} cd={d.cd} />
+          <FolderBreadcrumb d={d} defaultPath={defaultPath} />
         </div>
       </div>
       <div className="h-160 flex flex-col max-h-160 overflow-y-auto">
@@ -170,7 +175,7 @@ export function FileBrowser() {
               sort={sort}
               onRowDoubleClick={openItem}
               selection={table.selection}
-              ContextMenu={ContextMenu({
+              ContextMenu={getRowContextMenu({
                 setAsDefaultPath: (p) => {
                   defaultPath.setPath(d.getFullName(p));
                 },
@@ -214,15 +219,32 @@ export function FileBrowser() {
 }
 
 function FolderBreadcrumb({
-  dir,
-  cd,
+  d,
+  defaultPath,
 }: {
-  dir: string;
-  cd: (dir: DirectoryInfo) => void;
+  d: ReturnType<typeof useDirectory>;
+  defaultPath: ReturnType<typeof useDefaultPath>;
 }) {
-  const parts = getFolderNameParts(dir);
+  const parts = getFolderNameParts(d.directory.fullName);
+  const menu = useContextMenu<number>();
+
   return (
     <div className="breadcrumbs text-sm">
+      {menu.isOpen && (
+        <ContextMenu menu={menu}>
+          <ContextMenuList
+            items={[
+              {
+                onClick: () => {
+                  defaultPath.setPath(reconstructDirectory(parts, menu.item!));
+                  menu.close();
+                },
+                view: "Set as default path",
+              },
+            ]}
+          />
+        </ContextMenu>
+      )}
       <ul>
         {parts.map((part, idx) => {
           return (
@@ -230,11 +252,15 @@ function FolderBreadcrumb({
               key={idx}
               className="flex items-center gap-1"
               onClick={() =>
-                cd({
+                d.cd({
                   fullName: reconstructDirectory(parts, idx),
                   name: part,
                 })
               }
+              onContextMenu={(e) => {
+                e.preventDefault();
+                menu.onRightClick(e, idx);
+              }}
             >
               <a>
                 <FolderIcon className="size-4" />
@@ -412,7 +438,7 @@ function useDirectory(initialDirectory: string) {
   };
 }
 
-function ContextMenu({
+function getRowContextMenu({
   setAsDefaultPath,
 }: {
   setAsDefaultPath: (path: string) => void;
@@ -426,26 +452,28 @@ function ContextMenu({
   }) => {
     if (item.type === "dir")
       return (
-        <ul className="menu bg-base-200 rounded-box w-56">
-          <li>
-            <a
-              onClick={() => {
+        <ContextMenuList
+          items={[
+            {
+              onClick: () => {
                 setAsDefaultPath(item.name);
                 close();
-              }}
-            >
-              Set as default path
-            </a>
-          </li>
-        </ul>
+              },
+              view: <div>Set as default path</div>,
+            },
+          ]}
+        />
       );
 
     return (
-      <ul className="menu bg-base-200 rounded-box w-56">
-        <li>
-          <a>TODO</a>
-        </li>
-      </ul>
+      <ContextMenuList
+        items={[
+          {
+            onClick: () => {},
+            view: <div>TODO</div>,
+          },
+        ]}
+      />
     );
   };
 }

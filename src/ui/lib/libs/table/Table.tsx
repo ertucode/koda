@@ -35,7 +35,7 @@ export function Table<T>({
   return (
     <>
       {props.ContextMenu && contextMenu.item && (
-        <ContextMenu ref={contextMenu.ref} position={contextMenu.position}>
+        <ContextMenu menu={contextMenu}>
           {
             <props.ContextMenu
               item={contextMenu.item}

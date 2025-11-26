@@ -1,20 +1,42 @@
 import React, { useEffect, useRef, useState } from "react";
 
-export type ContextMenuProps = {
+export type ContextMenuProps<T> = {
   children: React.ReactNode;
-  position?: { x: number; y: number };
-  ref: React.Ref<HTMLDivElement>;
+  menu: ReturnType<typeof useContextMenu<T>>;
 };
 
-export function ContextMenu({ children, position, ref }: ContextMenuProps) {
+export function ContextMenu<T>({ children, menu }: ContextMenuProps<T>) {
   return (
     <div
-      ref={ref}
+      ref={menu.ref}
       className="fixed z-50"
-      style={{ top: position?.y, left: position?.x }}
+      style={{ top: menu.position?.y, left: menu.position?.x }}
     >
       {children}
     </div>
+  );
+}
+
+export type ContextMenuItem = {
+  view: React.ReactNode;
+  onClick: () => void;
+};
+
+export type ContextMenuListProps = {
+  items: ContextMenuItem[];
+};
+
+export function ContextMenuList({ items }: ContextMenuListProps) {
+  return (
+    <ul className="menu bg-base-200 rounded-box w-56">
+      {items.map((item, idx) => {
+        return (
+          <li key={idx}>
+            <a onClick={item.onClick}>{item.view}</a>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
