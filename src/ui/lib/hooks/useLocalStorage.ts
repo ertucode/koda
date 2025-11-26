@@ -4,7 +4,7 @@ import { ZodType } from "zod";
 export function useLocalStorage<T>(
   key: string,
   schema: ZodType<T>,
-  initialValue: T,
+  initialValue: NoInfer<T>,
 ) {
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {

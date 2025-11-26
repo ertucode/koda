@@ -19,6 +19,7 @@ export function useTable<T>(opts: UseTableOptions<T>) {
       return {
         value,
         id: columnId(col, idx),
+        sortKey: columnSortKey(col),
       };
     });
   }, [cols]);
@@ -70,4 +71,11 @@ function columnId<T>(col: ColumnDef<T>, idx: number) {
   if (col.id) return col.id;
   if (col.accessorKey) return `col_${col.accessorKey}`;
   return `col_${idx}`;
+}
+
+function columnSortKey<T>(col: ColumnDef<T>) {
+  if (col.sortKey) return col.sortKey;
+  if (col.id) return col.id;
+  if (col.accessorKey) return col.accessorKey;
+  return "N/A";
 }
