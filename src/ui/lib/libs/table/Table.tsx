@@ -1,12 +1,15 @@
+import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { ContextMenu, useContextMenu } from "../../components/context-menu";
 import { clsx } from "../../functions/clsx";
 import type { useSelection } from "./useSelection";
 import type { TableMetadata } from "./useTable";
+import { useTableSort } from "./useTableSort";
 
 export type TableProps<T> = {
   table: TableMetadata<T>;
   onRowDoubleClick?: (item: T) => void;
   selection?: ReturnType<typeof useSelection>;
+  sort?: ReturnType<typeof useTableSort>;
   ContextMenu?: React.FC<TableContextMenuProps<T>>;
   onRowDragStart?: (
     item: T,
@@ -24,6 +27,7 @@ export function Table<T>({
   table,
   onRowDoubleClick,
   selection,
+  sort,
   ...props
 }: TableProps<T>) {
   const contextMenu = useContextMenu<T>();
@@ -46,10 +50,19 @@ export function Table<T>({
           <tr>
             {table.headers.map((header) => {
               return (
-                <th key={header.id} className="relative">
-                  <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
-                    {header.value}
-                  </span>
+                <th key={header.id} onClick={() => sort?.onKey(header.sortKey)}>
+                  <div className="flex items-center gap-1">
+                    <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
+                      {header.value}
+                    </span>
+
+                    {sort?.state.by === header.sortKey &&
+                      (sort.state.order === "asc" ? (
+                        <ChevronDownIcon className="size-4 stroke-[3]" />
+                      ) : (
+                        <ChevronUpIcon className="size-4 stroke-[3]" />
+                      ))}
+                  </div>
                 </th>
               );
             })}

@@ -19,6 +19,7 @@ import { useDefaultSelection } from "./lib/libs/table/useSelection";
 import z from "zod";
 import { useLocalStorage } from "./lib/hooks/useLocalStorage";
 import { captureDivAsBase64 } from "./lib/functions/captureDiv";
+import { useTableSort } from "./lib/libs/table/useTableSort";
 
 const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
   {
@@ -40,16 +41,20 @@ const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
     size: 24,
   },
   {
-    accessorKey: "size",
+    accessorKey: "sizeStr",
+    sortKey: "size",
     header: "Size",
     size: 84,
   },
   {
     accessorKey: "modifiedAt",
+    sortKey: "modifiedTimestamp",
     header: "Modified",
     size: 148,
   },
 ];
+
+const sortNames = z.enum(["name", "modifiedTimestamp", "size", "ext"]);
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
@@ -61,6 +66,23 @@ export function FileBrowser() {
     data: d.directoryData,
     selection: s,
   });
+
+  const sort = useTableSort(
+    {
+      state: d.settings.sort,
+      changeState: (stateOrCb) =>
+        d.setSettings((s) => {
+          if (typeof stateOrCb === "function") {
+            const newSort = stateOrCb(s.sort);
+            return { ...s, sort: newSort };
+          }
+
+          return { ...s, sort: stateOrCb };
+        }),
+      schema: sortNames,
+    },
+    [d.settings],
+  );
 
   const openItem = (item: GetFilesAndFoldersInDirectoryItem) => {
     if (item.type === "dir") {
@@ -75,7 +97,7 @@ export function FileBrowser() {
     d.goPrev().then(({ directoryData, current }) => {
       setTimeout(() => {
         if (!directoryData) return;
-        if (!d.showDotFiles) {
+        if (!d.settings.showDotFiles) {
           directoryData = directoryData.filter((i) => !i.name.startsWith("."));
         }
         const idx = directoryData.findIndex((i) => i.name === current.name);
@@ -119,7 +141,7 @@ export function FileBrowser() {
           <input
             type="checkbox"
             className="checkbox checkbox-sm"
-            checked={d.showDotFiles}
+            checked={d.settings.showDotFiles}
             onChange={() => d.toggleShowDotFiles()}
           />
           Show dot files
@@ -145,6 +167,7 @@ export function FileBrowser() {
           <div>
             <Table
               table={table}
+              sort={sort}
               onRowDoubleClick={openItem}
               selection={table.selection}
               ContextMenu={ContextMenu({
@@ -249,7 +272,7 @@ function getDirectoryInfo(dir: string): DirectoryInfo {
 
 function useDirectory(initialDirectory: string) {
   const initialDirectoryInfo = getDirectoryInfo(initialDirectory);
-  const [showDotFiles, setShowDotFiles] = useState(false);
+  const [settings, setSettings] = useFileBrowserSettings();
   const [directory, setDirectory] =
     useState<DirectoryInfo>(initialDirectoryInfo);
   const [_loading, setLoading] = useState(false);
@@ -289,10 +312,44 @@ function useDirectory(initialDirectory: string) {
   }, []);
 
   const directoryData = useMemo(() => {
-    if (showDotFiles) return _directoryData;
+    let data = _directoryData;
 
-    return _directoryData.filter((i) => !i.name.startsWith("."));
-  }, [_directoryData, showDotFiles]);
+    if (!settings.showDotFiles)
+      data = data.filter((i) => !i.name.startsWith("."));
+
+    if (settings.sort.by === "name") {
+      const times = settings.sort.order === "asc" ? 1 : -1;
+      data = data.sort((a, b) => {
+        return a.name.localeCompare(b.name) * times;
+      });
+    } else if (settings.sort.by === "modifiedTimestamp") {
+      const times = settings.sort.order === "asc" ? 1 : -1;
+      data = data.sort((a, b) => {
+        if (!a.modifiedTimestamp && !b.modifiedTimestamp) return 0;
+        if (!a.modifiedTimestamp) return -1;
+        if (!b.modifiedTimestamp) return 1;
+        return (a.modifiedTimestamp - b.modifiedTimestamp) * times;
+      });
+    } else if (settings.sort.by === "size") {
+      const times = settings.sort.order === "asc" ? 1 : -1;
+      data = data.sort((a, b) => {
+        if (!a.size && !b.size) return 0;
+        if (!a.size) return 1;
+        if (!b.size) return -1;
+        return (a.size - b.size) * times;
+      });
+    } else if (settings.sort.by === "ext") {
+      const times = settings.sort.order === "asc" ? 1 : -1;
+      data = data.sort((a, b) => {
+        if (!a.ext && !b.ext) return 0;
+        if (!a.ext) return 1;
+        if (!b.ext) return -1;
+        return a.ext.localeCompare(b.ext) * times;
+      });
+    }
+
+    return data;
+  }, [_directoryData, settings]);
 
   const historyStack = useMemo(
     () => new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
@@ -344,12 +401,14 @@ function useDirectory(initialDirectory: string) {
     hasNext: historyStack.hasNext,
     hasPrev: historyStack.hasPrev,
     error,
-    showDotFiles,
-    toggleShowDotFiles: () => setShowDotFiles((s) => !s),
+    settings,
+    toggleShowDotFiles: () =>
+      setSettings((s) => ({ ...s, showDotFiles: !s.showDotFiles })),
     openFile: (filePath: string) =>
       window.electron.openFile(getFullName(filePath)),
     getFullName,
     preloadDirectory,
+    setSettings,
   };
 }
 
@@ -436,6 +495,26 @@ export class FileBrowserCache {
   };
 }
 
+function useFileBrowserSettings() {
+  return useLocalStorage(
+    "fbSettings",
+    z.object({
+      showDotFiles: z.boolean(),
+      sort: z.object({
+        by: sortNames.nullish(),
+        order: z.enum(["asc", "desc"]).nullish(),
+      }),
+    }),
+    {
+      showDotFiles: false,
+      sort: {
+        by: "ext",
+        order: "asc",
+      },
+    },
+  );
+}
+
 type FileBrowserShortcut = {
   key: string | string[];
   handler: (e: KeyboardEvent) => void;
@@ -462,5 +541,3 @@ function useFileBrowserShortcuts(shortcuts: FileBrowserShortcut[]) {
     };
   }, [shortcuts]);
 }
-
-function captureForDragStart(tbody: HTMLElement) {}

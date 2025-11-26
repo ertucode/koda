@@ -39,7 +39,9 @@ export async function getFilesAndFoldersInDirectory(
           type: "file" as const,
           name: entry.name,
           ext,
-          size: stat?.size ? formatSize(stat.size) : undefined,
+          sizeStr: stat?.size ? formatSize(stat.size) : undefined,
+          size: stat?.size,
+          modifiedTimestamp: stat?.mtime.getTime(),
           modifiedAt: stat?.mtime.toLocaleString("tr-TR", dateOptions),
         };
         return item;
@@ -51,7 +53,9 @@ export async function getFilesAndFoldersInDirectory(
         type: "dir" as const,
         name: entry.name,
         ext: "" as const,
+        sizeStr: null,
         size: null,
+        modifiedTimestamp: stat?.mtime.getTime(),
         modifiedAt: stat?.mtime.toLocaleString("tr-TR", dateOptions),
       };
     }),

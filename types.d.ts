@@ -18,7 +18,9 @@ type GetFilesAndFoldersInDirectoryItem = (
     }
 ) & {
   modifiedAt: string | undefined | null;
-  size: string | null | undefined;
+  modifiedTimestamp: number | undefined | null;
+  sizeStr: string | null | undefined;
+  size: number | undefined | null;
   name: string;
 };
 
@@ -84,7 +86,4 @@ interface Window {
   };
 }
 
-declare module "dom-to-image-more" {
-  import domToImage = require("dom-to-image-more");
-  export = domToImage;
-}
+type $Maybe<T> = T | undefined | null;
