@@ -117,6 +117,7 @@ export function useDirectory(
 
   const cd = async (newDirectory: DirectoryInfo, isNew: boolean) => {
     if (loading) return;
+    if (newDirectory.fullName === directory.fullName) return;
     if (isNew) historyStack.goNew(newDirectory);
     setDirectory(newDirectory);
     recents.addRecent({ fullPath: newDirectory.fullName, type: "dir" });
