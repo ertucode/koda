@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon } from "lucide-react";
 import { useRef } from "react";
 import { Alert } from "@/lib/components/alert";
 import { Table } from "@/lib/libs/table/Table";
@@ -155,6 +155,9 @@ export function FileBrowser() {
       ? d.getFullName(selectedItem.name)
       : null;
 
+  const navigationButtonClassName = "btn btn-xs btn-soft btn-info";
+  const navigationButtonIconClassName = "size-4";
+
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6">
       <FuzzyFinderDialog fuzzy={fuzzy} />
@@ -170,11 +173,25 @@ export function FileBrowser() {
         </label>
       </div>
       <div className="flex items-center gap-3">
-        <button className="btn" onClick={d.goPrev} disabled={!d.hasPrev}>
-          {<ArrowLeftIcon />}
+        <button
+          className={navigationButtonClassName}
+          onClick={d.goPrev}
+          disabled={!d.hasPrev}
+        >
+          {<ArrowLeftIcon className={navigationButtonIconClassName} />}
         </button>
-        <button className="btn" onClick={d.goNext} disabled={!d.hasNext}>
-          {<ArrowRightIcon />}
+        <button
+          className={navigationButtonClassName}
+          onClick={d.goNext}
+          disabled={!d.hasNext}
+        >
+          {<ArrowRightIcon className={navigationButtonIconClassName} />}
+        </button>
+        <button
+          className={navigationButtonClassName}
+          onClick={() => onGoUpOrPrev(d.goUp)}
+        >
+          {<ArrowUpIcon className={navigationButtonIconClassName} />}
         </button>
         <div>
           <FolderBreadcrumb d={d} defaultPath={defaultPath} />
