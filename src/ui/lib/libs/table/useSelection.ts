@@ -15,7 +15,10 @@ export function useSelection(props: SelectionInput) {
     // event.preventDefault();
     // event.stopPropagation();
 
-    if (event.shiftKey && state.lastSelected != null) {
+    const isShiftEvent =
+      event.shiftKey &&
+      (!("key" in event) || (event.key !== "G" && event.key !== "g"));
+    if (isShiftEvent && state.lastSelected != null) {
       const lastSelected = state.lastSelected;
       const indexes = new Set(state.indexes);
 
@@ -61,7 +64,10 @@ export function useSelection(props: SelectionInput) {
       return;
     }
 
-    if (event.ctrlKey || event.metaKey) {
+    const isCtrlEvent =
+      (event.ctrlKey || event.metaKey) &&
+      (!("key" in event) || (event.key !== "u" && event.key !== "d"));
+    if (isCtrlEvent) {
       if (state.indexes.has(index)) {
         setState({
           indexes: Helpers.remove(state.indexes, index),
@@ -141,6 +147,38 @@ export function useSelection(props: SelectionInput) {
       handler: (e: KeyboardEvent) => {
         const lastSelected = state.lastSelected ?? 0;
         select(lastSelected + 10, e);
+        e.preventDefault();
+      },
+    },
+    {
+      key: "G",
+      handler: (e: KeyboardEvent) => {
+        // Go to the bottom (like vim G)
+        select(count - 1, e);
+        e.preventDefault();
+      },
+    },
+    {
+      // Go to the top (like vim gg)
+      sequence: ["g", "g"],
+      handler: (e: KeyboardEvent) => {
+        select(0, e);
+        e.preventDefault();
+      },
+    },
+    {
+      key: { key: "d", ctrlKey: true },
+      handler: (e: KeyboardEvent) => {
+        const lastSelected = state.lastSelected ?? 0;
+        select(Math.min(lastSelected + 10, count - 1), e);
+        e.preventDefault();
+      },
+    },
+    {
+      key: { key: "u", ctrlKey: true },
+      handler: (e: KeyboardEvent) => {
+        const lastSelected = state.lastSelected ?? 0;
+        select(Math.max(lastSelected - 10, 0), e);
         e.preventDefault();
       },
     },
