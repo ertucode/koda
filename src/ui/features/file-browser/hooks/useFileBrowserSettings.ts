@@ -2,9 +2,27 @@ import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import z from "zod";
 import { sortNames } from "../config/columns";
 
+const fileCategoryFilter = z.enum([
+  "all",
+  "image",
+  "video",
+  "audio",
+  "document",
+  "spreadsheet",
+  "presentation",
+  "archive",
+  "code",
+  "font",
+  "executable",
+  "other",
+]);
+
+export type FileCategoryFilter = z.infer<typeof fileCategoryFilter>;
+
 const SettingsSchema = z.object({
   showDotFiles: z.boolean(),
   foldersOnTop: z.boolean(),
+  fileTypeFilter: fileCategoryFilter.optional(),
   sort: z.object({
     by: sortNames.nullish(),
     order: z.enum(["asc", "desc"]).nullish(),
@@ -17,12 +35,28 @@ export function useFileBrowserSettings() {
   return useLocalStorage("fbSettings", SettingsSchema, {
     showDotFiles: false,
     foldersOnTop: true,
+    fileTypeFilter: "all",
     sort: {
       by: "ext",
       order: "asc",
     },
   });
 }
+
+export const FILE_TYPE_FILTER_OPTIONS: { value: FileCategoryFilter; label: string }[] = [
+  { value: "all", label: "All files" },
+  { value: "image", label: "Images" },
+  { value: "video", label: "Videos" },
+  { value: "audio", label: "Audio" },
+  { value: "document", label: "Documents" },
+  { value: "spreadsheet", label: "Spreadsheets" },
+  { value: "presentation", label: "Presentations" },
+  { value: "archive", label: "Archives" },
+  { value: "code", label: "Code" },
+  { value: "font", label: "Fonts" },
+  { value: "executable", label: "Executables" },
+  { value: "other", label: "Other" },
+];
 
 export class DirectoryDataFromSettings {
   static lastSettings: FileBrowserSettings | undefined;
@@ -49,6 +83,13 @@ export class DirectoryDataFromSettings {
 
     if (!settings.showDotFiles)
       data = data.filter((i) => !i.name.startsWith("."));
+
+    // Filter by file type category (always show folders)
+    if (settings.fileTypeFilter && settings.fileTypeFilter !== "all") {
+      data = data.filter(
+        (i) => i.type === "dir" || i.category === settings.fileTypeFilter,
+      );
+    }
 
     if (settings.sort.by === "name") {
       const times = settings.sort.order === "asc" ? 1 : -1;

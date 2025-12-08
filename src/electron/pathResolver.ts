@@ -6,7 +6,7 @@ export function getPreloadPath() {
   return path.join(
     app.getAppPath(),
     isDev() ? "." : "..",
-    "/dist-electron/preload.cjs",
+    "/dist-electron/electron/preload.cjs",
   );
 }
 
@@ -14,7 +14,7 @@ export function getPreviewPreloadPath() {
   return path.join(
     app.getAppPath(),
     isDev() ? "." : "..",
-    "/dist-electron/preload-preview.cjs",
+    "/dist-electron/electron/preload-preview.cjs",
   );
 }
 
