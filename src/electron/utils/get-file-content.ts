@@ -2,17 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import * as XLSX from "xlsx";
 import { expandHome } from "./expand-home.js";
-
-const IMAGE_EXTENSIONS = new Set([
-  ".jpg",
-  ".jpeg",
-  ".png",
-  ".gif",
-  ".webp",
-  ".bmp",
-  ".ico",
-  ".svg",
-]);
+import { isImageExtension } from "../../common/file-category.js";
 
 const PDF_EXTENSIONS = new Set([".pdf"]);
 const DOCX_EXTENSIONS = new Set([".docx", ".doc"]);
@@ -38,9 +28,8 @@ export async function getFileContent(filePath: string) {
     const fullPath = expandHome(filePath);
     const ext = path.extname(fullPath).toLowerCase();
 
-    const isImage = IMAGE_EXTENSIONS.has(ext);
+    const isImage = isImageExtension(ext);
     const isPdf = PDF_EXTENSIONS.has(ext);
-    const isDocx = DOCX_EXTENSIONS.has(ext);
     const isXlsx = XLSX_EXTENSIONS.has(ext);
 
     // Handle image files

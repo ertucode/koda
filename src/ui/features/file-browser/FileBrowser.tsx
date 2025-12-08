@@ -31,6 +31,10 @@ import { useConfirmation } from "@/lib/hooks/useConfirmation";
 import { cols, sortNames } from "./config/columns";
 import { useDirectory } from "./hooks/useDirectory";
 import { useDefaultPath } from "./hooks/useDefaultPath";
+import {
+  FILE_TYPE_FILTER_OPTIONS,
+  type FileCategoryFilter,
+} from "./hooks/useFileBrowserSettings";
 import { FolderBreadcrumb } from "./components/FolderBreadcrumb";
 import { FavoritesList } from "./components/FavoritesList";
 import { useFavorites } from "./hooks/useFavorites";
@@ -362,6 +366,19 @@ export function FileBrowser() {
           />
           Folders on top
         </label>
+        <select
+          className="select select-sm select-bordered w-32"
+          value={d.settings.fileTypeFilter ?? "all"}
+          onChange={(e) =>
+            d.setFileTypeFilter(e.target.value as FileCategoryFilter)
+          }
+        >
+          {FILE_TYPE_FILTER_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="flex items-center gap-3">
         <button

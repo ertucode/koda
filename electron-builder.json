@@ -2,8 +2,8 @@
   "appId": "com.ertucode.mygui",
   "files": ["dist-electron", "dist-react", "assets"],
   "extraResources": [
-    "dist-electron/preload.cjs",
-    "dist-electron/preload-preview.cjs"
+    "dist-electron/electron/preload.cjs",
+    "dist-electron/electron/preload-preview.cjs"
   ],
   "mac": {
     "target": ["dmg"]

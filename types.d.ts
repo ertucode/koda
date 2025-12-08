@@ -1,11 +1,26 @@
+type FileCategory =
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'document'
+  | 'spreadsheet'
+  | 'presentation'
+  | 'archive'
+  | 'code'
+  | 'font'
+  | 'executable'
+  | 'other';
+
 type GetFilesAndFoldersInDirectoryItem = (
   | {
       type: "file";
       ext: string;
+      category: FileCategory;
     }
   | {
       type: "dir";
       ext: "";
+      category: "folder";
     }
 ) & {
   modifiedAt: string | undefined | null;

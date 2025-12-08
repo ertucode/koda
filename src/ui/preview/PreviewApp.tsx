@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CopyIcon } from "lucide-react";
 import { renderAsync } from "docx-preview";
+import { isImageExtension } from "../../common/file-category";
 
 type ContentType = "image" | "pdf" | "text" | "docx" | "xlsx";
 
@@ -66,16 +67,6 @@ export function PreviewApp() {
       });
   };
 
-  const IMAGE_EXTENSIONS = new Set([
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".gif",
-    ".webp",
-    ".bmp",
-    ".ico",
-    ".svg",
-  ]);
   const PDF_EXTENSIONS = new Set([".pdf"]);
   const DOCX_EXTENSIONS = new Set([".docx", ".doc"]);
   const XLSX_EXTENSIONS = new Set([".xlsx", ".xls", ".csv"]);
@@ -83,7 +74,7 @@ export function PreviewApp() {
   const MAX_XLSX_SIZE = 10 * 1024 * 1024; // 10MB
 
   const ext = previewData?.fileExt || "";
-  const isImage = IMAGE_EXTENSIONS.has(ext);
+  const isImage = isImageExtension(ext);
   const isPdf = PDF_EXTENSIONS.has(ext);
   const isDocx = DOCX_EXTENSIONS.has(ext);
   const isXlsx = XLSX_EXTENSIONS.has(ext);

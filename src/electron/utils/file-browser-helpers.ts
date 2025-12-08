@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import os from "os";
 import { expandHome } from "./expand-home.js";
+import { getCategoryFromExtension } from "../../common/file-category.js";
 
 export function formatSize(bytes: number | null): string {
   if (bytes === null) return "";
@@ -39,6 +39,7 @@ export async function getFilesAndFoldersInDirectory(
           type: "file" as const,
           name: entry.name,
           ext,
+          category: getCategoryFromExtension(ext),
           sizeStr: stat?.size ? formatSize(stat.size) : "--",
           size: stat?.size,
           modifiedTimestamp: stat?.mtime.getTime(),
@@ -53,6 +54,7 @@ export async function getFilesAndFoldersInDirectory(
         type: "dir" as const,
         name: entry.name,
         ext: "" as const,
+        category: "folder" as const,
         sizeStr: "--",
         size: null,
         modifiedTimestamp: stat?.mtime.getTime(),
