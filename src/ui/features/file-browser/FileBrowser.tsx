@@ -305,6 +305,7 @@ export function FileBrowser() {
           const itemsToDelete = [...s.state.indexes].map((i) => table.data[i]);
           handleDelete(itemsToDelete);
         },
+        enabledIn: () => true,
       },
       {
         key: { key: "n", ctrlKey: true },
