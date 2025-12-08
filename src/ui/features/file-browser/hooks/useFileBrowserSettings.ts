@@ -30,6 +30,7 @@ const SettingsSchema = z.object({
 });
 
 export type FileBrowserSettings = z.infer<typeof SettingsSchema>;
+export type FileBrowserSort = FileBrowserSettings["sort"];
 
 export function useFileBrowserSettings() {
   return useLocalStorage("fbSettings", SettingsSchema, {
@@ -43,7 +44,10 @@ export function useFileBrowserSettings() {
   });
 }
 
-export const FILE_TYPE_FILTER_OPTIONS: { value: FileCategoryFilter; label: string }[] = [
+export const FILE_TYPE_FILTER_OPTIONS: {
+  value: FileCategoryFilter;
+  label: string;
+}[] = [
   { value: "all", label: "All files" },
   { value: "image", label: "Images" },
   { value: "video", label: "Videos" },
