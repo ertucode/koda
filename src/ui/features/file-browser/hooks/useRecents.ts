@@ -22,6 +22,10 @@ export function useRecents() {
 
   const addRecent = (item: Omit<RecentItem, "timestamp">) => {
     setRecents((prev) => {
+      const isLastItemEquivalent =
+        prev.length > 0 && prev[0].fullPath === item.fullPath;
+      if (isLastItemEquivalent) return prev;
+
       // Remove if already exists
       const filtered = prev.filter(
         (recent) => recent.fullPath !== item.fullPath,

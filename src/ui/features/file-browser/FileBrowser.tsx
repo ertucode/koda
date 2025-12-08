@@ -1,7 +1,4 @@
 import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  ArrowUpIcon,
   FolderCogIcon,
   StarIcon,
   StarOffIcon,
@@ -23,19 +20,11 @@ import {
   ContextMenuList,
 } from "@/lib/components/context-menu";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
-import {
-  FuzzyFinderInput,
-  useFuzzyFinder,
-} from "@/lib/libs/fuzzy-find/FuzzyFinderDialog";
+import { useFuzzyFinder } from "@/lib/libs/fuzzy-find/FuzzyFinderDialog";
 import { useConfirmation } from "@/lib/hooks/useConfirmation";
 import { cols, sortNames } from "./config/columns";
 import { useDirectory } from "./hooks/useDirectory";
 import { useDefaultPath } from "./hooks/useDefaultPath";
-import {
-  FILE_TYPE_FILTER_OPTIONS,
-  type FileCategoryFilter,
-} from "./hooks/useFileBrowserSettings";
-import { FolderBreadcrumb } from "./components/FolderBreadcrumb";
 import { FavoritesList } from "./components/FavoritesList";
 import { useFavorites } from "./hooks/useFavorites";
 import { RecentsList } from "./components/RecentsList";
@@ -43,6 +32,8 @@ import { useRecents } from "./hooks/useRecents";
 import { FilePreview } from "./components/FilePreview";
 import { NewItemDialog } from "./components/NewItemDialog";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
+import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
+import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
@@ -90,21 +81,7 @@ export function FileBrowser() {
   const fuzzy = useFuzzyFinder({
     items: d.directoryData,
     keys: ["name"],
-    setHighlight: (h) => {
-      s.setState((selections) => {
-        let newSelection: number;
-        if (selections.indexes.size === 0) {
-          newSelection = typeof h === "number" ? h : h(0);
-        } else if (selections.indexes.size === 1) {
-          newSelection =
-            typeof h === "number" ? h : h(selections.lastSelected!);
-        } else {
-          newSelection =
-            typeof h === "number" ? h : h(selections.lastSelected!);
-        }
-        return { indexes: new Set([newSelection]), lastSelected: newSelection };
-      });
-    },
+    setHighlight: s.setSelection,
   });
 
   const table = useTable({
@@ -162,28 +139,11 @@ export function FileBrowser() {
   const sort = useTableSort(
     {
       state: d.settings.sort,
-      changeState: (stateOrCb) =>
-        d.setSettings((s) => {
-          if (typeof stateOrCb === "function") {
-            const newSort = stateOrCb(s.sort);
-            return { ...s, sort: newSort };
-          }
-
-          return { ...s, sort: stateOrCb };
-        }),
+      changeState: d.setSort,
       schema: sortNames,
     },
     [d.settings],
   );
-
-  const openItem = (item: GetFilesAndFoldersInDirectoryItem) => {
-    if (item.type === "dir") {
-      d.changeDirectory(item.name);
-    } else {
-      recents.addRecent({ fullPath: d.getFullName(item.name), type: "file" });
-      d.openFile(item.name);
-    }
-  };
 
   const onGoUpOrPrev = async (fn: typeof d.goPrev | typeof d.goUp) => {
     const metadata = await fn();
@@ -277,7 +237,7 @@ export function FileBrowser() {
             fuzzy.clearQuery();
             tableRef.current?.querySelector("tbody")?.focus();
           }
-          openItem(itemToOpen);
+          d.openItem(itemToOpen);
         },
         enabledIn: (e) =>
           (e.target as HTMLInputElement).id === "fuzzy-finder-input" &&
@@ -318,6 +278,13 @@ export function FileBrowser() {
           setNewItemDialogOpen(true);
         },
       },
+      {
+        key: "r",
+        handler: (e) => {
+          e.preventDefault();
+          d.reload();
+        },
+      },
       ...s.getShortcuts(table.data.length),
     ],
     {
@@ -337,9 +304,6 @@ export function FileBrowser() {
       ? d.getFullName(selectedItem.name)
       : null;
 
-  const navigationButtonClassName = "btn btn-xs btn-soft btn-info";
-  const navigationButtonIconClassName = "size-4";
-
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
       <NewItemDialog
@@ -347,65 +311,13 @@ export function FileBrowser() {
         onClose={() => setNewItemDialogOpen(false)}
         onSubmit={handleCreateNewItem}
       />
-      <div className="flex gap-3">
-        <label className="label">
-          <input
-            type="checkbox"
-            className="checkbox checkbox-sm"
-            checked={d.settings.showDotFiles}
-            onChange={() => d.toggleShowDotFiles()}
-          />
-          Show dot files
-        </label>
-        <label className="label">
-          <input
-            type="checkbox"
-            className="checkbox checkbox-sm"
-            checked={d.settings.foldersOnTop}
-            onChange={() => d.toggleFoldersOnTop()}
-          />
-          Folders on top
-        </label>
-        <select
-          className="select select-sm select-bordered w-32"
-          value={d.settings.fileTypeFilter ?? "all"}
-          onChange={(e) =>
-            d.setFileTypeFilter(e.target.value as FileCategoryFilter)
-          }
-        >
-          {FILE_TYPE_FILTER_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="flex items-center gap-3">
-        <button
-          className={navigationButtonClassName}
-          onClick={d.goPrev}
-          disabled={!d.hasPrev}
-        >
-          {<ArrowLeftIcon className={navigationButtonIconClassName} />}
-        </button>
-        <button
-          className={navigationButtonClassName}
-          onClick={d.goNext}
-          disabled={!d.hasNext}
-        >
-          {<ArrowRightIcon className={navigationButtonIconClassName} />}
-        </button>
-        <button
-          className={navigationButtonClassName}
-          onClick={() => onGoUpOrPrev(d.goUp)}
-        >
-          {<ArrowUpIcon className={navigationButtonIconClassName} />}
-        </button>
-        <div className="flex-1">
-          <FolderBreadcrumb d={d} defaultPath={defaultPath} />
-        </div>
-        <FuzzyFinderInput fuzzy={fuzzy} className="w-48 min-[1000px]:w-80" />
-      </div>
+      <FileBrowserOptionsSection d={d} />
+      <FileBrowserNavigationAndInputSection
+        d={d}
+        defaultPath={defaultPath}
+        fuzzy={fuzzy}
+        onGoUpOrPrev={onGoUpOrPrev}
+      />
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
         <div className="flex flex-col h-full min-h-0 overflow-hidden">
           <FavoritesList
@@ -425,7 +337,7 @@ export function FileBrowser() {
               tableRef={tableRef}
               table={table}
               sort={sort}
-              onRowDoubleClick={openItem}
+              onRowDoubleClick={d.openItem}
               selection={s}
               ContextMenu={getRowContextMenu({
                 setAsDefaultPath: (p) => {

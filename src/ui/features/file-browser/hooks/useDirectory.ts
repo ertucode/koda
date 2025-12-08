@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { HistoryStack } from "@common/history-stack";
 import { useForceRerender } from "@/lib/hooks/forceRerender";
 import { errorToString } from "@common/errorToString";
@@ -6,6 +12,7 @@ import { mergeMaybeSlashed } from "@common/merge-maybe-slashed";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import {
   DirectoryDataFromSettings,
+  FileBrowserSort,
   useFileBrowserSettings,
 } from "./useFileBrowserSettings";
 import { useRecents } from "./useRecents";
@@ -146,16 +153,21 @@ export function useDirectory(
 
   const hasPrev = historyStack.hasPrev;
 
+  const changeDirectory = async (newDirectory: string) => {
+    cd(
+      {
+        fullName: getFullName(newDirectory),
+        name: newDirectory,
+      },
+      true,
+    );
+  };
+
+  const openFile = (filePath: string) =>
+    window.electron.openFile(getFullName(filePath));
+
   return {
-    changeDirectory: async (newDirectory: string) => {
-      cd(
-        {
-          fullName: getFullName(newDirectory),
-          name: newDirectory,
-        },
-        true,
-      );
-    },
+    changeDirectory,
     cd: (dir: DirectoryInfo) => cd(dir, true),
     cdFull: (fullPath: string) => {
       const parts = fullPath.split("/").filter(Boolean);
@@ -203,11 +215,27 @@ export function useDirectory(
       setSettings((s) => ({ ...s, foldersOnTop: !s.foldersOnTop })),
     setFileTypeFilter: (filter: typeof settings.fileTypeFilter) =>
       setSettings((s) => ({ ...s, fileTypeFilter: filter })),
-    openFile: (filePath: string) =>
-      window.electron.openFile(getFullName(filePath)),
+    openFile,
     getFullName,
     preloadDirectory,
     setSettings,
+    setSort: (stateOrCb: SetStateAction<FileBrowserSort>) =>
+      setSettings((s) => {
+        if (typeof stateOrCb === "function") {
+          const newSort = stateOrCb(s.sort);
+          return { ...s, sort: newSort };
+        }
+
+        return { ...s, sort: stateOrCb };
+      }),
     reload: () => loadDirectory(directory.fullName),
+    openItem: (item: GetFilesAndFoldersInDirectoryItem) => {
+      if (item.type === "dir") {
+        changeDirectory(item.name);
+      } else {
+        recents.addRecent({ fullPath: getFullName(item.name), type: "file" });
+        openFile(item.name);
+      }
+    },
   };
 }

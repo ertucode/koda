@@ -199,6 +199,21 @@ export function useSelection(props: SelectionInput) {
     },
     state,
     setState,
+    setSelection: (h: number | ((s: number) => number)) => {
+      setState((selections) => {
+        let newSelection: number;
+        if (selections.indexes.size === 0) {
+          newSelection = typeof h === "number" ? h : h(0);
+        } else if (selections.indexes.size === 1) {
+          newSelection =
+            typeof h === "number" ? h : h(selections.lastSelected!);
+        } else {
+          newSelection =
+            typeof h === "number" ? h : h(selections.lastSelected!);
+        }
+        return { indexes: new Set([newSelection]), lastSelected: newSelection };
+      });
+    },
   };
 }
 
