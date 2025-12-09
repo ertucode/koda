@@ -244,7 +244,7 @@ export function FileBrowser() {
           e.key === "Enter",
       },
       {
-        key: ["Backspace", "h"],
+        key: ["h"],
         handler: (_) => {
           onGoUpOrPrev(d.goPrev);
         },
