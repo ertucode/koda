@@ -11,7 +11,7 @@ const recentsSchema = z.array(recentItemSchema);
 
 export type RecentItem = z.infer<typeof recentItemSchema>;
 
-const MAX_RECENTS = 10;
+const MAX_RECENTS = 30;
 
 export function useRecents() {
   const [recents, setRecents] = useLocalStorage(
