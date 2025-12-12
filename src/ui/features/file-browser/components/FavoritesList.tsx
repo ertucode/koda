@@ -19,7 +19,13 @@ export function FavoritesList({ favorites, d, className }: FavoritesListProps) {
       emptyMessage="No favorites yet"
       getKey={(favorite) => favorite.fullPath}
       isSelected={(favorite) => d.directory.fullName === favorite.fullPath}
-      onClick={(favorite) => d.cdFull(favorite.fullPath)}
+      onClick={(favorite) => {
+        if (favorite.type === "dir") {
+          d.cdFull(favorite.fullPath);
+        } else {
+          d.openFileFull(favorite.fullPath);
+        }
+      }}
       getContextMenuItems={(favorite) => [
         {
           view: (

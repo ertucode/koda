@@ -166,8 +166,9 @@ export function useDirectory(
     );
   };
 
-  const openFile = (filePath: string) =>
-    getWindowElectron().openFile(getFullName(filePath));
+  const openFileFull = (fullPath: string) =>
+    getWindowElectron().openFile(fullPath);
+  const openFile = (filePath: string) => openFileFull(getFullName(filePath));
 
   return {
     changeDirectory,
@@ -241,5 +242,6 @@ export function useDirectory(
         openFile(item.name);
       }
     },
+    openFileFull,
   };
 }
