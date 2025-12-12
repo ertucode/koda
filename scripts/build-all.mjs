@@ -18,8 +18,11 @@ const rg = run("build-rg.mjs");
 console.log("=== Building fzy ===");
 const fzy = run("build-fzy.mjs");
 
-Promise.all([rg, fzy])
-  .then(() => console.log("✔ Both vendors built"))
+console.log("=== Building fd ===");
+const fd = run("build-fd.mjs");
+
+Promise.all([rg, fzy, fd])
+  .then(() => console.log("✔ All vendors built"))
   .catch((err) => {
     console.error(err);
     process.exit(1);
