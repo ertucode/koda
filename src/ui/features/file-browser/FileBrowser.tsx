@@ -8,6 +8,7 @@ import {
   CopyIcon,
   ScissorsIcon,
   ClipboardPasteIcon,
+  TagIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/lib/components/alert";
@@ -33,6 +34,9 @@ import { FavoritesList } from "./components/FavoritesList";
 import { useFavorites } from "./hooks/useFavorites";
 import { RecentsList } from "./components/RecentsList";
 import { useRecents } from "./hooks/useRecents";
+import { TagsList } from "./components/TagsList";
+import { useTags, TAG_COLOR_CLASSES } from "./hooks/useTags";
+import { AssignTagsDialog } from "./components/AssignTagsDialog";
 import { FilePreview } from "./components/FilePreview";
 import { NewItemDialog } from "./components/NewItemDialog";
 import { RenameDialog } from "./components/RenameDialog";
@@ -63,6 +67,8 @@ export function FileBrowser() {
   const tableRef = useRef<HTMLTableElement>(null);
   const [isFuzzyFinderOpen, setIsFuzzyFinderOpen] = useState(false);
   const [finderInitialTab, setFinderInitialTab] = useState<FinderTab>("files");
+  const [assignTagsPath, setAssignTagsPath] = useState<string | null>(null);
+  const tags = useTags();
 
   useEffect(() => {
     s.reset();
@@ -541,6 +547,12 @@ export function FileBrowser() {
         initialTab={finderInitialTab}
       />
       {dialogs.RenderOutside}
+      <AssignTagsDialog
+        isOpen={assignTagsPath !== null}
+        onClose={() => setAssignTagsPath(null)}
+        fullPath={assignTagsPath || ""}
+        tags={tags}
+      />
       <FileBrowserOptionsSection d={d} />
       <FileBrowserNavigationAndInputSection
         d={d}
@@ -556,9 +568,10 @@ export function FileBrowser() {
           <FavoritesList
             favorites={favorites}
             d={d}
-            className="flex-1 min-h-0"
+            className="flex-1 min-h-0 basis-0"
           />
-          <RecentsList recents={recents} d={d} className="flex-1 min-h-0" />
+          <RecentsList recents={recents} d={d} className="flex-1 min-h-0 basis-0" />
+          <TagsList tags={tags} d={d} className="flex-1 min-h-0 basis-0" />
         </div>
         <ResizeHandle
           onMouseDown={sidebarPanel.handleMouseDown}
@@ -588,6 +601,8 @@ export function FileBrowser() {
                 selection: s,
                 tableData: table.data,
                 dialogs: dialogs as any, // TODO: fix this
+                tags,
+                openAssignTagsDialog: (fullPath: string) => setAssignTagsPath(fullPath),
               })}
               onRowDragStart={async (item, index, e) => {
                 const alreadySelected = s.state.indexes.has(index);
@@ -654,6 +669,8 @@ function getRowContextMenu({
   selection,
   tableData,
   dialogs,
+  tags,
+  openAssignTagsDialog,
 }: {
   setAsDefaultPath: (path: string) => void;
   favorites: ReturnType<typeof useFavorites>;
@@ -667,6 +684,8 @@ function getRowContextMenu({
   selection: ReturnType<typeof useSelection>;
   tableData: GetFilesAndFoldersInDirectoryItem[];
   dialogs: DialogsReturn<GetFilesAndFoldersInDirectoryItem>;
+  tags: ReturnType<typeof useTags>;
+  openAssignTagsDialog: (fullPath: string) => void;
 }) {
   return ({
     item,
@@ -764,6 +783,34 @@ function getRowContextMenu({
 
     const commonItems = renderAsContextMenu(item, dialogs);
 
+    // Tag-related menu items
+    const assignTagsItem: ContextMenuItem = {
+      onClick: () => {
+        openAssignTagsDialog(fullPath);
+        close();
+      },
+      view: <TextWithIcon icon={TagIcon}>Assign Tags...</TextWithIcon>,
+    };
+
+    // Last used tag quick-add item
+    const lastUsedTagItem: ContextMenuItem | null =
+      tags.lastUsedTag && !tags.hasTag(fullPath, tags.lastUsedTag)
+        ? {
+            onClick: () => {
+              tags.addTagToFile(fullPath, tags.lastUsedTag!);
+              close();
+            },
+            view: (
+              <div className="flex items-center gap-2">
+                <span
+                  className={`size-3 rounded-full ${TAG_COLOR_CLASSES[tags.lastUsedTag].dot}`}
+                />
+                <span>Add to "{tags.getTagName(tags.lastUsedTag)}"</span>
+              </div>
+            ),
+          }
+        : null;
+
     if (item.type === "dir")
       return (
         <ContextMenuList
@@ -780,6 +827,8 @@ function getRowContextMenu({
               ),
             },
             favoriteItem,
+            lastUsedTagItem,
+            assignTagsItem,
             copyItem,
             cutItem,
             pasteItem,
@@ -793,6 +842,8 @@ function getRowContextMenu({
       <ContextMenuList
         items={[
           favoriteItem,
+          lastUsedTagItem,
+          assignTagsItem,
           copyItem,
           cutItem,
           pasteItem,
