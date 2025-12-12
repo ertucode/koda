@@ -14,3 +14,4 @@ const base =
 
 export const rgPath = path.join(base, "rg");
 export const fzyPath = path.join(base, "fzy", "fzy");
+export const fdPath = path.join(base, "fd");

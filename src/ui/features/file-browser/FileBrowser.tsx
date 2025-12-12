@@ -341,6 +341,14 @@ export function FileBrowser() {
         },
       },
       {
+        key: { key: "f", ctrlKey: true },
+        handler: (e) => {
+          e.preventDefault();
+          setFinderInitialTab("folders");
+          setIsFuzzyFinderOpen(true);
+        },
+      },
+      {
         key: { key: "o", ctrlKey: true },
         handler: (_) => {
           onGoUpOrPrev(d.goPrev);

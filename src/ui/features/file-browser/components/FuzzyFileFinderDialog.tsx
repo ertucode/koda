@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import { Dialog } from "@/lib/components/dialog";
-import { FileIcon, SearchIcon } from "lucide-react";
+import { FileIcon, SearchIcon, FolderIcon } from "lucide-react";
 import { useDirectory } from "../hooks/useDirectory";
 import { FileFinderTab } from "./FileFinderTab";
 import { StringFinderTab } from "./StringFinderTab";
+import { FolderFinderTab } from "./FolderFinderTab";
 
-export type FinderTab = "files" | "strings";
+export type FinderTab = "files" | "folders" | "strings";
 
 type FuzzyFileFinderDialogProps = {
   directory: ReturnType<typeof useDirectory>;
@@ -50,7 +51,11 @@ export function FuzzyFileFinderDialog({
   };
 
   const handleTabSwitch = () => {
-    setActiveTab((prev) => (prev === "files" ? "strings" : "files"));
+    setActiveTab((prev) => {
+      if (prev === "files") return "folders";
+      if (prev === "folders") return "strings";
+      return "files";
+    });
   };
 
   // Handle keyboard shortcuts
@@ -83,6 +88,11 @@ export function FuzzyFileFinderDialog({
       id: "files",
       label: "Find File",
       icon: <FileIcon className="w-4 h-4" />,
+    },
+    {
+      id: "folders",
+      label: "Find Folder",
+      icon: <FolderIcon className="w-4 h-4" />,
     },
     {
       id: "strings",
@@ -120,14 +130,23 @@ export function FuzzyFileFinderDialog({
 
         {/* Tab Content */}
         <div className="flex-1 min-h-0 overflow-visible">
-          {activeTab === "files" ? (
+          {activeTab === "files" && (
             <FileFinderTab
               directory={directory}
               isOpen={isOpen}
               onClose={onClose}
               showPreview={showPreview}
             />
-          ) : (
+          )}
+          {activeTab === "folders" && (
+            <FolderFinderTab
+              directory={directory}
+              isOpen={isOpen}
+              onClose={onClose}
+              showPreview={showPreview}
+            />
+          )}
+          {activeTab === "strings" && (
             <StringFinderTab
               directory={directory}
               isOpen={isOpen}

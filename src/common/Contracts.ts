@@ -77,6 +77,7 @@ export type EventResponseMapping = {
   pasteFiles: Promise<GenericResult<{ pastedItems: string[] }>>;
   fuzzyFileFinder: Promise<GenericResult<string[]>>;
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>;
+  fuzzyFolderFinder: Promise<GenericResult<string[]>>;
 };
 
 export type EventRequestMapping = {
@@ -103,6 +104,7 @@ export type EventRequestMapping = {
   pasteFiles: { destinationDir: string };
   fuzzyFileFinder: { directory: string; query: string };
   searchStringRecursively: { directory: string; query: string };
+  fuzzyFolderFinder: { directory: string; query: string };
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -166,4 +168,8 @@ export type WindowElectron = {
     directory: string,
     query: string,
   ) => Promise<GenericResult<StringSearchResult[]>>;
+  fuzzyFolderFinder: (
+    directory: string,
+    query: string,
+  ) => Promise<GenericResult<string[]>>;
 };

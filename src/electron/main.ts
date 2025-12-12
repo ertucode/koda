@@ -20,6 +20,7 @@ import { copyFiles } from "./utils/copy-files.js";
 import { pasteFiles } from "./utils/paste-files.js";
 import { fuzzyFileFinder } from "./utils/fuzzy-file-finder.js";
 import { searchStringRecursively } from "./utils/search-string-recursively.js";
+import { fuzzyFolderFinder } from "./utils/fuzzy-folder-finder.js";
 
 app.on("ready", () => {
   const menuTemplate: Electron.MenuItemConstructorOptions[] = [
@@ -157,5 +158,8 @@ app.on("ready", () => {
   );
   ipcHandle("searchStringRecursively", ({ directory, query }) =>
     searchStringRecursively(directory, query),
+  );
+  ipcHandle("fuzzyFolderFinder", ({ directory, query }) =>
+    fuzzyFolderFinder(directory, query),
   );
 });
