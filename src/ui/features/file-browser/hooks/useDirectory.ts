@@ -18,15 +18,23 @@ import {
 import { useRecents } from "./useRecents";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
+import { TagColor } from "./useTags";
 
-type DirectoryInfo = {
-  fullName: string;
-};
+export type DirectoryInfo =
+  | { type: "path"; fullPath: string }
+  | { type: "tags"; color: TagColor };
 
 function getDirectoryInfo(dir: string): DirectoryInfo {
   const idx = dir.indexOf("/");
   if (idx === -1) throw new Error("Invalid directory name");
-  return { fullName: dir };
+  return { type: "path", fullPath: dir };
+}
+
+function directoryInfoEquals(a: DirectoryInfo, b: DirectoryInfo): boolean {
+  if (a.type !== b.type) return false;
+  if (a.type === "path" && b.type === "path") return a.fullPath === b.fullPath;
+  if (a.type === "tags" && b.type === "tags") return a.color === b.color;
+  return false;
 }
 
 type FileBrowserCacheOperation =
@@ -66,9 +74,12 @@ function getFolderNameParts(dir: string) {
   return dir.split("/").filter(Boolean);
 }
 
+export type TaggedFilesGetter = (color: TagColor) => string[];
+
 export function useDirectory(
   initialDirectory: string,
   recents: ReturnType<typeof useRecents>,
+  getFilesWithTag?: TaggedFilesGetter,
 ) {
   const initialDirectoryInfo = getDirectoryInfo(initialDirectory);
   const [settings, setSettings] = useFileBrowserSettings();
@@ -84,10 +95,10 @@ export function useDirectory(
   const forceRerender = useForceRerender();
 
   useEffect(() => {
-    loadDirectory(initialDirectory);
+    loadDirectoryPath(initialDirectory);
   }, []);
 
-  const loadDirectory = useCallback(async (dir: string) => {
+  const loadDirectoryPath = useCallback(async (dir: string) => {
     // TODO: cancel previous request
     setLoading(true);
     try {
@@ -110,6 +121,35 @@ export function useDirectory(
     }
   }, []);
 
+  const loadTaggedFiles = useCallback(async (color: TagColor) => {
+    if (!getFilesWithTag) return;
+    setLoading(true);
+    try {
+      const filePaths = getFilesWithTag(color);
+      if (filePaths.length === 0) {
+        setDirectoryData([]);
+        setError(undefined);
+        return [];
+      }
+      const result = await getWindowElectron().getFileInfoByPaths(filePaths);
+      setDirectoryData(result);
+      setError(undefined);
+      return result;
+    } catch (e) {
+      setError(errorToString(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [getFilesWithTag]);
+
+  const loadDirectoryInfo = useCallback(async (info: DirectoryInfo) => {
+    if (info.type === "path") {
+      return loadDirectoryPath(info.fullPath);
+    } else {
+      return loadTaggedFiles(info.color);
+    }
+  }, [loadDirectoryPath, loadTaggedFiles]);
+
   const directoryData = useMemo(
     () => DirectoryDataFromSettings.getDirectoryData(_directoryData, settings),
     [_directoryData, settings],
@@ -122,19 +162,26 @@ export function useDirectory(
 
   const cd = async (newDirectory: DirectoryInfo, isNew: boolean) => {
     if (loading) return;
-    if (newDirectory.fullName === directory.fullName) return;
+    if (directoryInfoEquals(newDirectory, directory)) return;
     if (isNew) historyStack.goNew(newDirectory);
     setDirectory(newDirectory);
-    recents.addRecent({ fullPath: newDirectory.fullName, type: "dir" });
-    return loadDirectory(newDirectory.fullName);
+    if (newDirectory.type === "path") {
+      recents.addRecent({ fullPath: newDirectory.fullPath, type: "dir" });
+    }
+    return loadDirectoryInfo(newDirectory);
   };
 
   const preloadDirectory = (dir: string) => {
     return FileBrowserCache.load(dir);
   };
 
-  const getFullName = (dir: string) =>
-    mergeMaybeSlashed(directory.fullName, dir);
+  const getFullPath = (dir: string) => {
+    if (directory.type === "path") {
+      return mergeMaybeSlashed(directory.fullPath, dir);
+    }
+    // For tags view, we cannot merge paths
+    return dir;
+  };
 
   const cdWithMetadata = async (
     newDirectory: DirectoryInfo,
@@ -155,7 +202,8 @@ export function useDirectory(
   const changeDirectory = async (newDirectory: string) => {
     cd(
       {
-        fullName: getFullName(newDirectory),
+        type: "path",
+        fullPath: getFullPath(newDirectory),
       },
       true,
     );
@@ -163,13 +211,16 @@ export function useDirectory(
 
   const openFileFull = (fullPath: string) =>
     getWindowElectron().openFile(fullPath);
-  const openFile = (filePath: string) => openFileFull(getFullName(filePath));
+  const openFile = (filePath: string) => openFileFull(getFullPath(filePath));
 
   return {
     changeDirectory,
     cd: (dir: DirectoryInfo) => cd(dir, true),
     cdFull: (fullPath: string) => {
-      return cd({ fullName: fullPath }, true);
+      return cd({ type: "path", fullPath }, true);
+    },
+    showTaggedFiles: (color: TagColor) => {
+      return cd({ type: "tags", color }, true);
     },
     loading,
     directoryData,
@@ -186,20 +237,22 @@ export function useDirectory(
       return await cdWithMetadata(p, false);
     },
     goUp: async () => {
-      let parts = getFolderNameParts(directory.fullName);
+      // goUp only makes sense when in a path directory
+      if (directory.type !== "path") return;
+      let parts = getFolderNameParts(directory.fullPath);
       if (parts.length === 1) {
         if (parts[0] === "~") {
           const home = await getWindowElectron().getHomeDirectory();
           parts = getFolderNameParts(home);
         }
       }
-      let fullName = parts.slice(0, parts.length - 1).join("/") + "/";
-      if (fullName[0] !== "/" && fullName[0] !== "~") {
-        fullName = "/" + fullName;
+      let fullPath = parts.slice(0, parts.length - 1).join("/") + "/";
+      if (fullPath[0] !== "/" && fullPath[0] !== "~") {
+        fullPath = "/" + fullPath;
       }
-      const info = {
-        fullName,
-        name: parts[parts.length - 1],
+      const info: DirectoryInfo = {
+        type: "path",
+        fullPath,
       };
       return await cdWithMetadata(info, true);
     },
@@ -214,7 +267,7 @@ export function useDirectory(
     setFileTypeFilter: (filter: typeof settings.fileTypeFilter) =>
       setSettings((s) => ({ ...s, fileTypeFilter: filter })),
     openFile,
-    getFullName,
+    getFullPath,
     preloadDirectory,
     setSettings,
     setSort: (stateOrCb: SetStateAction<FileBrowserSort>) =>
@@ -226,13 +279,19 @@ export function useDirectory(
 
         return { ...s, sort: stateOrCb };
       }),
-    reload: () => loadDirectory(directory.fullName),
+    reload: () => loadDirectoryInfo(directory),
     openItem: (item: GetFilesAndFoldersInDirectoryItem) => {
       if (item.type === "dir") {
-        changeDirectory(item.name);
+        // If we have a fullPath (from tags view), use it directly
+        if (item.fullPath) {
+          cd({ type: "path", fullPath: item.fullPath }, true);
+        } else {
+          changeDirectory(item.name);
+        }
       } else {
-        recents.addRecent({ fullPath: getFullName(item.name), type: "file" });
-        openFile(item.name);
+        const fullPath = item.fullPath || getFullPath(item.name);
+        recents.addRecent({ fullPath, type: "file" });
+        openFileFull(fullPath);
       }
     },
     openFileFull,

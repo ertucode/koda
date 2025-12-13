@@ -6,24 +6,40 @@ import {
 } from "@/lib/components/context-menu";
 import type { useDirectory } from "../hooks/useDirectory";
 import type { useDefaultPath } from "../hooks/useDefaultPath";
-
-function getFolderNameParts(dir: string) {
-  return dir.split("/").filter(Boolean);
-}
-
-function reconstructDirectory(parts: string[], idx: number) {
-  return parts.slice(0, idx + 1).join("/") + "/";
-}
+import { useTags, TAG_COLOR_CLASSES } from "../hooks/useTags";
+import { PathHelpers } from "@common/PathHelpers";
 
 export function FolderBreadcrumb({
   d,
   defaultPath,
+  tags,
 }: {
   d: ReturnType<typeof useDirectory>;
   defaultPath: ReturnType<typeof useDefaultPath>;
+  tags?: ReturnType<typeof useTags>;
 }) {
-  const parts = getFolderNameParts(d.directory.fullName);
   const menu = useContextMenu<number>();
+
+  if (d.directory.type === "tags") {
+    const tagName = tags?.getTagName(d.directory.color) ?? d.directory.color;
+    return (
+      <div className="breadcrumbs text-sm">
+        <ul>
+          <li className="flex items-center gap-1">
+            <a className="flex items-center gap-3">
+              {/* <TagIcon className="size-4" /> */}
+              <span
+                className={`size-3 rounded-full ${TAG_COLOR_CLASSES[d.directory.color].dot}`}
+              />
+              <div>{tagName}</div>
+            </a>
+          </li>
+        </ul>
+      </div>
+    );
+  }
+
+  const parts = PathHelpers.getFolderNameParts(d.directory.fullPath);
 
   return (
     <div className="breadcrumbs text-sm">
@@ -33,7 +49,12 @@ export function FolderBreadcrumb({
             items={[
               {
                 onClick: () => {
-                  defaultPath.setPath(reconstructDirectory(parts, menu.item!));
+                  defaultPath.setPath(
+                    PathHelpers.reconstructDirectoryUntilIndex(
+                      parts,
+                      menu.item!,
+                    ),
+                  );
                   menu.close();
                 },
                 view: "Set as default path",
@@ -50,7 +71,11 @@ export function FolderBreadcrumb({
               className="flex items-center gap-1"
               onClick={() =>
                 d.cd({
-                  fullName: reconstructDirectory(parts, idx),
+                  type: "path",
+                  fullPath: PathHelpers.reconstructDirectoryUntilIndex(
+                    parts,
+                    idx,
+                  ),
                 })
               }
               onContextMenu={(e) => {

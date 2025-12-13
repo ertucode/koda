@@ -19,7 +19,7 @@ export function RecentsList({ recents, d, className }: RecentsListProps) {
       header="Recents"
       emptyMessage="No recent directories"
       getKey={(recent) => recent.fullPath}
-      isSelected={(recent) => d.directory.fullName === recent.fullPath}
+      isSelected={(recent) => d.directory.type === "path" && d.directory.fullPath === recent.fullPath}
       onClick={(recent) => {
         if (recent.type === "dir") {
           d.cdFull(recent.fullPath);

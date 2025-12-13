@@ -28,7 +28,7 @@ export function FavoritesList({
       header="Favorites"
       emptyMessage="No favorites yet"
       getKey={(favorite) => favorite.fullPath}
-      isSelected={(favorite) => d.directory.fullName === favorite.fullPath}
+      isSelected={(favorite) => d.directory.type === "path" && d.directory.fullPath === favorite.fullPath}
       onClick={openFavorite}
       getContextMenuItems={(favorite) => [
         {

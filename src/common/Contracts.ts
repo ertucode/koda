@@ -43,11 +43,13 @@ export type GetFilesAndFoldersInDirectoryItem = (
   sizeStr: string | null | undefined;
   size: number | undefined | null;
   name: string;
+  fullPath?: string;
 };
 
 export type EventResponseMapping = {
   docxToPdf: Promise<string>;
   getFilesAndFoldersInDirectory: Promise<GetFilesAndFoldersInDirectoryItem[]>;
+  getFileInfoByPaths: Promise<GetFilesAndFoldersInDirectoryItem[]>;
   openFile: Promise<unknown>;
   onDragStart: Promise<unknown>;
   captureRect: Promise<unknown>;
@@ -99,6 +101,7 @@ export type StringSearchOptions = {
 export type EventRequestMapping = {
   docxToPdf: string;
   getFilesAndFoldersInDirectory: string;
+  getFileInfoByPaths: string[];
   openFile: string;
   onDragStart: {
     files: string[];
@@ -195,4 +198,7 @@ export type WindowElectron = {
     directory: string,
     query: string,
   ) => Promise<GenericResult<string[]>>;
+  getFileInfoByPaths: (
+    filePaths: string[],
+  ) => Promise<GetFilesAndFoldersInDirectoryItem[]>;
 };

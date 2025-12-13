@@ -6,7 +6,7 @@ import {
   getUIPath,
 } from "./pathResolver.js";
 import { convertDocxToPdf } from "./utils/docx-to-pdf.js";
-import { getFilesAndFoldersInDirectory } from "./utils/get-files-and-folders-in-directory.js";
+import { getFilesAndFoldersInDirectory, getFileInfoByPaths } from "./utils/get-files-and-folders-in-directory.js";
 import { openFile } from "./utils/open-file.js";
 import { expandHome } from "./utils/expand-home.js";
 import { base64ImageToTempPath } from "./utils/base64-image-to-temp-path.js";
@@ -152,4 +152,5 @@ app.on("ready", () => {
   ipcHandle("fuzzyFolderFinder", ({ directory, query }) =>
     fuzzyFolderFinder(directory, query),
   );
+  ipcHandle("getFileInfoByPaths", getFileInfoByPaths);
 });
