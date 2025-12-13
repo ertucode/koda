@@ -4,7 +4,7 @@ import { clsx } from "../../functions/clsx";
 import type { useSelection } from "./useSelection";
 import type { TableMetadata } from "./useTable";
 import { useTableSort } from "./useTableSort";
-import { RefObject } from "react";
+import { RefObject, useRef } from "react";
 
 export type TableProps<T> = {
   table: TableMetadata<T>;
@@ -36,6 +36,7 @@ export function Table<T>({
   ...props
 }: TableProps<T>) {
   const contextMenu = useContextMenu<T>();
+  const lastClickRef = useRef<{ index: number; timestamp: number } | null>(null);
 
   return (
     <>
@@ -97,12 +98,29 @@ export function Table<T>({
                       "bg-base-content/10 row-selected",
                     "select-none",
                   )}
-                  onDoubleClick={
-                    onRowDoubleClick
-                      ? () => onRowDoubleClick(table.data[idx])
-                      : undefined
-                  }
-                  onClick={(e) => selection?.select(idx, e)}
+                  onClick={(e) => {
+                    const now = Date.now();
+                    const lastClick = lastClickRef.current;
+                    
+                    // Check if this is a double-click (same row, within 500ms)
+                    if (
+                      lastClick &&
+                      lastClick.index === idx &&
+                      now - lastClick.timestamp < 500
+                    ) {
+                      // This is a double-click
+                      if (onRowDoubleClick) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onRowDoubleClick(table.data[idx]);
+                      }
+                      lastClickRef.current = null;
+                    } else {
+                      // This is a single click
+                      selection?.select(idx, e);
+                      lastClickRef.current = { index: idx, timestamp: now };
+                    }
+                  }}
                   onContextMenu={(e) => {
                     if (props.ContextMenu == null) return;
                     e.preventDefault();
