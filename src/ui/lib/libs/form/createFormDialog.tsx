@@ -23,7 +23,11 @@ export type CreateFormDialogOpts<
   getFormParams: (item: TItem | undefined) => UseFormProps<TRequest, any>;
   translationNamespace?: string[];
   props?: TProps;
-  action: (body: TRequest, props: TProps) => Promise<ResultHandlerResult>;
+  action: (
+    body: TRequest,
+    props: TProps,
+    item: TItem,
+  ) => Promise<ResultHandlerResult>;
   onSuccessBehavior?: {
     resetForm?: boolean;
     closeDialog?: boolean;
@@ -91,7 +95,7 @@ export function createFormDialog<
 
     const { onResult } = useDefaultResultHandler();
     async function onSubmit(data: TForm) {
-      const result = await opts.action(data, props as any as TProps);
+      const result = await opts.action(data, props as any as TProps, item!);
 
       onResult(result, {
         success: () => {

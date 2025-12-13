@@ -5,23 +5,22 @@ import {
   ContextMenuList,
   useContextMenu,
 } from "@/lib/components/context-menu";
-import type { useDirectory } from "../hooks/useDirectory";
 import type { useDefaultPath } from "../hooks/useDefaultPath";
 import { tagsStore, TAG_COLOR_CLASSES, selectTagConfig } from "../tags";
 import { PathHelpers } from "@common/PathHelpers";
+import { directoryStore, directoryHelpers, selectDirectory } from "../directory";
 
 export function FolderBreadcrumb({
-  d,
   defaultPath,
 }: {
-  d: ReturnType<typeof useDirectory>;
   defaultPath: ReturnType<typeof useDefaultPath>;
 }) {
   const menu = useContextMenu<number>();
   const tagConfig = useSelector(tagsStore, selectTagConfig);
+  const directory = useSelector(directoryStore, selectDirectory);
 
-  if (d.directory.type === "tags") {
-    const tagName = tagConfig[d.directory.color] || d.directory.color;
+  if (directory.type === "tags") {
+    const tagName = tagConfig[directory.color] || directory.color;
     return (
       <div className="breadcrumbs text-sm py-0">
         <ul>
@@ -29,7 +28,7 @@ export function FolderBreadcrumb({
             <a className="flex items-center gap-3">
               {/* <TagIcon className="size-4" /> */}
               <span
-                className={`size-3 rounded-full ${TAG_COLOR_CLASSES[d.directory.color].dot}`}
+                className={`size-3 rounded-full ${TAG_COLOR_CLASSES[directory.color].dot}`}
               />
               <div>{tagName}</div>
             </a>
@@ -39,7 +38,7 @@ export function FolderBreadcrumb({
     );
   }
 
-  const parts = PathHelpers.getFolderNameParts(d.directory.fullPath);
+  const parts = PathHelpers.getFolderNameParts(directory.fullPath);
 
   return (
     <div className="breadcrumbs text-sm py-0">
@@ -70,7 +69,7 @@ export function FolderBreadcrumb({
               key={idx}
               className="flex items-center gap-1"
               onClick={() =>
-                d.cd({
+                directoryHelpers.cd({
                   type: "path",
                   fullPath: PathHelpers.reconstructDirectoryUntilIndex(
                     parts,

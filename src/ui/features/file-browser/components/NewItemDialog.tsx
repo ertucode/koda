@@ -1,20 +1,18 @@
-import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
 import { createFormDialog } from "@/lib/libs/form/createFormDialog";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FilePlusIcon } from "lucide-react";
 import z from "zod";
+import { directoryHelpers } from "../directory";
 
 export const NewItemDialog = createFormDialog<
   GetFilesAndFoldersInDirectoryItem,
   { name: string },
-  {
-    onSubmit: (newName: string) => Promise<ResultHandlerResult>;
-  }
+  {}
 >({
   schema: z.object({
     name: z.string(),
   }),
-  action: (body, props) => props.onSubmit(body.name),
+  action: (body, _) => directoryHelpers.createNewItem(body.name),
   getConfigs: () => [
     {
       field: "name",
