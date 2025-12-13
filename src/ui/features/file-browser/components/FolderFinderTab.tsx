@@ -38,8 +38,9 @@ export function FolderFinderTab({
       setIsLoading(true);
       setError(null);
       try {
+        if (directory.directory.type !== "path") return;
         const result = await getWindowElectron().fuzzyFolderFinder(
-          directory.directory.fullName,
+          directory.directory.fullPath,
           query,
         );
         if (result.success) {
@@ -60,7 +61,7 @@ export function FolderFinderTab({
     };
 
     searchFolders();
-  }, [isOpen, directory.directory.fullName, query]);
+  }, [isOpen, directory.directory, query]);
 
   // Load folder contents when selection changes
   useEffect(() => {
@@ -75,7 +76,7 @@ export function FolderFinderTab({
     const loadContents = async () => {
       setIsLoadingContents(true);
       try {
-        const fullPath = directory.getFullName(selectedFolder);
+        const fullPath = directory.getFullPath(selectedFolder);
         const contents =
           await getWindowElectron().getFilesAndFoldersInDirectory(fullPath);
         setFolderContents(contents);
@@ -93,7 +94,7 @@ export function FolderFinderTab({
     showPreview,
     filteredFolders,
     selectedIndex,
-    directory.getFullName,
+    directory.getFullPath,
   ]);
 
   // Reset and focus when dialog opens
@@ -119,7 +120,7 @@ export function FolderFinderTab({
   }, [selectedIndex]);
 
   const handleSelect = (folderPath: string) => {
-    directory.cdFull(directory.getFullName(folderPath));
+    directory.cdFull(directory.getFullPath(folderPath));
     onClose();
   };
 

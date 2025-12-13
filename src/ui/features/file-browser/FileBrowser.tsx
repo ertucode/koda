@@ -61,7 +61,8 @@ import { PathHelpers } from "@common/PathHelpers";
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
   const recents = useRecents();
-  const d = useDirectory(defaultPath.path, recents);
+  const tags = useTags();
+  const d = useDirectory(defaultPath.path, recents, tags.getFilesWithTag);
   const s = useSelection(useDefaultSelection());
   const confirmation = useConfirmation();
   const [error, setError] = useState<string | null>(null);
@@ -73,9 +74,6 @@ export function FileBrowser() {
   const [multiFileTagsPaths, setMultiFileTagsPaths] = useState<string[] | null>(
     null,
   );
-  const tags = useTags();
-
-  console.log("render");
 
   useEffect(() => {
     s.reset();
@@ -84,9 +82,12 @@ export function FileBrowser() {
   const handleCreateNewItem = async (
     name: string,
   ): Promise<ResultHandlerResult> => {
+    if (d.directory.type !== "path") {
+      return GenericError.Message("Cannot create items in tags view");
+    }
     try {
       const result = await getWindowElectron().createFileOrFolder(
-        d.directory.fullName,
+        d.directory.fullPath,
         name,
       );
       if (result.success) {
@@ -115,7 +116,7 @@ export function FileBrowser() {
     if (!item) return GenericError.Message("No item selected");
 
     try {
-      const fullPath = d.getFullName(item.name);
+      const fullPath = item.fullPath ?? d.getFullPath(item.name);
       const result = await getWindowElectron().renameFileOrFolder(
         fullPath,
         newName,
@@ -144,7 +145,7 @@ export function FileBrowser() {
 
   const columns = createColumns({
     fileTags: tags.fileTags,
-    getFullName: d.getFullName,
+    getFullPath: d.getFullPath,
   });
 
   const table = useTable({
@@ -215,8 +216,9 @@ export function FileBrowser() {
 
     setTimeout(() => {
       if (!directoryData) return;
+      if (beforeNavigation.type !== "path") return;
       const beforeNavigationName = PathHelpers.getLastPathPart(
-        beforeNavigation.fullName,
+        beforeNavigation.fullPath,
       );
       const idx = directoryData.findIndex(
         (i) => i.name === beforeNavigationName,
@@ -231,7 +233,9 @@ export function FileBrowser() {
     items: GetFilesAndFoldersInDirectoryItem[],
     cut: boolean = false,
   ) => {
-    const paths = items.map((item) => d.getFullName(item.name));
+    const paths = items.map(
+      (item) => item.fullPath ?? d.getFullPath(item.name),
+    );
     const result = await getWindowElectron().copyFiles(paths, cut);
     if (!result.success) {
       toast.show(result);
@@ -239,7 +243,11 @@ export function FileBrowser() {
   };
 
   const handlePaste = async () => {
-    const result = await getWindowElectron().pasteFiles(d.directory.fullName);
+    if (d.directory.type !== "path") {
+      toast.show(GenericError.Message("Cannot paste in tags view"));
+      return;
+    }
+    const result = await getWindowElectron().pasteFiles(d.directory.fullPath);
     if (result.success) {
       await d.reload();
       // Select the first pasted item
@@ -255,7 +263,9 @@ export function FileBrowser() {
   const someDialogIsOpened = isFuzzyFinderOpen || confirmation.isOpen;
 
   const handleDelete = (items: GetFilesAndFoldersInDirectoryItem[]) => {
-    const paths = items.map((item) => d.getFullName(item.name));
+    const paths = items.map(
+      (item) => item.fullPath ?? d.getFullPath(item.name),
+    );
     const deletedNames = new Set(items.map((item) => item.name));
 
     // Find the smallest index among items being deleted
@@ -558,7 +568,7 @@ export function FileBrowser() {
       : null;
   const previewFilePath =
     selectedItem && selectedItem.type === "file"
-      ? d.getFullName(selectedItem.name)
+      ? (selectedItem.fullPath ?? d.getFullPath(selectedItem.name))
       : null;
 
   return (
@@ -588,6 +598,7 @@ export function FileBrowser() {
         defaultPath={defaultPath}
         fuzzy={fuzzy}
         onGoUpOrPrev={onGoUpOrPrev}
+        tags={tags}
       />
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
         <div
@@ -625,8 +636,8 @@ export function FileBrowser() {
               onRowDoubleClick={d.openItem}
               selection={s}
               ContextMenu={getRowContextMenu({
-                setAsDefaultPath: (p) => {
-                  defaultPath.setPath(d.getFullName(p));
+                setAsDefaultPath: (fullPath) => {
+                  defaultPath.setPath(fullPath);
                 },
                 favorites,
                 d,
@@ -639,9 +650,10 @@ export function FileBrowser() {
                 tags,
                 openAssignTagsDialog: (fullPath: string) => {
                   const selectedIndexes = [...s.state.indexes.values()];
-                  const selectedItems = selectedIndexes.map((i) =>
-                    d.getFullName(fuzzy.results[i].name),
-                  );
+                  const selectedItems = selectedIndexes.map((i) => {
+                    const item = fuzzy.results[i];
+                    return item.fullPath ?? d.getFullPath(item.name);
+                  });
                   if (selectedItems.length > 1) {
                     // Multiple files selected - use grid dialog
                     setMultiFileTagsPaths(selectedItems);
@@ -655,9 +667,12 @@ export function FileBrowser() {
                 const alreadySelected = s.state.indexes.has(index);
                 const files = alreadySelected
                   ? [...s.state.indexes].map((i) => {
-                      return d.getFullName(table.data[i].name);
+                      const tableItem = table.data[i];
+                      return (
+                        tableItem.fullPath ?? d.getFullPath(tableItem.name)
+                      );
                     })
-                  : [d.getFullName(item.name)];
+                  : [item.fullPath ?? d.getFullPath(item.name)];
 
                 const tableBody = e.currentTarget.closest("tbody");
                 getWindowElectron().onDragStart({
@@ -678,7 +693,7 @@ export function FileBrowser() {
               }}
               onRowMouseDown={(item) => {
                 if (item.type === "dir") {
-                  d.preloadDirectory(d.getFullName(item.name));
+                  d.preloadDirectory(item.fullPath ?? d.getFullPath(item.name));
                 }
               }}
             ></Table>
@@ -741,7 +756,7 @@ function getRowContextMenu({
     item: GetFilesAndFoldersInDirectoryItem;
     close: () => void;
   }) => {
-    const fullPath = d.getFullName(item.name);
+    const fullPath = item.fullPath ?? d.getFullPath(item.name);
     const isFavorite = favorites.isFavorite(fullPath);
     const itemIndex = tableData.findIndex((i) => i.name === item.name);
 
@@ -845,7 +860,7 @@ function getRowContextMenu({
         ? {
             onClick: () => {
               tags.addTagToFiles(
-                selectedItems.map((i) => d.getFullName(i.name)),
+                selectedItems.map((i) => i.fullPath ?? d.getFullPath(i.name)),
                 tags.lastUsedTag!,
               );
 
@@ -868,7 +883,7 @@ function getRowContextMenu({
           items={[
             {
               onClick: () => {
-                setAsDefaultPath(item.name);
+                setAsDefaultPath(fullPath);
                 close();
               },
               view: (

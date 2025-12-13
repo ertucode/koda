@@ -35,8 +35,9 @@ export function FileFinderTab({
       setIsLoading(true);
       setError(null);
       try {
+        if (directory.directory.type !== "path") return;
         const result = await getWindowElectron().fuzzyFileFinder(
-          directory.directory.fullName,
+          directory.directory.fullPath,
           query,
         );
         if (result.success) {
@@ -55,7 +56,7 @@ export function FileFinderTab({
     };
 
     searchFiles();
-  }, [isOpen, directory.directory.fullName, query]);
+  }, [isOpen, directory.directory, query]);
 
   // Reset and focus when dialog opens
   useEffect(() => {
@@ -88,7 +89,7 @@ export function FileFinderTab({
     if (lastSlashIndex === -1) return;
 
     const dirPath = filePath.slice(0, lastSlashIndex);
-    directory.cdFull(directory.getFullName(dirPath));
+    directory.cdFull(directory.getFullPath(dirPath));
     onClose();
   };
 
@@ -145,7 +146,7 @@ export function FileFinderTab({
 
   const selectedFile = filteredFiles[selectedIndex];
   const selectedFilePath = selectedFile
-    ? directory.getFullName(selectedFile)
+    ? directory.getFullPath(selectedFile)
     : null;
   const selectedFileExt = selectedFile
     ? selectedFile.slice(selectedFile.lastIndexOf(".") + 1)

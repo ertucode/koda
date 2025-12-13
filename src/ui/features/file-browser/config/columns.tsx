@@ -17,6 +17,7 @@ import z from "zod";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileCategory } from "@common/file-category";
 import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../hooks/useTags";
+import { PathHelpers } from "@common/PathHelpers";
 
 /**
  * Icon and color mapping for file categories
@@ -63,7 +64,7 @@ function TagCircles({ tags }: { tags: TagColor[] }) {
 
 export interface ColumnsContext {
   fileTags: FileTags;
-  getFullName: (name: string) => string;
+  getFullPath: (name: string) => string;
 }
 
 export function createColumns(
@@ -82,14 +83,26 @@ export function createColumns(
       accessorKey: "name",
       header: "Name",
       cell: (row) => {
-        const fullPath = ctx.getFullName(row.name);
+        const fullPath = row.fullPath ?? ctx.getFullPath(row.name);
         const tags = ctx.fileTags[fullPath];
+        // Show folder name when fullPath is available (tags view)
+        const parentFolder = row.fullPath
+          ? PathHelpers.getParentFolder(row.fullPath)
+          : null;
         return (
-          <div className="flex items-center min-w-0">
+          <div className="flex items-center min-w-0 gap-2">
             <span className="block truncate" title={row.name}>
               {row.name}
             </span>
             {tags && <TagCircles tags={tags} />}
+            {parentFolder && parentFolder.name && (
+              <span
+                className="text-gray-400 text-xs truncate flex-shrink-0"
+                title={parentFolder.path}
+              >
+                {parentFolder.path}
+              </span>
+            )}
           </div>
         );
       },

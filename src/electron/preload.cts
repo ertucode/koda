@@ -41,6 +41,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("searchStringRecursively", options),
   fuzzyFolderFinder: (directory: string, query: string) =>
     ipcInvoke("fuzzyFolderFinder", { directory, query }),
+  getFileInfoByPaths: (filePaths: string[]) =>
+    ipcInvoke("getFileInfoByPaths", filePaths),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

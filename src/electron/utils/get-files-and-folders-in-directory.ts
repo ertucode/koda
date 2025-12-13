@@ -64,14 +64,6 @@ export async function getFilesAndFoldersInDirectory(
     }),
   );
 
-  // -----------------------------------------------
-  // 4. Sorting: folders first, then alphabetical
-  // -----------------------------------------------
-  items.sort((a, b) => {
-    if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
-    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-  });
-
   return items;
 }
 
@@ -83,3 +75,60 @@ const dateOptions: Intl.DateTimeFormatOptions = {
   minute: "2-digit",
   hour12: false, // 24-hour format
 };
+
+export async function getFileInfoByPaths(
+  filePaths: string[],
+): Promise<GetFilesAndFoldersInDirectoryItem[]> {
+  const items = await Promise.all(
+    filePaths.map(async (filePath) => {
+      const fullPath = expandHome(filePath);
+      const stat = await safeStat(fullPath);
+      const name = path.basename(fullPath);
+
+      if (!stat) {
+        // File doesn't exist, return minimal info
+        const ext = path.extname(name);
+        return {
+          type: "file" as const,
+          name,
+          ext,
+          category: getCategoryFromExtension(ext),
+          sizeStr: "--",
+          size: null,
+          modifiedTimestamp: null,
+          modifiedAt: null,
+          fullPath,
+        };
+      }
+
+      if (stat.isDirectory()) {
+        return {
+          type: "dir" as const,
+          name,
+          ext: "" as const,
+          category: "folder" as const,
+          sizeStr: "--",
+          size: null,
+          modifiedTimestamp: stat.mtime.getTime(),
+          modifiedAt: stat.mtime.toLocaleString("tr-TR", dateOptions),
+          fullPath,
+        };
+      }
+
+      const ext = path.extname(name);
+      return {
+        type: "file" as const,
+        name,
+        ext,
+        category: getCategoryFromExtension(ext),
+        sizeStr: stat.size ? formatSize(stat.size) : "--",
+        size: stat.size,
+        modifiedTimestamp: stat.mtime.getTime(),
+        modifiedAt: stat.mtime.toLocaleString("tr-TR", dateOptions),
+        fullPath,
+      };
+    }),
+  );
+
+  return items;
+}

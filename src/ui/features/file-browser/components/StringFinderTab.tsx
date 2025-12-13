@@ -69,8 +69,9 @@ export function StringFinderTab({
       setIsLoading(true);
       setError(null);
       try {
+        if (directory.directory.type !== "path") return;
         const result = await getWindowElectron().searchStringRecursively({
-          directory: directory.directory.fullName,
+          directory: directory.directory.fullPath,
           query,
           cwd: cwd.trim() || undefined,
           includePatterns: parsePatterns(includePatterns),
@@ -99,7 +100,7 @@ export function StringFinderTab({
     };
   }, [
     isOpen,
-    directory.directory.fullName,
+    directory.directory,
     query,
     cwd,
     includePatterns,
@@ -142,7 +143,7 @@ export function StringFinderTab({
     if (lastSlashIndex === -1) return;
 
     const dirPath = result.filePath.slice(0, lastSlashIndex);
-    directory.cdFull(directory.getFullName(dirPath));
+    directory.cdFull(directory.getFullPath(dirPath));
     onClose();
   };
 
