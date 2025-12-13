@@ -21,16 +21,14 @@ import { getWindowElectron } from "@/getWindowElectron";
 
 type DirectoryInfo = {
   fullName: string;
-  name: string;
 };
 
 function getDirectoryInfo(dir: string): DirectoryInfo {
   const idx = dir.indexOf("/");
   if (idx === -1) throw new Error("Invalid directory name");
-  if (idx === dir.length - 1) return { fullName: dir, name: dir };
+  if (idx === dir.length - 1) return { fullName: dir };
 
-  const name = dir.slice(idx + 1);
-  return { fullName: dir, name };
+  return { fullName: dir };
 }
 
 type FileBrowserCacheOperation =
@@ -160,7 +158,6 @@ export function useDirectory(
     cd(
       {
         fullName: getFullName(newDirectory),
-        name: newDirectory,
       },
       true,
     );
@@ -174,9 +171,7 @@ export function useDirectory(
     changeDirectory,
     cd: (dir: DirectoryInfo) => cd(dir, true),
     cdFull: (fullPath: string) => {
-      const parts = fullPath.split("/").filter(Boolean);
-      const name = parts[parts.length - 1] || fullPath;
-      return cd({ fullName: fullPath, name }, true);
+      return cd({ fullName: fullPath }, true);
     },
     loading,
     directoryData,

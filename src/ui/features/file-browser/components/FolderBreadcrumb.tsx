@@ -51,7 +51,6 @@ export function FolderBreadcrumb({
               onClick={() =>
                 d.cd({
                   fullName: reconstructDirectory(parts, idx),
-                  name: part,
                 })
               }
               onContextMenu={(e) => {
