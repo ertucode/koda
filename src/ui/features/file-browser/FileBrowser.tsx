@@ -58,6 +58,7 @@ import { getWindowElectron } from "@/getWindowElectron";
 import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
 import { errorResponseToMessage, GenericError } from "@common/GenericError";
 import { useToast } from "@/lib/components/toast";
+import { PathHelpers } from "@common/PathHelpers";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
@@ -213,8 +214,11 @@ export function FileBrowser() {
 
     setTimeout(() => {
       if (!directoryData) return;
+      const beforeNavigationName = PathHelpers.getLastPathPart(
+        beforeNavigation.fullName,
+      );
       const idx = directoryData.findIndex(
-        (i) => i.name === beforeNavigation.name,
+        (i) => i.name === beforeNavigationName,
       );
       if (idx === -1) return;
       s?.selectManually(idx);
