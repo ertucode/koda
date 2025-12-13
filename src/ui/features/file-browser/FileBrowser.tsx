@@ -74,6 +74,7 @@ import { errorResponseToMessage, GenericError } from "@common/GenericError";
 import { useToast } from "@/lib/components/toast";
 import { PathHelpers } from "@common/PathHelpers";
 import { setDefaultPath } from "./defaultPath";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 type SelectionHelpers = {
   state: {
@@ -94,7 +95,9 @@ export function FileBrowser() {
 
   // Subscribe to directory store
   const directory = useSelector(directoryStore, selectDirectory);
-  const loading = useSelector(directoryStore, selectLoading);
+  const _loading = useSelector(directoryStore, selectLoading);
+
+  const loading = useDebounce(_loading, 100);
   const directoryData = useSelector(directoryStore, selectDirectoryData);
   const directoryError = useSelector(directoryStore, selectError);
   const pendingSelection = useSelector(directoryStore, selectPendingSelection);
@@ -114,7 +117,10 @@ export function FileBrowser() {
     setState: (update: any) => {
       const newState =
         typeof update === "function"
-          ? update({ indexes: selectionIndexes, lastSelected: selectionLastSelected })
+          ? update({
+              indexes: selectionIndexes,
+              lastSelected: selectionLastSelected,
+            })
           : update;
       directoryStore.send({
         type: "setSelection",
@@ -616,8 +622,6 @@ export function FileBrowser() {
               onRowDoubleClick={directoryHelpers.openItem}
               selection={s}
               ContextMenu={getRowContextMenu({
-                setAsDefaultPath: setDefaultPath,
-
                 handleDelete,
                 handleCopy,
                 handlePaste,
@@ -703,7 +707,6 @@ export function FileBrowser() {
 }
 
 function getRowContextMenu({
-  setAsDefaultPath,
   handleDelete,
   handleCopy,
   handlePaste,
@@ -712,7 +715,6 @@ function getRowContextMenu({
   dialogs,
   openAssignTagsDialog,
 }: {
-  setAsDefaultPath: (path: string) => void;
   handleDelete: (items: GetFilesAndFoldersInDirectoryItem[]) => void;
   handleCopy: (
     items: GetFilesAndFoldersInDirectoryItem[],
@@ -872,7 +874,7 @@ function getRowContextMenu({
           items={[
             {
               onClick: () => {
-                setAsDefaultPath(fullPath);
+                setDefaultPath(fullPath);
                 close();
               },
               view: (
