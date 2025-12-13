@@ -1,13 +1,16 @@
 import { useEffect, useMemo, type ReactNode } from "react";
 import type { ColumnDef } from "./table-types";
-import { useSelection } from "./useSelection";
 
 export type TableMetadata<T> = ReturnType<typeof useTable<T>>;
+
+type SelectionHelpers = {
+  reset: () => void;
+};
 
 export type UseTableOptions<T> = {
   columns: ColumnDef<T>[];
   data: T[];
-  selection?: ReturnType<typeof useSelection>;
+  selection?: SelectionHelpers;
   resetSelectionOnDataChange?: boolean;
 };
 

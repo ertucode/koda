@@ -14,10 +14,6 @@ import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/lib/components/alert";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
-import {
-  useDefaultSelection,
-  useSelection,
-} from "@/lib/libs/table/useSelection";
 import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
 import { useTableSort } from "@/lib/libs/table/useTableSort";
 import {
@@ -37,6 +33,8 @@ import {
   selectError,
   selectSettings as selectDirectorySettings,
   selectPendingSelection,
+  selectSelectionIndexes,
+  selectSelectionLastSelected,
 } from "./directory";
 import { FavoritesList } from "./components/FavoritesList";
 import {
@@ -77,6 +75,20 @@ import { useToast } from "@/lib/components/toast";
 import { PathHelpers } from "@common/PathHelpers";
 import { setDefaultPath } from "./defaultPath";
 
+type SelectionHelpers = {
+  state: {
+    indexes: Set<number>;
+    lastSelected: number | undefined;
+  };
+  setState: (update: any) => void;
+  select: (index: number, event: React.MouseEvent | KeyboardEvent) => void;
+  reset: () => void;
+  isSelected: (index: number) => boolean;
+  selectManually: (index: number) => void;
+  setSelection: (h: number | ((s: number) => number)) => void;
+  getShortcuts: (count: number) => any[];
+};
+
 export function FileBrowser() {
   const fileTags = useSelector(tagsStore, selectFileTags);
 
@@ -86,8 +98,37 @@ export function FileBrowser() {
   const directoryData = useSelector(directoryStore, selectDirectoryData);
   const directoryError = useSelector(directoryStore, selectError);
   const pendingSelection = useSelector(directoryStore, selectPendingSelection);
+  const selectionIndexes = useSelector(directoryStore, selectSelectionIndexes);
+  const selectionLastSelected = useSelector(
+    directoryStore,
+    selectSelectionLastSelected,
+  );
   const settings = selectDirectorySettings();
-  const s = useSelection(useDefaultSelection());
+
+  // Create a selection object compatible with the old API
+  const s = {
+    state: {
+      indexes: selectionIndexes,
+      lastSelected: selectionLastSelected,
+    },
+    setState: (update: any) => {
+      const newState =
+        typeof update === "function"
+          ? update({ indexes: selectionIndexes, lastSelected: selectionLastSelected })
+          : update;
+      directoryStore.send({
+        type: "setSelection",
+        indexes: newState.indexes,
+        lastSelected: newState.lastSelected,
+      } as any);
+    },
+    select: directoryHelpers.select,
+    reset: directoryHelpers.resetSelection,
+    isSelected: directoryHelpers.isSelected,
+    selectManually: directoryHelpers.selectManually,
+    setSelection: directoryHelpers.setSelection,
+    getShortcuts: directoryHelpers.getSelectionShortcuts,
+  };
   const confirmation = useConfirmation();
   const [localError, setError] = useState<string | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -678,7 +719,7 @@ function getRowContextMenu({
     cut: boolean,
   ) => void;
   handlePaste: () => void;
-  selection: ReturnType<typeof useSelection>;
+  selection: SelectionHelpers;
   tableData: GetFilesAndFoldersInDirectoryItem[];
   dialogs: DialogsReturn<GetFilesAndFoldersInDirectoryItem>;
   openAssignTagsDialog: (fullPath: string) => void;

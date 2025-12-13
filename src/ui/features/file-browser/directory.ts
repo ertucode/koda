@@ -84,6 +84,9 @@ export const directoryStore = createStore({
     error: undefined as string | undefined,
     historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
     pendingSelection: null as string | null,
+    // Selection state
+    selectionIndexes: new Set<number>(),
+    selectionLastSelected: undefined as number | undefined,
   },
   on: {
 
@@ -145,6 +148,28 @@ export const directoryStore = createStore({
     itemRenamed: (context, event: { name: string }) => ({
       ...context,
       pendingSelection: event.name,
+    }),
+
+    // Selection events
+    setSelection: (
+      context,
+      event: { indexes: Set<number>; lastSelected?: number },
+    ) => ({
+      ...context,
+      selectionIndexes: event.indexes,
+      selectionLastSelected: event.lastSelected,
+    }),
+
+    resetSelection: (context) => ({
+      ...context,
+      selectionIndexes: new Set<number>(),
+      selectionLastSelected: undefined,
+    }),
+
+    selectManually: (context, event: { index: number }) => ({
+      ...context,
+      selectionIndexes: new Set([event.index]),
+      selectionLastSelected: event.index,
     }),
   },
 });
@@ -420,6 +445,241 @@ export const directoryHelpers = {
   },
 
   openFileFull,
+
+  // Selection helpers
+  select: (index: number, event: React.MouseEvent | KeyboardEvent) => {
+    const state = directoryStore.get().context;
+
+    // Helper to remove item from set
+    const removeFromSet = (set: Set<number>, item: number) => {
+      const newSet = new Set(set);
+      newSet.delete(item);
+      return newSet;
+    };
+
+    const isShiftEvent =
+      event.shiftKey &&
+      (!("key" in event) || (event.key !== "G" && event.key !== "g"));
+    if (isShiftEvent && state.selectionLastSelected != null) {
+      const lastSelected = state.selectionLastSelected;
+      const indexes = new Set(state.selectionIndexes);
+
+      if (lastSelected > index) {
+        let allSelected = true;
+        for (let i = lastSelected - 1; i >= index; i--) {
+          if (!indexes.has(i)) {
+            allSelected = false;
+            break;
+          }
+        }
+
+        if (allSelected) {
+          for (let i = lastSelected - 1; i >= index; i--) {
+            indexes.delete(i);
+          }
+        } else {
+          for (let i = lastSelected - 1; i >= index; i--) {
+            indexes.add(i);
+          }
+        }
+      } else {
+        let allSelected = true;
+        for (let i = lastSelected + 1; i <= index; i++) {
+          if (!indexes.has(i)) {
+            allSelected = false;
+            break;
+          }
+        }
+
+        if (allSelected) {
+          for (let i = lastSelected + 1; i <= index; i++) {
+            indexes.delete(i);
+          }
+        } else {
+          for (let i = lastSelected + 1; i <= index; i++) {
+            indexes.add(i);
+          }
+        }
+      }
+
+      directoryStore.send({
+        type: "setSelection",
+        indexes,
+        lastSelected: index,
+      } as any);
+      return;
+    }
+
+    const isCtrlEvent =
+      (event.ctrlKey || event.metaKey) &&
+      (!("key" in event) || (event.key !== "u" && event.key !== "d"));
+    if (isCtrlEvent) {
+      if (state.selectionIndexes.has(index)) {
+        directoryStore.send({
+          type: "setSelection",
+          indexes: removeFromSet(state.selectionIndexes, index),
+          lastSelected: index,
+        } as any);
+        return;
+      }
+      directoryStore.send({
+        type: "setSelection",
+        indexes: new Set([...state.selectionIndexes, index]),
+        lastSelected: index,
+      } as any);
+      return;
+    }
+
+    directoryStore.send({
+      type: "setSelection",
+      indexes: new Set([index]),
+      lastSelected: index,
+    } as any);
+  },
+
+  getSelectionShortcuts: (count: number) => [
+    {
+      key: [{ key: "a", metaKey: true }],
+      handler: (e: KeyboardEvent) => {
+        directoryStore.send({
+          type: "setSelection",
+          indexes: new Set(Array.from({ length: count }).map((_, i) => i)),
+          lastSelected: count - 1,
+        } as any);
+        e.preventDefault();
+      },
+    },
+    {
+      key: ["ArrowUp", "k", "K"],
+      handler: (e: KeyboardEvent) => {
+        const state = directoryStore.get().context;
+        const lastSelected = state.selectionLastSelected ?? 0;
+        if (state.selectionIndexes.has(lastSelected - 1)) {
+          const newSet = new Set(state.selectionIndexes);
+          newSet.delete(lastSelected);
+          directoryStore.send({
+            type: "setSelection",
+            indexes: newSet,
+            lastSelected: lastSelected - 1,
+          } as any);
+        } else {
+          if (lastSelected - 1 < 0) {
+            directoryHelpers.select(count - 1, e);
+          } else {
+            directoryHelpers.select(lastSelected - 1, e);
+          }
+        }
+        e.preventDefault();
+      },
+    },
+    {
+      key: ["ArrowDown", "j", "J"],
+      handler: (e: KeyboardEvent) => {
+        const state = directoryStore.get().context;
+        const lastSelected = state.selectionLastSelected ?? 0;
+        if (state.selectionIndexes.has(lastSelected + 1)) {
+          const newSet = new Set(state.selectionIndexes);
+          newSet.delete(lastSelected);
+          directoryStore.send({
+            type: "setSelection",
+            indexes: newSet,
+            lastSelected: lastSelected + 1,
+          } as any);
+        } else {
+          if (lastSelected + 1 === count) {
+            directoryHelpers.select(0, e);
+          } else {
+            directoryHelpers.select(lastSelected + 1, e);
+          }
+        }
+        e.preventDefault();
+      },
+    },
+    {
+      key: "ArrowLeft",
+      handler: (e: KeyboardEvent) => {
+        const state = directoryStore.get().context;
+        const lastSelected = state.selectionLastSelected ?? 0;
+        directoryHelpers.select(lastSelected - 10, e);
+        e.preventDefault();
+      },
+    },
+    {
+      key: "ArrowRight",
+      handler: (e: KeyboardEvent) => {
+        const state = directoryStore.get().context;
+        const lastSelected = state.selectionLastSelected ?? 0;
+        directoryHelpers.select(lastSelected + 10, e);
+        e.preventDefault();
+      },
+    },
+    {
+      key: "G",
+      handler: (e: KeyboardEvent) => {
+        // Go to the bottom (like vim G)
+        directoryHelpers.select(count - 1, e);
+        e.preventDefault();
+      },
+    },
+    {
+      // Go to the top (like vim gg)
+      sequence: ["g", "g"],
+      handler: (e: KeyboardEvent) => {
+        directoryHelpers.select(0, e);
+        e.preventDefault();
+      },
+    },
+    {
+      key: { key: "d", ctrlKey: true },
+      handler: (e: KeyboardEvent) => {
+        const state = directoryStore.get().context;
+        const lastSelected = state.selectionLastSelected ?? 0;
+        directoryHelpers.select(Math.min(lastSelected + 10, count - 1), e);
+        e.preventDefault();
+      },
+    },
+    {
+      key: { key: "u", ctrlKey: true },
+      handler: (e: KeyboardEvent) => {
+        const state = directoryStore.get().context;
+        const lastSelected = state.selectionLastSelected ?? 0;
+        directoryHelpers.select(Math.max(lastSelected - 10, 0), e);
+        e.preventDefault();
+      },
+    },
+  ],
+
+  resetSelection: () => {
+    directoryStore.send({ type: "resetSelection" } as any);
+  },
+
+  isSelected: (index: number) => {
+    const state = directoryStore.get().context;
+    return state.selectionIndexes.has(index);
+  },
+
+  selectManually: (index: number) => {
+    directoryStore.send({ type: "selectManually", index } as any);
+  },
+
+  setSelection: (h: number | ((s: number) => number)) => {
+    const state = directoryStore.get().context;
+    let newSelection: number;
+    if (state.selectionIndexes.size === 0) {
+      newSelection = typeof h === "number" ? h : h(0);
+    } else if (state.selectionIndexes.size === 1) {
+      newSelection =
+        typeof h === "number" ? h : h(state.selectionLastSelected!);
+    } else {
+      newSelection =
+        typeof h === "number" ? h : h(state.selectionLastSelected!);
+    }
+    directoryStore.send({
+      type: "setSelection",
+      indexes: new Set([newSelection]),
+      lastSelected: newSelection,
+    } as any);
+  },
 };
 
 // Selectors
@@ -459,3 +719,11 @@ export const selectSettings = (): FileBrowserSettings => {
 export const selectPendingSelection = (
   state: ReturnType<typeof directoryStore.get>,
 ) => state.context.pendingSelection;
+
+export const selectSelectionIndexes = (
+  state: ReturnType<typeof directoryStore.get>,
+) => state.context.selectionIndexes;
+
+export const selectSelectionLastSelected = (
+  state: ReturnType<typeof directoryStore.get>,
+) => state.context.selectionLastSelected;
