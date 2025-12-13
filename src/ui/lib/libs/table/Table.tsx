@@ -1,15 +1,23 @@
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { ContextMenu, useContextMenu } from "../../components/context-menu";
 import { clsx } from "../../functions/clsx";
-import type { useSelection } from "./useSelection";
 import type { TableMetadata } from "./useTable";
 import { useTableSort } from "./useTableSort";
 import { RefObject, useRef } from "react";
 
+type SelectionHelpers = {
+  state: {
+    indexes: Set<number>;
+    lastSelected: number | undefined;
+  };
+  select: (index: number, event: React.MouseEvent | KeyboardEvent) => void;
+  isSelected: (index: number) => boolean;
+};
+
 export type TableProps<T> = {
   table: TableMetadata<T>;
   onRowDoubleClick?: (item: T) => void;
-  selection?: ReturnType<typeof useSelection>;
+  selection?: SelectionHelpers;
   sort?: ReturnType<typeof useTableSort>;
   ContextMenu?: React.FC<TableContextMenuProps<T>>;
   onRowDragStart?: (
