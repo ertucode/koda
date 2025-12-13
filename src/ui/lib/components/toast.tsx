@@ -43,6 +43,26 @@ export const useToast = () => {
   return context;
 };
 
+// Global toast manager - available anywhere, even outside React
+class ToastManager {
+  private showFn: ((options: ToastOptions | GenericError.ResultType) => void) | null = null;
+
+  setShowFunction(fn: (options: ToastOptions | GenericError.ResultType) => void) {
+    this.showFn = fn;
+  }
+
+  show(options: ToastOptions | GenericError.ResultType) {
+    if (!this.showFn) {
+      console.warn("Toast system not initialized yet");
+      return;
+    }
+    this.showFn(options);
+  }
+}
+
+// Export a singleton instance
+export const toast = new ToastManager();
+
 const getLocationClasses = (location: ToastLocation = "top-right") => {
   const baseClasses = "toast";
   switch (location) {
@@ -139,6 +159,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
     },
     [removeToast],
   );
+
+  // Register the show function with the global toast manager
+  React.useEffect(() => {
+    toast.setShowFunction(show);
+  }, [show]);
 
   // Group toasts by location
   const toastsByLocation = toasts.reduce(

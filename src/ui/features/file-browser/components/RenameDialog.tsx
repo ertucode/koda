@@ -1,20 +1,18 @@
 import { createFormDialog } from "@/lib/libs/form/createFormDialog";
 import z from "zod";
-import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { PencilIcon } from "lucide-react";
+import { directoryHelpers } from "../directory";
 
 export const RenameDialog = createFormDialog<
   GetFilesAndFoldersInDirectoryItem,
   { name: string },
-  {
-    onSubmit: (newName: string) => Promise<ResultHandlerResult>;
-  }
+  {}
 >({
   schema: z.object({
     name: z.string(),
   }),
-  action: (body, props) => props.onSubmit(body.name),
+  action: (body, _, item) => directoryHelpers.renameItem(item, body.name),
   getConfigs: () => [
     {
       field: "name",

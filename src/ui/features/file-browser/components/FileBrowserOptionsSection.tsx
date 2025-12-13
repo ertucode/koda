@@ -1,23 +1,23 @@
-import { useDirectory } from "../hooks/useDirectory";
+import { useSelector } from "@xstate/store/react";
 import {
   FileCategoryFilter,
   FILE_TYPE_FILTER_OPTIONS,
+  fileBrowserSettingsStore,
+  selectSettings,
+  fileBrowserSettingsHelpers,
 } from "../settings";
 
-export type FileBrowserOptionsSectionProps = {
-  d: ReturnType<typeof useDirectory>;
-};
-export function FileBrowserOptionsSection({
-  d,
-}: FileBrowserOptionsSectionProps) {
+export function FileBrowserOptionsSection() {
+  const settings = useSelector(fileBrowserSettingsStore, selectSettings);
+
   return (
     <div className="flex gap-3">
       <label className="label">
         <input
           type="checkbox"
           className="checkbox checkbox-sm"
-          checked={d.settings.showDotFiles}
-          onChange={() => d.toggleShowDotFiles()}
+          checked={settings.showDotFiles}
+          onChange={() => fileBrowserSettingsHelpers.toggleShowDotFiles()}
         />
         Show dot files
       </label>
@@ -25,16 +25,16 @@ export function FileBrowserOptionsSection({
         <input
           type="checkbox"
           className="checkbox checkbox-sm"
-          checked={d.settings.foldersOnTop}
-          onChange={() => d.toggleFoldersOnTop()}
+          checked={settings.foldersOnTop}
+          onChange={() => fileBrowserSettingsHelpers.toggleFoldersOnTop()}
         />
         Folders on top
       </label>
       <select
         className="select select-sm select-bordered w-32"
-        value={d.settings.fileTypeFilter ?? "all"}
+        value={settings.fileTypeFilter ?? "all"}
         onChange={(e) =>
-          d.setFileTypeFilter(e.target.value as FileCategoryFilter)
+          fileBrowserSettingsHelpers.setFileTypeFilter(e.target.value as FileCategoryFilter)
         }
       >
         {FILE_TYPE_FILTER_OPTIONS.map((opt) => (

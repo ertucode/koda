@@ -7,16 +7,15 @@ import {
   type TagColor,
   selectFileCountWithTag,
 } from "../tags";
-import { useDirectory } from "../hooks/useDirectory";
 import { useState } from "react";
 import { clsx } from "@/lib/functions/clsx";
+import { directoryStore, directoryHelpers, selectDirectory } from "../directory";
 
 interface TagsListProps {
-  d: ReturnType<typeof useDirectory>;
   className?: string;
 }
 
-export function TagsList({ d, className }: TagsListProps) {
+export function TagsList({ className }: TagsListProps) {
   return (
     <div
       className={clsx("flex flex-col gap-1 pr-2 overflow-hidden", className)}
@@ -24,7 +23,7 @@ export function TagsList({ d, className }: TagsListProps) {
       <h3 className="text-sm font-semibold pl-2 flex-shrink-0">Tags</h3>
       <div className="flex flex-col gap-1 overflow-y-auto min-h-0 flex-1">
         {TAG_COLORS.map((tag) => (
-          <TagListItem key={tag} tag={tag} d={d} />
+          <TagListItem key={tag} tag={tag} />
         ))}
       </div>
     </div>
@@ -33,16 +32,15 @@ export function TagsList({ d, className }: TagsListProps) {
 
 function TagListItem({
   tag,
-  d,
 }: {
   tag: TagColor;
-  d: ReturnType<typeof useDirectory>;
 }) {
   const [editingTag, setEditingTag] = useState<boolean>(false);
   const [editValue, setEditValue] = useState("");
+  const directory = useSelector(directoryStore, selectDirectory);
 
   const isShowingTag = (color: TagColor) => {
-    return d.directory.type === "tags" && d.directory.color === color;
+    return directory.type === "tags" && directory.color === color;
   };
 
   const fileCount = useSelector(tagsStore, selectFileCountWithTag(tag));
@@ -50,7 +48,7 @@ function TagListItem({
 
   const handleTagClick = () => {
     if (fileCount > 0) {
-      d.showTaggedFiles(tag);
+      directoryHelpers.showTaggedFiles(tag);
     }
   };
 

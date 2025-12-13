@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSelector } from "@xstate/store/react";
 import { getWindowElectron } from "@/getWindowElectron";
 import {
   SearchIcon,
@@ -9,19 +10,18 @@ import {
 } from "lucide-react";
 import { errorResponseToMessage } from "@common/GenericError";
 import { StringSearchResult } from "@common/Contracts";
-import { useDirectory } from "../hooks/useDirectory";
+import { directoryStore, directoryHelpers, selectDirectory } from "../directory";
 
 type StringFinderTabProps = {
-  directory: ReturnType<typeof useDirectory>;
   isOpen: boolean;
   onClose: () => void;
 };
 
 export function StringFinderTab({
-  directory,
   isOpen,
   onClose,
 }: StringFinderTabProps) {
+  const directory = useSelector(directoryStore, selectDirectory);
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<StringSearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -69,9 +69,9 @@ export function StringFinderTab({
       setIsLoading(true);
       setError(null);
       try {
-        if (directory.directory.type !== "path") return;
+        if (directory.type !== "path") return;
         const result = await getWindowElectron().searchStringRecursively({
-          directory: directory.directory.fullPath,
+          directory: directory.fullPath,
           query,
           cwd: cwd.trim() || undefined,
           includePatterns: parsePatterns(includePatterns),
@@ -100,7 +100,7 @@ export function StringFinderTab({
     };
   }, [
     isOpen,
-    directory.directory,
+    directory,
     query,
     cwd,
     includePatterns,
@@ -134,7 +134,7 @@ export function StringFinderTab({
   }, [selectedIndex]);
 
   const handleSelect = (result: StringSearchResult) => {
-    directory.openFile(result.filePath);
+    directoryHelpers.openFile(result.filePath);
     onClose();
   };
 
@@ -143,7 +143,7 @@ export function StringFinderTab({
     if (lastSlashIndex === -1) return;
 
     const dirPath = result.filePath.slice(0, lastSlashIndex);
-    directory.cdFull(directory.getFullPath(dirPath));
+    directoryHelpers.cdFull(directoryHelpers.getFullPath(dirPath));
     onClose();
   };
 

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import { Dialog } from "@/lib/components/dialog";
 import { FileIcon, SearchIcon, FolderIcon } from "lucide-react";
-import { useDirectory } from "../hooks/useDirectory";
 import { FileFinderTab } from "./FileFinderTab";
 import { StringFinderTab } from "./StringFinderTab";
 import { FolderFinderTab } from "./FolderFinderTab";
@@ -10,7 +9,6 @@ import { FolderFinderTab } from "./FolderFinderTab";
 export type FinderTab = "files" | "folders" | "strings";
 
 type FuzzyFileFinderDialogProps = {
-  directory: ReturnType<typeof useDirectory>;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   initialTab?: FinderTab;
@@ -19,7 +17,6 @@ type FuzzyFileFinderDialogProps = {
 const MIN_WIDTH_FOR_PREVIEW = 900;
 
 export function FinderDialog({
-  directory,
   isOpen,
   setIsOpen,
   initialTab = "files",
@@ -132,7 +129,6 @@ export function FinderDialog({
         <div className="flex-1 min-h-0 overflow-visible">
           {activeTab === "files" && (
             <FileFinderTab
-              directory={directory}
               isOpen={isOpen}
               onClose={onClose}
               showPreview={showPreview}
@@ -140,7 +136,6 @@ export function FinderDialog({
           )}
           {activeTab === "folders" && (
             <FolderFinderTab
-              directory={directory}
               isOpen={isOpen}
               onClose={onClose}
               showPreview={showPreview}
@@ -148,7 +143,6 @@ export function FinderDialog({
           )}
           {activeTab === "strings" && (
             <StringFinderTab
-              directory={directory}
               isOpen={isOpen}
               onClose={onClose}
             />

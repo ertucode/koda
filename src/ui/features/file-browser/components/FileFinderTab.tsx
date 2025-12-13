@@ -1,24 +1,24 @@
 import { useState, useEffect, useRef } from "react";
+import { useSelector } from "@xstate/store/react";
 import { getWindowElectron } from "@/getWindowElectron";
 import { FileIcon, XIcon } from "lucide-react";
 import { errorResponseToMessage } from "@common/GenericError";
-import { useDirectory } from "../hooks/useDirectory";
 import { FilePreview } from "./FilePreview";
 import { Alert } from "@/lib/components/alert";
+import { directoryStore, directoryHelpers, selectDirectory } from "../directory";
 
 type FileFinderTabProps = {
-  directory: ReturnType<typeof useDirectory>;
   isOpen: boolean;
   onClose: () => void;
   showPreview: boolean;
 };
 
 export function FileFinderTab({
-  directory,
   isOpen,
   onClose,
   showPreview,
 }: FileFinderTabProps) {
+  const directory = useSelector(directoryStore, selectDirectory);
   const [query, setQuery] = useState("");
   const [filteredFiles, setFilteredFiles] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -35,9 +35,9 @@ export function FileFinderTab({
       setIsLoading(true);
       setError(null);
       try {
-        if (directory.directory.type !== "path") return;
+        if (directory.type !== "path") return;
         const result = await getWindowElectron().fuzzyFileFinder(
-          directory.directory.fullPath,
+          directory.fullPath,
           query,
         );
         if (result.success) {
@@ -56,7 +56,7 @@ export function FileFinderTab({
     };
 
     searchFiles();
-  }, [isOpen, directory.directory, query]);
+  }, [isOpen, directory, query]);
 
   // Reset and focus when dialog opens
   useEffect(() => {
@@ -80,7 +80,7 @@ export function FileFinderTab({
   }, [selectedIndex]);
 
   const handleSelect = (filePath: string) => {
-    directory.openFile(filePath);
+    directoryHelpers.openFile(filePath);
     onClose();
   };
 
@@ -89,7 +89,7 @@ export function FileFinderTab({
     if (lastSlashIndex === -1) return;
 
     const dirPath = filePath.slice(0, lastSlashIndex);
-    directory.cdFull(directory.getFullPath(dirPath));
+    directoryHelpers.cdFull(directoryHelpers.getFullPath(dirPath));
     onClose();
   };
 
@@ -146,7 +146,7 @@ export function FileFinderTab({
 
   const selectedFile = filteredFiles[selectedIndex];
   const selectedFilePath = selectedFile
-    ? directory.getFullPath(selectedFile)
+    ? directoryHelpers.getFullPath(selectedFile)
     : null;
   const selectedFileExt = selectedFile
     ? selectedFile.slice(selectedFile.lastIndexOf(".") + 1)
