@@ -1,24 +1,8 @@
-import {
-  FolderCogIcon,
-  StarIcon,
-  StarOffIcon,
-  Trash2Icon,
-  FilePlusIcon,
-  PencilIcon,
-  CopyIcon,
-  ScissorsIcon,
-  ClipboardPasteIcon,
-  TagIcon,
-} from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
 import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
 import { useTableSort } from "@/lib/libs/table/useTableSort";
-import {
-  ContextMenuItem,
-  ContextMenuList,
-} from "@/lib/components/context-menu";
 import { useFuzzyFinder } from "@/lib/libs/fuzzy-find/FuzzyFinderInput";
 import { createColumns, sortNames } from "./config/columns";
 import {
@@ -32,34 +16,21 @@ import {
   selectSelectionLastSelected,
 } from "./directory";
 import { FavoritesList } from "./components/FavoritesList";
-import {
-  favoritesStore,
-  selectIsFavorite,
-  type FavoriteItem,
-} from "./favorites";
+import { type FavoriteItem } from "./favorites";
 import { RecentsList } from "./components/RecentsList";
 import { TagsList } from "./components/TagsList";
 import { useSelector } from "@xstate/store/react";
-import {
-  tagsStore,
-  TAG_COLOR_CLASSES,
-  selectFileTags,
-  selectLastUsedTag,
-  selectHasTag,
-  selectTagName,
-} from "./tags";
+import { tagsStore, selectFileTags } from "./tags";
 
 import { FilePreview } from "./components/FilePreview";
-import { dialogActions, useDialogStoreRenderer } from "./dialogStore";
-import { TextWithIcon } from "@/lib/components/text-with-icon";
+import { useDialogStoreRenderer } from "./dialogStore";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
 import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
-import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
-import { setDefaultPath } from "./defaultPath";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useFileBrowserShortcuts } from "./useFileBrowserShortcuts";
+import { FileTableRowContextMenu } from "./FileTableRowContextMenu";
 
 export function FileBrowser() {
   const dialogs = useDialogStoreRenderer();
@@ -248,7 +219,7 @@ export function FileBrowser() {
               sort={sort}
               onRowDoubleClick={directoryHelpers.openItem}
               selection={s}
-              ContextMenu={RowContextMenu}
+              ContextMenu={FileTableRowContextMenu}
               onRowDragStart={async (item, index, e) => {
                 const alreadySelected = s.state.indexes.has(index);
                 const files = alreadySelected
@@ -309,205 +280,3 @@ export function FileBrowser() {
     </div>
   );
 }
-
-const RowContextMenu = ({
-  item,
-  close,
-  tableData,
-}: {
-  item: GetFilesAndFoldersInDirectoryItem;
-  close: () => void;
-  tableData: GetFilesAndFoldersInDirectoryItem[];
-}) => {
-  const fullPath = item.fullPath ?? directoryHelpers.getFullPath(item.name);
-  const isFavorite = selectIsFavorite(fullPath)(favoritesStore.get());
-  const itemIndex = tableData.findIndex((i) => i.name === item.name);
-
-  const favoriteItem: ContextMenuItem = isFavorite
-    ? {
-        onClick: () => {
-          favoritesStore.send({ type: "removeFavorite", fullPath });
-          close();
-        },
-        view: (
-          <TextWithIcon icon={StarOffIcon}>Remove from favorites</TextWithIcon>
-        ),
-      }
-    : {
-        onClick: () => {
-          favoritesStore.send({
-            type: "addFavorite",
-            item: {
-              fullPath,
-              type: item.type,
-            },
-          });
-          close();
-        },
-        view: <TextWithIcon icon={StarIcon}>Add to favorites</TextWithIcon>,
-      };
-
-  const directory = directoryStore.getSnapshot();
-  const selectionIndexes = directory.context.selectionIndexes;
-  const isSelected = itemIndex !== -1 && selectionIndexes.has(itemIndex);
-  const selectedItems =
-    isSelected && selectionIndexes.size > 0
-      ? [...selectionIndexes].map((i) => tableData[i])
-      : [item];
-
-  const copyItem: ContextMenuItem = {
-    onClick: () => {
-      directoryHelpers.handleCopy(selectedItems, false);
-      close();
-    },
-    view: (
-      <TextWithIcon icon={CopyIcon}>
-        Copy
-        {isSelected && selectionIndexes.size > 1
-          ? ` (${selectionIndexes.size} items)`
-          : ""}
-      </TextWithIcon>
-    ),
-  };
-
-  const cutItem: ContextMenuItem = {
-    onClick: () => {
-      directoryHelpers.handleCopy(selectedItems, true);
-      close();
-    },
-    view: (
-      <TextWithIcon icon={ScissorsIcon}>
-        Cut
-        {isSelected && selectionIndexes.size > 1
-          ? ` (${selectionIndexes.size} items)`
-          : ""}
-      </TextWithIcon>
-    ),
-  };
-
-  const pasteItem: ContextMenuItem = {
-    onClick: () => {
-      directoryHelpers.handlePaste();
-      close();
-    },
-    view: <TextWithIcon icon={ClipboardPasteIcon}>Paste</TextWithIcon>,
-  };
-
-  const deleteItem: ContextMenuItem = {
-    onClick: () => {
-      directoryHelpers.handleDelete(selectedItems, tableData);
-      close();
-    },
-    view: (
-      <TextWithIcon icon={Trash2Icon}>
-        Delete
-        {isSelected && selectionIndexes.size > 1
-          ? ` (${selectionIndexes.size} items)`
-          : ""}
-      </TextWithIcon>
-    ),
-  };
-
-  const renameItem: ContextMenuItem = {
-    onClick: () => {
-      dialogActions.open("rename", item);
-      close();
-    },
-    view: <TextWithIcon icon={PencilIcon}>Rename</TextWithIcon>,
-  };
-
-  const newFileItem: ContextMenuItem = {
-    onClick: () => {
-      dialogActions.open("newItem", {});
-      close();
-    },
-    view: <TextWithIcon icon={FilePlusIcon}>New File or Folder</TextWithIcon>,
-  };
-
-  // Tag-related menu items
-  const assignTagsItem: ContextMenuItem = {
-    onClick: () => {
-      directoryHelpers.openAssignTagsDialog(fullPath, tableData);
-      close();
-    },
-    view: <TextWithIcon icon={TagIcon}>Assign Tags...</TextWithIcon>,
-  };
-
-  // Last used tag quick-add item
-  const lastUsedTag = useSelector(tagsStore, selectLastUsedTag);
-  const hasLastUsedTag = lastUsedTag
-    ? useSelector(tagsStore, selectHasTag(fullPath, lastUsedTag))
-    : false;
-  const lastUsedTagName = lastUsedTag
-    ? useSelector(tagsStore, selectTagName(lastUsedTag))
-    : "";
-
-  const lastUsedTagItem: ContextMenuItem | null =
-    lastUsedTag && !hasLastUsedTag
-      ? {
-          onClick: () => {
-            tagsStore.send({
-              type: "addTagToFiles",
-              fullPaths: selectedItems.map(
-                (i) => i.fullPath ?? directoryHelpers.getFullPath(i.name),
-              ),
-              color: lastUsedTag!,
-            });
-
-            close();
-          },
-          view: (
-            <div className="flex items-center gap-2">
-              <span
-                className={`size-3 rounded-full ${TAG_COLOR_CLASSES[lastUsedTag!].dot}`}
-              />
-              <span>Add to "{lastUsedTagName}"</span>
-            </div>
-          ),
-        }
-      : null;
-
-  if (item.type === "dir")
-    return (
-      <ContextMenuList
-        items={[
-          {
-            onClick: () => {
-              setDefaultPath(fullPath);
-              close();
-            },
-            view: (
-              <TextWithIcon icon={FolderCogIcon}>
-                Set as default path
-              </TextWithIcon>
-            ),
-          },
-          favoriteItem,
-          lastUsedTagItem,
-          assignTagsItem,
-          copyItem,
-          cutItem,
-          pasteItem,
-          deleteItem,
-          renameItem,
-          newFileItem,
-        ]}
-      />
-    );
-
-  return (
-    <ContextMenuList
-      items={[
-        favoriteItem,
-        lastUsedTagItem,
-        assignTagsItem,
-        copyItem,
-        cutItem,
-        pasteItem,
-        deleteItem,
-        renameItem,
-        newFileItem,
-      ]}
-    />
-  );
-};
