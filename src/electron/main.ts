@@ -25,6 +25,44 @@ import { fuzzyFileFinder } from "./utils/fuzzy-file-finder.js";
 import { searchStringRecursively } from "./utils/search-string-recursively.js";
 import { fuzzyFolderFinder } from "./utils/fuzzy-folder-finder.js";
 
+// Handle folders/files opened via "open with" or as default app
+let pendingOpenPath: string | undefined;
+
+app.on("open-file", (event, path) => {
+  event.preventDefault();
+  pendingOpenPath = path;
+  
+  // If app is already ready, create a new window with this path
+  if (app.isReady()) {
+    createWindow(path);
+  }
+});
+
+function createWindow(initialPath?: string) {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+
+  const basePaths = [`--home-dir=${os.homedir()}`];
+  const mainWindow = new BrowserWindow({
+    width: (7 * width) / 8,
+    height: (2 * height) / 3,
+    x: 0,
+    y: 0,
+    webPreferences: {
+      preload: getPreloadPath(),
+      webviewTag: true,
+      additionalArguments: initialPath
+        ? [`--initial-path=${initialPath}`, ...basePaths]
+        : basePaths,
+    },
+  });
+
+  if (isDev()) {
+    mainWindow.loadURL("http://localhost:5123");
+  } else {
+    mainWindow.loadFile(getUIPath());
+  }
+}
+
 app.on("ready", () => {
   const menuTemplate: Electron.MenuItemConstructorOptions[] = [
     {
@@ -84,33 +122,12 @@ app.on("ready", () => {
   const menu = Menu.buildFromTemplate(menuTemplate);
   Menu.setApplicationMenu(menu);
 
-  function createWindow(initialPath?: string) {
-    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-
-    const basePaths = [`--home-dir=${os.homedir()}`];
-    const mainWindow = new BrowserWindow({
-      width: (7 * width) / 8,
-      height: (2 * height) / 3,
-      x: 0,
-      y: 0,
-      webPreferences: {
-        preload: getPreloadPath(),
-        webviewTag: true,
-        additionalArguments: initialPath
-          ? [`--initial-path=${initialPath}`, ...basePaths]
-          : basePaths,
-      },
-    });
-
-    if (isDev()) {
-      mainWindow.loadURL("http://localhost:5123");
-    } else {
-      mainWindow.loadFile(getUIPath());
-    }
-  }
-  const initialPath = process.argv
-    .find((a) => a.startsWith("--initial-path="))
-    ?.replace("--initial-path=", "");
+  // Use pending path from open-file event if available, otherwise check argv
+  const initialPath =
+    pendingOpenPath ??
+    process.argv
+      .find((a) => a.startsWith("--initial-path="))
+      ?.replace("--initial-path=", "");
   createWindow(initialPath);
 
   ipcHandle("docxToPdf", (filePath: string) =>
