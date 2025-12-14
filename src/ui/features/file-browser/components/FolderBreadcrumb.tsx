@@ -1,4 +1,3 @@
-import { FolderIcon } from "lucide-react";
 import { useSelector } from "@xstate/store/react";
 import {
   ContextMenu,
@@ -43,7 +42,7 @@ export function FolderBreadcrumb() {
   const parts = PathHelpers.getFolderNameParts(directory.fullPath);
 
   return (
-    <div className="breadcrumbs text-sm py-0">
+    <>
       {menu.isOpen && (
         <ContextMenu menu={menu}>
           <ContextMenuList
@@ -64,37 +63,32 @@ export function FolderBreadcrumb() {
           />
         </ContextMenu>
       )}
-      <ul>
-        {parts.map((part, idx) => {
-          return (
-            <li
-              key={idx}
-              className="flex items-center gap-1"
-              onClick={() =>
-                directoryHelpers.cd(
-                  {
-                    type: "path",
-                    fullPath: PathHelpers.reconstructDirectoryUntilIndex(
-                      parts,
-                      idx,
-                    ),
-                  },
-                  directoryId,
-                )
-              }
-              onContextMenu={(e) => {
-                e.preventDefault();
-                menu.onRightClick(e, idx);
-              }}
-            >
-              <a>
-                <FolderIcon className="size-4" />
-                <div>{part}</div>
-              </a>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+      {parts.map((part, idx) => {
+        return (
+          <button
+            key={idx}
+            onClick={() =>
+              directoryHelpers.cd(
+                {
+                  type: "path",
+                  fullPath: PathHelpers.reconstructDirectoryUntilIndex(
+                    parts,
+                    idx,
+                  ),
+                },
+                directoryId,
+              )
+            }
+            onContextMenu={(e) => {
+              e.preventDefault();
+              menu.onRightClick(e, idx);
+            }}
+            className="join-item btn btn-xs btn-soft btn-info rounded-none"
+          >
+            {part}
+          </button>
+        );
+      })}
+    </>
   );
 }

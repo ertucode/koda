@@ -43,7 +43,7 @@ export function FileBrowserNavigationAndInputSection() {
       >
         {<ArrowUpIcon className={navigationButtonIconClassName} />}
       </button>
-      <div className="flex-1 join-item px-2 overflow-x-auto">
+      <div className="overflow-x-auto flex-1 flex ">
         <FolderBreadcrumb />
       </div>
       <FuzzyInput />
