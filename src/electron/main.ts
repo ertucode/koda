@@ -89,8 +89,8 @@ app.on("ready", () => {
 
     const basePaths = [`--home-dir=${os.homedir()}`];
     const mainWindow = new BrowserWindow({
-      width: (5 * width) / 8,
-      height: height / 3,
+      width: (7 * width) / 8,
+      height: (2 * height) / 3,
       x: 0,
       y: 0,
       webPreferences: {
