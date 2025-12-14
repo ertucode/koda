@@ -1,0 +1,232 @@
+import {
+  ContextMenuItem,
+  ContextMenuList,
+} from "@/lib/components/context-menu";
+import { TextWithIcon } from "@/lib/components/text-with-icon";
+import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
+import { useSelector } from "@xstate/store/react";
+import {
+  StarOffIcon,
+  StarIcon,
+  CopyIcon,
+  ScissorsIcon,
+  ClipboardPasteIcon,
+  Trash2Icon,
+  PencilIcon,
+  FilePlusIcon,
+  TagIcon,
+  FolderCogIcon,
+} from "lucide-react";
+import { setDefaultPath } from "./defaultPath";
+import { dialogActions } from "./dialogStore";
+import { directoryHelpers, directoryStore } from "./directory";
+import { selectIsFavorite, favoritesStore } from "./favorites";
+import {
+  tagsStore,
+  selectLastUsedTag,
+  selectHasTag,
+  selectTagName,
+  TAG_COLOR_CLASSES,
+} from "./tags";
+
+export const FileTableRowContextMenu = ({
+  item,
+  close,
+  tableData,
+}: {
+  item: GetFilesAndFoldersInDirectoryItem;
+  close: () => void;
+  tableData: GetFilesAndFoldersInDirectoryItem[];
+}) => {
+  const fullPath = item.fullPath ?? directoryHelpers.getFullPath(item.name);
+  const isFavorite = selectIsFavorite(fullPath)(favoritesStore.get());
+  const itemIndex = tableData.findIndex((i) => i.name === item.name);
+
+  const favoriteItem: ContextMenuItem = isFavorite
+    ? {
+        onClick: () => {
+          favoritesStore.send({ type: "removeFavorite", fullPath });
+          close();
+        },
+        view: (
+          <TextWithIcon icon={StarOffIcon}>Remove from favorites</TextWithIcon>
+        ),
+      }
+    : {
+        onClick: () => {
+          favoritesStore.send({
+            type: "addFavorite",
+            item: {
+              fullPath,
+              type: item.type,
+            },
+          });
+          close();
+        },
+        view: <TextWithIcon icon={StarIcon}>Add to favorites</TextWithIcon>,
+      };
+
+  const directory = directoryStore.getSnapshot();
+  const selectionIndexes = directory.context.selectionIndexes;
+  const isSelected = itemIndex !== -1 && selectionIndexes.has(itemIndex);
+  const selectedItems =
+    isSelected && selectionIndexes.size > 0
+      ? [...selectionIndexes].map((i) => tableData[i])
+      : [item];
+
+  const copyItem: ContextMenuItem = {
+    onClick: () => {
+      directoryHelpers.handleCopy(selectedItems, false);
+      close();
+    },
+    view: (
+      <TextWithIcon icon={CopyIcon}>
+        Copy
+        {isSelected && selectionIndexes.size > 1
+          ? ` (${selectionIndexes.size} items)`
+          : ""}
+      </TextWithIcon>
+    ),
+  };
+
+  const cutItem: ContextMenuItem = {
+    onClick: () => {
+      directoryHelpers.handleCopy(selectedItems, true);
+      close();
+    },
+    view: (
+      <TextWithIcon icon={ScissorsIcon}>
+        Cut
+        {isSelected && selectionIndexes.size > 1
+          ? ` (${selectionIndexes.size} items)`
+          : ""}
+      </TextWithIcon>
+    ),
+  };
+
+  const pasteItem: ContextMenuItem = {
+    onClick: () => {
+      directoryHelpers.handlePaste();
+      close();
+    },
+    view: <TextWithIcon icon={ClipboardPasteIcon}>Paste</TextWithIcon>,
+  };
+
+  const deleteItem: ContextMenuItem = {
+    onClick: () => {
+      directoryHelpers.handleDelete(selectedItems, tableData);
+      close();
+    },
+    view: (
+      <TextWithIcon icon={Trash2Icon}>
+        Delete
+        {isSelected && selectionIndexes.size > 1
+          ? ` (${selectionIndexes.size} items)`
+          : ""}
+      </TextWithIcon>
+    ),
+  };
+
+  const renameItem: ContextMenuItem = {
+    onClick: () => {
+      dialogActions.open("rename", item);
+      close();
+    },
+    view: <TextWithIcon icon={PencilIcon}>Rename</TextWithIcon>,
+  };
+
+  const newFileItem: ContextMenuItem = {
+    onClick: () => {
+      dialogActions.open("newItem", {});
+      close();
+    },
+    view: <TextWithIcon icon={FilePlusIcon}>New File or Folder</TextWithIcon>,
+  };
+
+  // Tag-related menu items
+  const assignTagsItem: ContextMenuItem = {
+    onClick: () => {
+      directoryHelpers.openAssignTagsDialog(fullPath, tableData);
+      close();
+    },
+    view: <TextWithIcon icon={TagIcon}>Assign Tags...</TextWithIcon>,
+  };
+
+  // Last used tag quick-add item
+  const lastUsedTag = useSelector(tagsStore, selectLastUsedTag);
+  const hasLastUsedTag = lastUsedTag
+    ? useSelector(tagsStore, selectHasTag(fullPath, lastUsedTag))
+    : false;
+  const lastUsedTagName = lastUsedTag
+    ? useSelector(tagsStore, selectTagName(lastUsedTag))
+    : "";
+
+  const lastUsedTagItem: ContextMenuItem | null =
+    lastUsedTag && !hasLastUsedTag
+      ? {
+          onClick: () => {
+            tagsStore.send({
+              type: "addTagToFiles",
+              fullPaths: selectedItems.map(
+                (i) => i.fullPath ?? directoryHelpers.getFullPath(i.name),
+              ),
+              color: lastUsedTag!,
+            });
+
+            close();
+          },
+          view: (
+            <div className="flex items-center gap-2">
+              <span
+                className={`size-3 rounded-full ${TAG_COLOR_CLASSES[lastUsedTag!].dot}`}
+              />
+              <span>Add to "{lastUsedTagName}"</span>
+            </div>
+          ),
+        }
+      : null;
+
+  if (item.type === "dir")
+    return (
+      <ContextMenuList
+        items={[
+          {
+            onClick: () => {
+              setDefaultPath(fullPath);
+              close();
+            },
+            view: (
+              <TextWithIcon icon={FolderCogIcon}>
+                Set as default path
+              </TextWithIcon>
+            ),
+          },
+          favoriteItem,
+          lastUsedTagItem,
+          assignTagsItem,
+          copyItem,
+          cutItem,
+          pasteItem,
+          deleteItem,
+          renameItem,
+          newFileItem,
+        ]}
+      />
+    );
+
+  return (
+    <ContextMenuList
+      items={[
+        favoriteItem,
+        lastUsedTagItem,
+        assignTagsItem,
+        copyItem,
+        cutItem,
+        pasteItem,
+        deleteItem,
+        renameItem,
+        newFileItem,
+      ]}
+    />
+  );
+};
