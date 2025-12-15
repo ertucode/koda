@@ -12,19 +12,19 @@ export function FileBrowserOptionsSection() {
 
   return (
     <div className="flex gap-3">
-      <label className="label">
+      <label className="label text-sm">
         <input
           type="checkbox"
-          className="checkbox checkbox-sm"
+          className="checkbox checkbox-xs"
           checked={settings.showDotFiles}
           onChange={() => fileBrowserSettingsHelpers.toggleShowDotFiles()}
         />
         Show dot files
       </label>
-      <label className="label">
+      <label className="label text-sm">
         <input
           type="checkbox"
-          className="checkbox checkbox-sm"
+          className="checkbox checkbox-xs"
           checked={settings.foldersOnTop}
           onChange={() => fileBrowserSettingsHelpers.toggleFoldersOnTop()}
         />
@@ -34,7 +34,9 @@ export function FileBrowserOptionsSection() {
         className="select select-sm select-bordered w-32"
         value={settings.fileTypeFilter ?? "all"}
         onChange={(e) =>
-          fileBrowserSettingsHelpers.setFileTypeFilter(e.target.value as FileCategoryFilter)
+          fileBrowserSettingsHelpers.setFileTypeFilter(
+            e.target.value as FileCategoryFilter,
+          )
         }
       >
         {FILE_TYPE_FILTER_OPTIONS.map((opt) => (

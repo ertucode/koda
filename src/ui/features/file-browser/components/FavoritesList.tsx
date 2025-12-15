@@ -32,7 +32,6 @@ export function FavoritesList({ className }: FavoritesListProps) {
   return (
     <FileBrowserSidebarSection
       items={f}
-      header="Favorites"
       emptyMessage="No favorites yet"
       getKey={(favorite) => favorite.fullPath}
       isSelected={(favorite) =>

@@ -27,7 +27,6 @@ export function RecentsList({ className }: RecentsListProps) {
   return (
     <FileBrowserSidebarSection
       items={r}
-      header="Recents"
       emptyMessage="No recent directories"
       getKey={(recent) => recent.fullPath}
       isSelected={(recent) =>

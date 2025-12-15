@@ -42,7 +42,7 @@ export function FileBrowser() {
       favorites: <FavoritesList />,
       recents: <RecentsList />,
       tags: <TagsList />,
-      options: <FileBrowserOptionsSection />,
+      options: <div></div>,
       preview: <FileBrowserFilePreview />,
     };
 
@@ -63,12 +63,12 @@ export function FileBrowser() {
         // Top: Options section
         {
           children: names.options,
-          grow: 0.5,
+          grow: 0.25,
         },
         // Bottom: Main content area
         {
           isRow: true,
-          grow: 4,
+          grow: 6,
           children: [
             // Left sidebar with favorites, recents, tags
             {
@@ -82,7 +82,7 @@ export function FileBrowser() {
             // Middle section with directories
             {
               children: directoryChildren.length > 0 ? directoryChildren : [],
-              grow: 3,
+              grow: 10,
             },
             // Right section with preview
             {
