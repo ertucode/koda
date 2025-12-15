@@ -11,6 +11,7 @@ import {
   directoryDerivedStores,
 } from "../directory";
 import { useDirectoryContext } from "../DirectoryContext";
+import { DraggableTitle } from "react-tile-pane";
 
 export function FileBrowserNavigationAndInputSection() {
   const navigationButtonClassName = "btn btn-xs btn-soft btn-info join-item";
@@ -21,6 +22,9 @@ export function FileBrowserNavigationAndInputSection() {
 
   return (
     <div className="join items-center mb-2">
+      <div className={navigationButtonClassName}>
+        <DraggableTitle name={`dir-${directoryId}`}>1</DraggableTitle>
+      </div>
       <button
         className={navigationButtonClassName}
         onClick={() => directoryHelpers.goPrev(directoryId)}

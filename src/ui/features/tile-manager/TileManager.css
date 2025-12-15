@@ -1,0 +1,40 @@
+/* Custom styles for tile manager */
+
+/* Override default tile pane styles */
+.react-tile-pane {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+}
+
+.react-tile-stretch-bar {
+  background: #e0e0e0;
+}
+
+.react-tile-stretch-bar:hover {
+  background: #b0b0b0;
+}
+
+.react-tile-tab-bar {
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.react-tile-tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  border-right: 1px solid #e0e0e0;
+}
+
+.react-tile-tab:hover {
+  background: #e8e8e8;
+}
+
+.react-tile-tab.active {
+  background: #ffffff;
+  border-bottom: 2px solid #1976d2;
+}
+
+.react-tile-pre-box {
+  background: rgba(25, 118, 210, 0.1);
+  border: 2px dashed #1976d2;
+}
