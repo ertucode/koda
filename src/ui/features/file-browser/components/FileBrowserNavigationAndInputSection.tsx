@@ -9,49 +9,56 @@ import {
   selectHasPrev,
   selectFuzzyQuery,
   directoryDerivedStores,
+  DirectoryId,
 } from "../directory";
-import { useDirectoryContext } from "../DirectoryContext";
-import { DraggableTitle } from "react-tile-pane";
+import {
+  DirectoryContextProvider,
+  useDirectoryContext,
+} from "../DirectoryContext";
 
-export function FileBrowserNavigationAndInputSection() {
+export type FileBrowserNavigationAndInputSectionProps = {
+  directoryId: DirectoryId;
+};
+
+export function FileBrowserNavigationAndInputSection({
+  directoryId,
+}: FileBrowserNavigationAndInputSectionProps) {
   const navigationButtonClassName = "btn btn-xs btn-soft btn-info join-item";
   const navigationButtonIconClassName = "size-4";
-  const directoryId = useDirectoryContext().directoryId;
   const hasNext = useSelector(directoryStore, selectHasNext(directoryId));
   const hasPrev = useSelector(directoryStore, selectHasPrev(directoryId));
 
   return (
-    <div className="join items-center mb-2">
-      <div className={navigationButtonClassName}>
-        <DraggableTitle name={`dir-${directoryId}`}>1</DraggableTitle>
+    <DirectoryContextProvider directoryId={directoryId}>
+      <div className="join items-center w-full">
+        <button
+          className={navigationButtonClassName}
+          onClick={() => directoryHelpers.goPrev(directoryId)}
+          disabled={!hasPrev}
+        >
+          {<ArrowLeftIcon className={navigationButtonIconClassName} />}
+        </button>
+        <button
+          className={navigationButtonClassName}
+          onClick={() => directoryHelpers.goNext(directoryId)}
+          disabled={!hasNext}
+        >
+          {<ArrowRightIcon className={navigationButtonIconClassName} />}
+        </button>
+        <button
+          className={navigationButtonClassName}
+          onClick={() =>
+            directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, directoryId)
+          }
+        >
+          {<ArrowUpIcon className={navigationButtonIconClassName} />}
+        </button>
+        <div className="overflow-x-auto flex-1 flex ">
+          <FolderBreadcrumb />
+        </div>
+        <FuzzyInput />
       </div>
-      <button
-        className={navigationButtonClassName}
-        onClick={() => directoryHelpers.goPrev(directoryId)}
-        disabled={!hasPrev}
-      >
-        {<ArrowLeftIcon className={navigationButtonIconClassName} />}
-      </button>
-      <button
-        className={navigationButtonClassName}
-        onClick={() => directoryHelpers.goNext(directoryId)}
-        disabled={!hasNext}
-      >
-        {<ArrowRightIcon className={navigationButtonIconClassName} />}
-      </button>
-      <button
-        className={navigationButtonClassName}
-        onClick={() =>
-          directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, directoryId)
-        }
-      >
-        {<ArrowUpIcon className={navigationButtonIconClassName} />}
-      </button>
-      <div className="overflow-x-auto flex-1 flex ">
-        <FolderBreadcrumb />
-      </div>
-      <FuzzyInput />
-    </div>
+    </DirectoryContextProvider>
   );
 }
 

@@ -22,9 +22,11 @@ interface TagsListProps {
 export function TagsList({ className }: TagsListProps) {
   return (
     <div
-      className={clsx("flex flex-col gap-1 pr-2 overflow-hidden", className)}
+      className={clsx(
+        "flex flex-col gap-1 pr-2 pt-2 overflow-hidden bg-base-100",
+        className,
+      )}
     >
-      <h3 className="text-sm font-semibold pl-2 flex-shrink-0">Tags</h3>
       <div className="flex flex-col gap-1 overflow-y-auto min-h-0 flex-1">
         {TAG_COLORS.map((tag) => (
           <TagListItem key={tag} tag={tag} />
