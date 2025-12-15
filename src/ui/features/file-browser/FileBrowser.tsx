@@ -1,4 +1,3 @@
-import { FileBrowserTable } from "@/features/file-browser/FileBrowserTable";
 import {
   directoryStore,
   directoryHelpers,
@@ -13,85 +12,105 @@ import { useSelector } from "@xstate/store/react";
 import { FilePreview } from "./components/FilePreview";
 import { useDialogStoreRenderer } from "./dialogStore";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
-import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
-import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
-import { DirectoryContextProvider } from "./DirectoryContext";
+import "./pane.css";
+
 import { FileBrowserShortcuts } from "./FileBrowserShortcuts";
+import {
+  createTilePanes,
+  TileBranchSubstance,
+  TileContainer,
+  TileProvider,
+  StretchBarConfig,
+} from "react-tile-pane";
+import { DirectoryTablePane } from "./components/DirectoryTablePane";
+import { useMemo } from "react";
+import { styles, theme } from "./paneStyles";
+
+// Configure stretch bars to be visible
 
 export function FileBrowser() {
   const dialogs = useDialogStoreRenderer();
-
-  const sidebarPanel = useResizablePanel({
-    storageKey: "file-browser-sidebar-width",
-    defaultWidth: 120,
-    minWidth: 80,
-    maxWidth: 300,
-    direction: "left",
-  });
-
-  const previewPanel = useResizablePanel({
-    storageKey: "file-browser-preview-width",
-    defaultWidth: 320,
-    minWidth: 200,
-    maxWidth: 900,
-    direction: "right",
-  });
 
   const directories = useSelector(
     directoryStore,
     (s) => s.context.directoryOrder,
   );
 
+  // Create tile panes dynamically based on directories
+  const { paneList, rootPane } = useMemo(() => {
+    const paneDict: Record<string, React.ReactNode> = {
+      favorites: <FavoritesList />,
+      recents: <RecentsList />,
+      tags: <TagsList />,
+      options: <FileBrowserOptionsSection />,
+      preview: <FileBrowserFilePreview />,
+    };
+
+    // Add directory panes
+    directories.forEach((d) => {
+      paneDict[`dir-${d}`] = <DirectoryTablePane directoryId={d} />;
+    });
+
+    const [paneList, names] = createTilePanes(paneDict);
+
+    // Create initial layout with sidebar on left, directories in middle, preview on right
+    const directoryChildren = directories.map((d) => ({
+      children: names[`dir-${d}`],
+    }));
+
+    const rootPane: TileBranchSubstance = {
+      children: [
+        // Top: Options section
+        {
+          children: names.options,
+          grow: 0.5,
+        },
+        // Bottom: Main content area
+        {
+          isRow: true,
+          grow: 4,
+          children: [
+            // Left sidebar with favorites, recents, tags
+            {
+              children: [
+                { children: names.favorites, grow: 1 },
+                { children: names.recents, grow: 1 },
+                { children: names.tags, grow: 1 },
+              ],
+              grow: 1,
+            },
+            // Middle section with directories
+            {
+              children: directoryChildren.length > 0 ? directoryChildren : [],
+              grow: 3,
+            },
+            // Right section with preview
+            {
+              children: names.preview,
+              grow: 2,
+            },
+          ],
+        },
+      ],
+    };
+
+    return { paneList, rootPane };
+  }, [directories]);
+
   return (
-    <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
+    <div className="flex flex-col items-stretch h-full p-6 overflow-hidden">
       {dialogs.RenderOutside}
-      <FileBrowserOptionsSection />
       <FileBrowserShortcuts />
-      <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
-        <div
-          className="flex flex-col h-full min-h-0 overflow-hidden flex-shrink-0 [&>*]:flex-1 [&>*]:min-h-0 [&>*]:basis-0"
-          style={{ width: sidebarPanel.width }}
-        >
-          <FavoritesList />
-          <RecentsList />
-          <TagsList />
-        </div>
-        <ResizeHandle
-          onMouseDown={sidebarPanel.handleMouseDown}
-          direction="left"
-        />
-        <div className="flex gap-2 flex-1 overflow-hidden min-w-0 min-h-0">
-          {directories.map((d) => {
-            return (
-              <div
-                key={d}
-                className="relative flex flex-col min-h-0 min-w-0 flex-1"
-              >
-                <DirectoryContextProvider directoryId={d}>
-                  <FileBrowserNavigationAndInputSection />
-                  <FileBrowserTable></FileBrowserTable>
-                </DirectoryContextProvider>
-              </div>
-            );
-          })}
-        </div>
-        <ResizeHandle
-          onMouseDown={previewPanel.handleMouseDown}
-          direction="right"
-          className="hidden min-[1000px]:block"
-        />
-        <div
-          className="hidden min-[1000px]:flex flex-col min-h-0 overflow-hidden flex-shrink-0"
-          style={{ width: previewPanel.width }}
-        >
-          <FileBrowserFilePreview isDragging={previewPanel.isDragging} />
-        </div>
+      <div className="flex-1 overflow-hidden min-w-0 min-h-0">
+        <TileProvider tilePanes={paneList} rootNode={rootPane} {...theme()}>
+          <TileContainer style={styles.container} />
+        </TileProvider>
       </div>
     </div>
   );
 }
 
-function FileBrowserFilePreview({ isDragging }: { isDragging: boolean }) {
+function FileBrowserFilePreview() {
   const activeDirectoryId = useSelector(
     directoryStore,
     (s) => s.context.activeDirectoryId,
@@ -120,7 +139,7 @@ function FileBrowserFilePreview({ isDragging }: { isDragging: boolean }) {
       isFile={selectedItem?.type === "file"}
       fileSize={selectedItem?.size}
       fileExt={selectedItem?.type === "file" ? selectedItem.ext : null}
-      isResizing={isDragging}
+      isResizing={false}
     />
   );
 }

@@ -20,6 +20,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@tailwindcss/vite": "^4.1.17",
+    "@use-gesture/react": "^10.3.1",
     "@xstate/react": "^6.0.0",
     "@xstate/store": "^3.13.0",
     "clipboardy": "^5.0.1",
@@ -32,6 +33,8 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.68.0",
+    "react-tile-pane": "^0.5.1",
+    "react-use-measure": "^2.1.7",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.17",
     "xlsx": "^0.18.5",
