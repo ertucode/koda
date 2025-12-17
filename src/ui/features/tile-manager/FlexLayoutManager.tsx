@@ -16,6 +16,7 @@ import {
   BorderNode,
   Actions,
   IIcons,
+  IJsonTabNode,
 } from "flexlayout-react";
 import { FavoritesList } from "../file-browser/components/FavoritesList";
 import { RecentsList } from "../file-browser/components/RecentsList";
@@ -331,6 +332,15 @@ export const FlexLayoutManager: React.FC = () => {
 
   // Save model to localStorage on changes
   const handleModelChange = useCallback((_newModel: Model) => {
+    const node = _newModel.getActiveTabset()?.getSelectedNode();
+    if (
+      node instanceof TabNode &&
+      node.getComponent() === "directory" &&
+      node.getConfig()?.directoryId
+    ) {
+      const directoryId = node.getConfig()?.directoryId as DirectoryId;
+      directoryStore.trigger.setActiveDirectoryId({ directoryId });
+    }
     // const json = newModel.toJson();
     // localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(json));
   }, []);
@@ -397,11 +407,16 @@ export const FlexLayoutManager: React.FC = () => {
 
   useEffect(() => {
     directoryStore.on("directoryCreated", (e) => {
-      layoutRef.current?.addTabToTabSet(e.tabId, {
+      const json: IJsonTabNode = {
         component: "directory",
         name: `Directory ${Date.now()}`,
         config: { directoryId: e.directoryId },
-      });
+      };
+      if (e.tabId) {
+        layoutRef.current?.addTabToTabSet(e.tabId, json);
+      } else {
+        layoutRef.current?.addTabToActiveTabSet(json);
+      }
     });
   }, []);
 
