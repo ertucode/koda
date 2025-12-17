@@ -1,0 +1,100 @@
+/* Custom FlexLayout overrides - using cleaned library CSS without colors */
+
+/* Tab strip padding and gap for join styling */
+.flexlayout__tabset_tabbar_inner {
+  padding: 4px !important;
+  gap: 0 !important;
+}
+
+/* Remove margins from tabs for join-item styling */
+.flexlayout__tab {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.flexlayout__tab_button {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Tab button content container */
+.flexlayout__tab_button_content {
+  padding: 0 !important;
+}
+
+/* Close button styling */
+.flexlayout__tab_button_trailing {
+  margin-left: 4px !important;
+  opacity: 0.6;
+}
+
+.flexlayout__tab_button_trailing:hover {
+  opacity: 1;
+}
+
+.flexlayout__tab_button_trailing svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* Splitter styling with theme colors */
+.flexlayout__splitter {
+  background: oklch(var(--b3) / 1) !important;
+  transition: background 0.2s;
+}
+
+.flexlayout__splitter:hover {
+  background: oklch(var(--bc) / 0.2) !important;
+}
+
+.flexlayout__splitter_handle {
+  background: oklch(var(--bc) / 0.3);
+}
+
+/* Toolbar - reset library styles */
+.flexlayout__tab_toolbar_button {
+  all: unset;
+  display: inline-flex;
+}
+
+/* Drag and drop indicators with theme colors */
+.flexlayout__outline_rect {
+  background: oklch(var(--p) / 0.1) !important;
+  border: 2px dashed oklch(var(--p) / 0.5) !important;
+}
+
+.flexlayout__edge_rect {
+  background: oklch(var(--p) / 0.2) !important;
+  border: 2px solid oklch(var(--p) / 0.8) !important;
+}
+
+.flexlayout__drag_rect {
+  background: oklch(var(--p) / 0.2) !important;
+  border: 2px solid oklch(var(--p) / 0.8) !important;
+  border-radius: 6px !important;
+}
+
+/* Tabset toolbar buttons (maximize, etc) */
+.flexlayout__tabset_button {
+  opacity: 0.6 !important;
+  border-radius: 0.5rem !important;
+  padding: 0.25rem !important;
+  transition: all 0.2s !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.flexlayout__tabset_button:hover {
+  background: oklch(var(--b3) / 1) !important;
+  opacity: 1 !important;
+}
+
+.flexlayout__tabset_button svg {
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+/* Tab overlay slightly transparent */
+.flexlayout__tab_overlay {
+  background-color: rgba(0, 0, 0, 0.24);
+}

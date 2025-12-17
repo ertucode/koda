@@ -105,6 +105,8 @@ function updateDirectory(
   fn: (d: DirectoryContextDirectory) => DirectoryContextDirectory,
 ) {
   const activeDirectory = getActiveDirectory(context, directoryId);
+  if (directoryId && !activeDirectory) return context;
+
   const newItem = fn(activeDirectory);
   return {
     ...context,
@@ -152,6 +154,7 @@ export const directoryStore = createStore({
   } as DirectoryContext,
   emits: {
     focusFuzzyInput: (_: { e: KeyboardEvent; directoryId: DirectoryId }) => {},
+    directoryCreated: (_: { directoryId: DirectoryId; tabId: string }) => {},
   },
   on: {
     focusFuzzyInput: (context, event: { e: KeyboardEvent }, enqueue) => {
@@ -286,6 +289,43 @@ export const directoryStore = createStore({
       return {
         ...context,
         activeDirectoryId: event.directoryId,
+      };
+    },
+    createDirectory: (context, event: { tabId: string }, enqueue) => {
+      const directoryId = Math.random().toString(36).slice(2) as DirectoryId;
+
+      enqueue.emit.directoryCreated({
+        directoryId,
+        tabId: event.tabId,
+      });
+
+      setupSubscriptions(directoryId);
+      loadDirectoryPath(defaultPath, directoryId);
+
+      return {
+        ...context,
+        directoriesById: {
+          ...context.directoriesById,
+          [directoryId]: {
+            directoryId,
+            directory: initialDirectoryInfo,
+            loading: false,
+            directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+            error: undefined as string | undefined,
+            historyStack: new HistoryStack<DirectoryInfo>([
+              initialDirectoryInfo,
+            ]),
+            pendingSelection: null as string | null,
+            // Selection state
+            selection: {
+              indexes: new Set<number>(),
+              last: undefined as number | undefined,
+            },
+            // Fuzzy finder state
+            fuzzyQuery: "",
+          },
+        },
+        directoryOrder: [...context.directoryOrder, directoryId],
       };
     },
   },
@@ -1252,11 +1292,9 @@ function setupSubscriptions(directoryId: DirectoryId) {
   subscriptions.push(
     subscribeToStores(
       [directoryStore],
-      ([s]) => [s.directoriesById[directoryId].directoryData],
-      ([s]) => {
-        directoryHelpers.resetSelection(
-          s.directoriesById[directoryId].directoryId,
-        );
+      ([s]) => [s.directoriesById[directoryId]?.directoryData],
+      (_) => {
+        directoryHelpers.resetSelection(directoryId);
       },
     ),
   );
@@ -1264,9 +1302,10 @@ function setupSubscriptions(directoryId: DirectoryId) {
   subscriptions.push(
     subscribeToStores(
       [directoryStore],
-      ([s]) => [s.directoriesById[directoryId].selection.last],
+      ([s]) => [s.directoriesById[directoryId]?.selection.last],
       ([s]) => {
         const ss = s.directoriesById[directoryId];
+        if (!ss) return;
         if (ss.selection.last != null) {
           scrollRowIntoViewIfNeeded(ss.directoryId, ss.selection.last);
         }
@@ -1278,18 +1317,18 @@ function setupSubscriptions(directoryId: DirectoryId) {
     createUseDerivedStoreValue(
       [directoryStore, fileBrowserSettingsStore],
       ([d, settings]) => [
-        d.directoriesById[directoryId].directoryData,
+        d.directoriesById[directoryId]?.directoryData,
         settings.settings,
-        d.directoriesById[directoryId].fuzzyQuery,
+        d.directoriesById[directoryId]?.fuzzyQuery,
       ],
       ([d, settings]) => {
         const directoryData = DirectoryDataFromSettings.getDirectoryData(
-          d.directoriesById[directoryId].directoryData,
+          d.directoriesById[directoryId]?.directoryData,
           settings.settings,
         );
         const filteredDirectoryData = computeFilteredData(
           directoryData,
-          d.directoriesById[directoryId].fuzzyQuery,
+          d.directoriesById[directoryId]?.fuzzyQuery,
         );
 
         return filteredDirectoryData;
@@ -1306,7 +1345,7 @@ function setupSubscriptions(directoryId: DirectoryId) {
     subscribeToStores(
       [directoryStore, fileBrowserSettingsStore],
       ([d, settings]) => [
-        d.directoriesById[directoryId].pendingSelection,
+        d.directoriesById[directoryId]?.pendingSelection,
         settings.settings,
       ],
       ([d]) => {
