@@ -24,9 +24,17 @@ import { PathHelpers } from "@common/PathHelpers";
  */
 const categoryIconMap: Record<
   FileCategory | "folder",
-  { icon: React.ComponentType<{ className?: string }>; colorClass: string }
+  {
+    icon: React.ComponentType<{ className?: string; fill?: string }>;
+    colorClass: string;
+    fill?: string;
+  }
 > = {
-  folder: { icon: FolderIcon, colorClass: "text-blue-500" },
+  folder: {
+    icon: FolderIcon,
+    colorClass: "text-blue-500",
+    fill: "currentColor",
+  },
   image: { icon: ImageIcon, colorClass: "text-pink-500" },
   video: { icon: VideoIcon, colorClass: "text-purple-500" },
   audio: { icon: MusicIcon, colorClass: "text-orange-500" },
@@ -42,7 +50,12 @@ const categoryIconMap: Record<
 
 function CategoryIcon({ category }: { category: FileCategory | "folder" }) {
   const config = categoryIconMap[category] ?? categoryIconMap.other;
-  return <config.icon className={`size-4 ${config.colorClass}`} />;
+  return (
+    <config.icon
+      className={`size-4 ${config.colorClass}`}
+      fill={config.fill || "transparent"}
+    />
+  );
 }
 
 /**
