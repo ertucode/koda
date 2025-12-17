@@ -154,7 +154,7 @@ export const directoryStore = createStore({
   } as DirectoryContext,
   emits: {
     focusFuzzyInput: (_: { e: KeyboardEvent; directoryId: DirectoryId }) => {},
-    directoryCreated: (_: { directoryId: DirectoryId; tabId: string }) => {},
+    directoryCreated: (_: { directoryId: DirectoryId; tabId?: string }) => {},
   },
   on: {
     focusFuzzyInput: (context, event: { e: KeyboardEvent }, enqueue) => {
@@ -291,7 +291,7 @@ export const directoryStore = createStore({
         activeDirectoryId: event.directoryId,
       };
     },
-    createDirectory: (context, event: { tabId: string }, enqueue) => {
+    createDirectory: (context, event: { tabId?: string }, enqueue) => {
       const directoryId = Math.random().toString(36).slice(2) as DirectoryId;
 
       enqueue.emit.directoryCreated({
@@ -1226,6 +1226,47 @@ export const directoryHelpers = {
     return alreadySelected
       ? [...selection.indexes].map((i) => tableData[i])
       : [item];
+  },
+
+  openInNewTab: (
+    item: GetFilesAndFoldersInDirectoryItem,
+    currentDirectoryId: DirectoryId,
+  ) => {
+    // Create a new directory tab
+    // We'll emit an event that FlexLayoutManager can listen to
+    directoryStore.trigger.createDirectory({ tabId: "DIRECTORY_TABSET" });
+
+    // Wait a bit for the new directory to be created
+    setTimeout(() => {
+      const newSnapshot = directoryStore.getSnapshot();
+      const newDirectoryIds = newSnapshot.context.directoryOrder;
+      const newDirectoryId = newDirectoryIds[newDirectoryIds.length - 1];
+
+      if (item.type === "dir") {
+        // Open the folder in the new tab
+        const fullPath =
+          item.fullPath ?? getFullPath(item.name, currentDirectoryId);
+        directoryHelpers.cdFull(fullPath, newDirectoryId);
+      } else {
+        // For files, open the containing folder in the new tab
+        const fullPath =
+          item.fullPath ?? getFullPath(item.name, currentDirectoryId);
+        const containingFolder = PathHelpers.resolveUpDirectory(
+          getWindowElectron().homeDirectory,
+          fullPath,
+        );
+        directoryHelpers.cdFull(containingFolder, newDirectoryId);
+
+        // Select the file in the new tab
+        setTimeout(() => {
+          directoryStore.send({
+            type: "setPendingSelection",
+            name: item.name,
+            directoryId: newDirectoryId,
+          });
+        }, 100);
+      }
+    }, 50);
   },
 };
 
