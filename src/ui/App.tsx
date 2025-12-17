@@ -1,5 +1,5 @@
 import "./App.css";
-import { FileBrowser } from "./features/file-browser/FileBrowser";
+import { FlexLayoutManager } from "./features/tile-manager";
 import { ConfirmationProvider } from "./lib/hooks/useConfirmation";
 import { ToastProvider } from "./lib/components/toast";
 
@@ -7,7 +7,7 @@ function App() {
   return (
     <ToastProvider>
       <ConfirmationProvider>
-        <FileBrowser />
+        <FlexLayoutManager />
       </ConfirmationProvider>
     </ToastProvider>
   );

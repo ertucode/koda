@@ -10,13 +10,19 @@ export type ButtonProps = HtmlButtonProps & {
   icon?: React.ComponentType<{ className?: string }>;
 };
 
-export function Button({ pending, loading, children, ...props }: ButtonProps) {
+export function Button({
+  pending,
+  loading,
+  children,
+  className,
+  ...props
+}: ButtonProps) {
   if (props.disabled !== true) {
     if (typeof pending === "boolean") props.disabled = pending;
   }
   const showSpinner = pending || loading;
   return (
-    <button className={clsx("btn btn-info", props.className)}>
+    <button className={clsx("btn btn-info", className)} {...props}>
       {(showSpinner || props.icon) && (
         <div className="h-4 w-4">
           {showSpinner ? (

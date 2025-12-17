@@ -1,1 +1,1 @@
-export { TileManager } from "./TileManager";
+export { FlexLayoutManager } from "./FlexLayoutManager";
