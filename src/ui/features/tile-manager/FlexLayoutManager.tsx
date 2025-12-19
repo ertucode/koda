@@ -262,6 +262,7 @@ export const FlexLayoutManager: React.FC = () => {
     else if (component === "preview") Icon = EyeIcon;
 
     const isDirectory = component === "directory" && config?.directoryId;
+    const noSiblings = node?.getParent()?.getChildren()?.length === 1;
 
     // Use your actual Button component with join-item styling
     renderValues.content = isDirectory ? (
@@ -275,10 +276,15 @@ export const FlexLayoutManager: React.FC = () => {
         <DirectoryTabLabel directoryId={config.directoryId} />
       </Button>
     ) : (
-      <div className="text-xs font-bold cursor-move flex items-center gap-3 pl-1.5">
-        <Icon className="size-4" />
-        {node.getName()}
-      </div>
+      <Button
+        className={clsx(
+          "text-xs btn-ghost btn-xs cursor-move flex items-center gap-3 rounded-none px-1.5 p-3",
+          node.isSelected() && !noSiblings && "btn-active",
+        )}
+        icon={Icon}
+      >
+        {noSiblings && node.getName()}
+      </Button>
     );
 
     // Customize close button with our Button component
@@ -337,7 +343,7 @@ export const FlexLayoutManager: React.FC = () => {
             <Button
               key="add-directory"
               icon={PlusIcon}
-              className="btn-ghost btn-sm btn-square rounded-none"
+              className="btn-ghost btn-sm btn-square rounded-none directory-tabset-marker"
               title="Add New Directory"
               onClick={() => {
                 directoryStore.trigger.createDirectory({
