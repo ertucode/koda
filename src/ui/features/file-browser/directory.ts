@@ -1360,6 +1360,78 @@ export const directoryHelpers = {
       ),
     });
   },
+
+  zipFiles: async (
+    filePaths: string[],
+    zipName: string,
+    directoryId: DirectoryId,
+  ): Promise<ResultHandlerResult> => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (context.directory.type !== "path") {
+      return GenericError.Message("Cannot create zip in tags view");
+    }
+
+    try {
+      const finalZipName = zipName.endsWith(".zip") ? zipName : `${zipName}.zip`;
+      const destinationZipPath = mergeMaybeSlashed(
+        context.directory.fullPath,
+        finalZipName,
+      );
+      const result = await getWindowElectron().zipFiles(
+        filePaths,
+        destinationZipPath,
+      );
+      if (result.success) {
+        await directoryHelpers.reload(directoryId);
+        // Select the newly created zip file
+        const zipFileName = PathHelpers.getLastPathPart(result.data!.path);
+        directoryHelpers.setPendingSelection(zipFileName, directoryId);
+      }
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      return GenericError.Message(errorMessage);
+    }
+  },
+
+  unzipFile: async (
+    zipFilePath: string,
+    folderName: string,
+    directoryId: DirectoryId,
+  ): Promise<ResultHandlerResult> => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (context.directory.type !== "path") {
+      return GenericError.Message("Cannot extract zip in tags view");
+    }
+
+    try {
+      const destinationFolder = mergeMaybeSlashed(
+        context.directory.fullPath,
+        folderName,
+      );
+      const result = await getWindowElectron().unzipFile(
+        zipFilePath,
+        destinationFolder,
+      );
+      if (result.success) {
+        await directoryHelpers.reload(directoryId);
+        // Select the newly created folder
+        directoryHelpers.setPendingSelection(folderName, directoryId);
+      }
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      return GenericError.Message(errorMessage);
+    }
+  },
 };
 
 // Selectors

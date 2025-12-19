@@ -13,6 +13,14 @@ export type StringSearchResult = {
   contextLines: ContextLine[];
 };
 
+export type ZipEntry = {
+  name: string;
+  isDirectory: boolean;
+  size: number;
+  compressedSize: number;
+  comment: string;
+};
+
 export type FileCategory =
   | "image"
   | "video"
@@ -75,6 +83,9 @@ export type EventResponseMapping = {
   fuzzyFileFinder: Promise<GenericResult<string[]>>;
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>;
   fuzzyFolderFinder: Promise<GenericResult<string[]>>;
+  readZipContents: Promise<GenericResult<ZipEntry[]>>;
+  zipFiles: Promise<GenericResult<{ path: string }>>;
+  unzipFile: Promise<GenericResult<{ path: string }>>;
 };
 
 export type StringSearchOptions = {
@@ -120,6 +131,9 @@ export type EventRequestMapping = {
   fuzzyFileFinder: { directory: string; query: string };
   searchStringRecursively: StringSearchOptions;
   fuzzyFolderFinder: { directory: string; query: string };
+  readZipContents: string;
+  zipFiles: { filePaths: string[]; destinationZipPath: string };
+  unzipFile: { zipFilePath: string; destinationFolder: string };
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -195,4 +209,13 @@ export type WindowElectron = {
   getFileInfoByPaths: (
     filePaths: string[],
   ) => Promise<GetFilesAndFoldersInDirectoryItem[]>;
+  readZipContents: (filePath: string) => Promise<GenericResult<ZipEntry[]>>;
+  zipFiles: (
+    filePaths: string[],
+    destinationZipPath: string,
+  ) => Promise<GenericResult<{ path: string }>>;
+  unzipFile: (
+    zipFilePath: string,
+    destinationFolder: string,
+  ) => Promise<GenericResult<{ path: string }>>;
 };

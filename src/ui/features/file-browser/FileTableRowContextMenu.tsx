@@ -18,6 +18,8 @@ import {
   FolderCogIcon,
   FolderPlusIcon,
   ClipboardCopyIcon,
+  FileArchiveIcon,
+  FolderInputIcon,
 } from "lucide-react";
 import { setDefaultPath } from "./defaultPath";
 import { dialogActions } from "./dialogStore";
@@ -171,6 +173,52 @@ export const FileTableRowContextMenu = ({
     view: <TextWithIcon icon={ClipboardCopyIcon}>Copy Path</TextWithIcon>,
   };
 
+  // Zip selected files/folders
+  const zipItem: ContextMenuItem = {
+    onClick: () => {
+      const filePaths = selectedItems.map(
+        (i) => i.fullPath ?? directoryHelpers.getFullPath(i.name, directoryId),
+      );
+      // If single item, suggest its name (without extension for files)
+      let suggestedName: string | undefined;
+      if (selectedItems.length === 1) {
+        const singleItem = selectedItems[0];
+        if (singleItem.type === "file") {
+          // Remove extension and add .zip
+          suggestedName = singleItem.name.replace(/\.[^.]+$/, "") + ".zip";
+        } else {
+          // For folders, just add .zip
+          suggestedName = singleItem.name + ".zip";
+        }
+      }
+      dialogActions.open("zip", { filePaths, suggestedName });
+      close();
+    },
+    view: (
+      <TextWithIcon icon={FileArchiveIcon}>
+        Create Zip Archive
+        {isSelected && selectionIndexes.size > 1
+          ? ` (${selectionIndexes.size} items)`
+          : ""}
+      </TextWithIcon>
+    ),
+  };
+
+  // Unzip (only show for .zip files)
+  const isZipFile = item.type === "file" && item.ext === ".zip";
+  const unzipItem: ContextMenuItem | null = isZipFile
+    ? {
+        onClick: () => {
+          const zipFilePath =
+            item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId);
+          const suggestedName = item.name.replace(/\.zip$/i, "");
+          dialogActions.open("unzip", { zipFilePath, suggestedName });
+          close();
+        },
+        view: <TextWithIcon icon={FolderInputIcon}>Extract Here</TextWithIcon>,
+      }
+    : null;
+
   // Last used tag quick-add item
   const lastUsedTag = useSelector(tagsStore, selectLastUsedTag);
   const hasLastUsedTag = lastUsedTag
@@ -235,6 +283,7 @@ export const FileTableRowContextMenu = ({
           copyItem,
           cutItem,
           pasteItem,
+          zipItem,
           deleteItem,
           renameItem,
           newFileItem,
@@ -254,6 +303,8 @@ export const FileTableRowContextMenu = ({
         copyItem,
         cutItem,
         pasteItem,
+        zipItem,
+        unzipItem,
         deleteItem,
         renameItem,
         newFileItem,

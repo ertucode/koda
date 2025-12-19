@@ -44,6 +44,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("fuzzyFolderFinder", { directory, query }),
   getFileInfoByPaths: (filePaths: string[]) =>
     ipcInvoke("getFileInfoByPaths", filePaths),
+  readZipContents: (filePath: string) =>
+    ipcInvoke("readZipContents", filePath),
+  zipFiles: (filePaths: string[], destinationZipPath: string) =>
+    ipcInvoke("zipFiles", { filePaths, destinationZipPath }),
+  unzipFile: (zipFilePath: string, destinationFolder: string) =>
+    ipcInvoke("unzipFile", { zipFilePath, destinationFolder }),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

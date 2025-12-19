@@ -24,6 +24,9 @@ import { pasteFiles } from "./utils/paste-files.js";
 import { fuzzyFileFinder } from "./utils/fuzzy-file-finder.js";
 import { searchStringRecursively } from "./utils/search-string-recursively.js";
 import { fuzzyFolderFinder } from "./utils/fuzzy-folder-finder.js";
+import { readZipContents } from "./utils/read-zip-contents.js";
+import { zipFiles } from "./utils/zip-files.js";
+import { unzipFile } from "./utils/unzip-file.js";
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined;
@@ -180,4 +183,11 @@ app.on("ready", () => {
     fuzzyFolderFinder(directory, query),
   );
   ipcHandle("getFileInfoByPaths", getFileInfoByPaths);
+  ipcHandle("readZipContents", (filePath) => readZipContents(filePath));
+  ipcHandle("zipFiles", ({ filePaths, destinationZipPath }) =>
+    zipFiles(filePaths, destinationZipPath),
+  );
+  ipcHandle("unzipFile", ({ zipFilePath, destinationFolder }) =>
+    unzipFile(zipFilePath, destinationFolder),
+  );
 });
