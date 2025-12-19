@@ -17,6 +17,7 @@ import {
   TagIcon,
   FolderCogIcon,
   FolderPlusIcon,
+  ClipboardCopyIcon,
 } from "lucide-react";
 import { setDefaultPath } from "./defaultPath";
 import { dialogActions } from "./dialogStore";
@@ -157,6 +158,13 @@ export const FileTableRowContextMenu = ({
     view: <TextWithIcon icon={TagIcon}>Assign Tags...</TextWithIcon>,
   };
 
+  const copyPathItem: ContextMenuItem = {
+    onClick: () => {
+      navigator.clipboard.writeText(fullPath);
+    },
+    view: <TextWithIcon icon={ClipboardCopyIcon}>Copy Path</TextWithIcon>,
+  };
+
   // Last used tag quick-add item
   const lastUsedTag = useSelector(tagsStore, selectLastUsedTag);
   const hasLastUsedTag = lastUsedTag
@@ -225,6 +233,7 @@ export const FileTableRowContextMenu = ({
           renameItem,
           newFileItem,
           openDirectoryInNewTab,
+          copyPathItem,
         ]}
       />
     );
@@ -242,6 +251,7 @@ export const FileTableRowContextMenu = ({
         deleteItem,
         renameItem,
         newFileItem,
+        copyPathItem,
       ]}
     />
   );
