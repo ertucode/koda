@@ -38,6 +38,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("searchStringRecursively", options),
   fuzzyFolderFinder: (directory: string, query: string) =>
     ipcInvoke("fuzzyFolderFinder", { directory, query }),
+  readZipContents: (filePath: string) =>
+    ipcInvoke("readZipContents", filePath),
+  zipFiles: (filePaths: string[], destinationZipPath: string) =>
+    ipcInvoke("zipFiles", { filePaths, destinationZipPath }),
+  unzipFile: (zipFilePath: string, destinationFolder: string) =>
+    ipcInvoke("unzipFile", { zipFilePath, destinationFolder }),
 } satisfies Partial<WindowElectron>);
 
 function getArgv(key: string) {

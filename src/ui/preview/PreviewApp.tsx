@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { CopyIcon, FilmIcon, AlertCircleIcon } from "lucide-react";
+import {
+  CopyIcon,
+  FilmIcon,
+  AlertCircleIcon,
+  FileArchiveIcon,
+} from "lucide-react";
 import { renderAsync } from "docx-preview";
 import { getWindowElectron } from "@/getWindowElectron";
 import { fileSizeTooLarge } from "@common/file-size-too-large";
 import { isImageExtension, isVideoExtension } from "@common/file-category";
+import { ZipEntry } from "@common/Contracts";
 
 function expandHome(filePath: string): string {
   if (filePath.startsWith("~/")) {
@@ -20,7 +26,8 @@ type ContentType =
   | "docx"
   | "xlsx"
   | "video"
-  | "video-unsupported";
+  | "video-unsupported"
+  | "zip";
 
 type PreviewData = {
   filePath: string;
@@ -87,6 +94,7 @@ export function PreviewApp() {
 
   const PDF_EXTENSIONS = new Set([".pdf"]);
   const XLSX_EXTENSIONS = new Set([".xlsx", ".xls", ".csv"]);
+  const ZIP_EXTENSIONS = new Set([".zip"]);
   // Video formats that Chromium can play natively
   const PLAYABLE_VIDEO_EXTENSIONS = new Set([
     ".mp4",
@@ -103,6 +111,7 @@ export function PreviewApp() {
   const isPdf = PDF_EXTENSIONS.has(ext);
   const isVideo = isVideoExtension(ext);
   const isPlayableVideo = PLAYABLE_VIDEO_EXTENSIONS.has(ext);
+  const isZip = ZIP_EXTENSIONS.has(ext);
   const { isTooLarge, limit: fileSizeLimit } = previewData?.fileSize
     ? fileSizeTooLarge(ext, previewData.fileSize)
     : { isTooLarge: false, limit: Infinity };
@@ -157,6 +166,33 @@ export function PreviewApp() {
       }
       setError(null);
       setLoading(false);
+      return;
+    }
+
+    if (isZip) {
+      // Fetch zip contents via IPC
+      setLoading(true);
+      getWindowElectron()
+        .readZipContents(previewData.filePath)
+        .then((result) => {
+          if ("error" in result) {
+            setError(String(result.error));
+            setContent(null);
+            setContentType("text");
+          } else {
+            setContent(JSON.stringify(result.data));
+            setContentType("zip");
+            setError(null);
+          }
+        })
+        .catch((err) => {
+          setError(err.message || "Failed to read zip file");
+          setContent(null);
+          setContentType("text");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
       return;
     }
 
@@ -295,6 +331,10 @@ export function PreviewApp() {
 
   if (contentType === "video-unsupported") {
     return <VideoUnsupportedPreview jsonContent={content} />;
+  }
+
+  if (contentType === "zip") {
+    return <ZipPreview jsonContent={content} />;
   }
 
   return (
@@ -539,6 +579,87 @@ function VideoUnsupportedPreview({ jsonContent }: { jsonContent: string }) {
         <div className="text-xs text-gray-400 max-w-[200px]">
           {metadata.message}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ZipPreview({ jsonContent }: { jsonContent: string }) {
+  const [entries, setEntries] = useState<ZipEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(jsonContent) as ZipEntry[];
+      setEntries(parsed);
+      setError(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to parse zip contents",
+      );
+    }
+  }, [jsonContent]);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full text-red-500 p-4">
+        {error}
+      </div>
+    );
+  }
+
+  const totalSize = entries.reduce((sum, entry) => sum + entry.size, 0);
+  const totalCompressed = entries.reduce(
+    (sum, entry) => sum + entry.compressedSize,
+    0,
+  );
+  const compressionRatio =
+    totalSize > 0 ? ((1 - totalCompressed / totalSize) * 100).toFixed(1) : "0";
+  const fileSizeMB = (totalSize / 1024 / 1024).toFixed(2);
+
+  return (
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
+      <div className="flex items-center justify-between mb-2 bg-base-200 rounded-t-none rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2">
+          <FileArchiveIcon className="size-4" />
+          <span className="text-sm font-medium">
+            {entries.length} {entries.length === 1 ? "item" : "items"}
+          </span>
+        </div>
+        <div className="flex gap-3 text-xs">
+          <span>{fileSizeMB} MB</span>
+          <span>{compressionRatio}% saved</span>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0 overflow-auto bg-base-200 rounded-xl">
+        <table className="table table-xs table-pin-rows">
+          <thead>
+            <tr className="bg-base-300">
+              <th className="w-full">Name</th>
+              <th className="text-right whitespace-nowrap">Size</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((entry, index) => (
+              <tr key={index}>
+                <td className="font-mono text-[10px] break-all">
+                  {entry.isDirectory ? (
+                    <span className="text-blue-500">{entry.name}</span>
+                  ) : (
+                    entry.name
+                  )}
+                </td>
+                <td className="text-right text-[10px] whitespace-nowrap">
+                  {entry.isDirectory
+                    ? "-"
+                    : entry.size >= 1024
+                      ? `${(entry.size / 1024).toFixed(1)} KB`
+                      : `${entry.size} B`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

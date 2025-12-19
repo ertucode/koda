@@ -5,7 +5,9 @@ import { NewItemDialog } from "./components/NewItemDialog";
 import { AssignTagsDialog } from "./components/AssignTagsDialog";
 import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
 import { FinderDialog, FinderTab } from "./components/FinderDialog";
-import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon } from "lucide-react";
+import { ZipDialog } from "./components/ZipDialog";
+import { UnzipDialog } from "./components/UnzipDialog";
+import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon } from "lucide-react";
 import { useRef, useEffect, Ref } from "react";
 import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useSelector } from "@xstate/store/react";
@@ -16,7 +18,9 @@ export type DialogType =
   | "newItem"
   | "assignTags"
   | "multiFileTags"
-  | "finder";
+  | "finder"
+  | "zip"
+  | "unzip";
 
 // Define the metadata each dialog requires
 export type DialogMetadata = {
@@ -25,6 +29,8 @@ export type DialogMetadata = {
   assignTags: string;
   multiFileTags: string[];
   finder: { initialTab?: FinderTab };
+  zip: { filePaths: string[]; suggestedName?: string };
+  unzip: { zipFilePath: string; suggestedName: string };
 };
 
 // Store context - only one dialog can be open at a time
@@ -111,6 +117,18 @@ const dialogDefinitions = [
     component: FinderDialog,
     icon: SearchIcon,
     title: "Finder",
+  },
+  {
+    type: "zip" as const,
+    component: ZipDialog,
+    icon: FileArchiveIcon,
+    title: "Create Zip Archive",
+  },
+  {
+    type: "unzip" as const,
+    component: UnzipDialog,
+    icon: FolderInputIcon,
+    title: "Extract Zip Archive",
   },
 ] as const;
 
