@@ -72,6 +72,11 @@
   display: inline-flex;
 }
 
+/* Directory tabset styling - has the marker class */
+.flexlayout__tabset_tabbar_outer:has(.directory-tabset-marker) {
+  @apply bg-base-200 border-b border-base-300;
+}
+
 /* Drag and drop indicators with theme colors */
 .flexlayout__outline_rect {
   background: rgba(96, 165, 250, 0.15);
