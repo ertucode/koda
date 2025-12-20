@@ -2,6 +2,7 @@ import { useSelector } from "@xstate/store/react";
 import { directoryStore } from "../directory";
 import { DirectoryContextProvider } from "../DirectoryContext";
 import { FolderBreadcrumb } from "./FolderBreadcrumb";
+import { FileBrowserOptionsSection } from "./FileBrowserOptionsSection";
 
 export function BottomToolbar() {
   const activeDirectoryId = useSelector(
@@ -27,6 +28,9 @@ export function BottomToolbar() {
           <FolderBreadcrumb />
         </div>
       </DirectoryContextProvider>
+      <div className="ml-auto">
+        <FileBrowserOptionsSection />
+      </div>
     </div>
   );
 }

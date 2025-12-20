@@ -12,7 +12,7 @@ export function FileBrowserOptionsSection() {
 
   return (
     <div className="flex gap-3">
-      <label className="label text-sm">
+      <label className="label text-xs">
         <input
           type="checkbox"
           className="checkbox checkbox-xs"
@@ -21,7 +21,7 @@ export function FileBrowserOptionsSection() {
         />
         Show dot files
       </label>
-      <label className="label text-sm">
+      <label className="label text-xs">
         <input
           type="checkbox"
           className="checkbox checkbox-xs"
