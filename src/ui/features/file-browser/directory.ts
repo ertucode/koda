@@ -769,6 +769,14 @@ export const directoryHelpers = {
       }
     } else {
       const fullPath = item.fullPath || getFullPath(item.name, directoryId);
+      
+      // Check if it's a zip file - if so, open the unzip dialog instead
+      if (item.ext === ".zip") {
+        const suggestedName = item.name.replace(/\.zip$/i, "");
+        dialogActions.open("unzip", { zipFilePath: fullPath, suggestedName });
+        return;
+      }
+      
       recentsStore.send({
         type: "addRecent",
         item: { fullPath, type: "file" },
