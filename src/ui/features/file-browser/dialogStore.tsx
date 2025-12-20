@@ -7,7 +7,8 @@ import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
 import { FinderDialog, FinderTab } from "./components/FinderDialog";
 import { ZipDialog } from "./components/ZipDialog";
 import { UnzipDialog } from "./components/UnzipDialog";
-import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon } from "lucide-react";
+import { CommandPalette } from "./components/CommandPalette";
+import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon } from "lucide-react";
 import { useRef, useEffect, Ref } from "react";
 import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useSelector } from "@xstate/store/react";
@@ -20,7 +21,8 @@ export type DialogType =
   | "multiFileTags"
   | "finder"
   | "zip"
-  | "unzip";
+  | "unzip"
+  | "commandPalette";
 
 // Define the metadata each dialog requires
 export type DialogMetadata = {
@@ -31,6 +33,7 @@ export type DialogMetadata = {
   finder: { initialTab?: FinderTab };
   zip: { filePaths: string[]; suggestedName?: string };
   unzip: { zipFilePath: string; suggestedName: string };
+  commandPalette: {};
 };
 
 // Store context - only one dialog can be open at a time
@@ -129,6 +132,12 @@ const dialogDefinitions = [
     component: UnzipDialog,
     icon: FolderInputIcon,
     title: "Extract Zip Archive",
+  },
+  {
+    type: "commandPalette" as const,
+    component: CommandPalette,
+    icon: KeyboardIcon,
+    title: "Keyboard Shortcuts",
   },
 ] as const;
 

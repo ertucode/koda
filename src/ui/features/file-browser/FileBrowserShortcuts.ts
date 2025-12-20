@@ -63,39 +63,53 @@ export function FileBrowserShortcuts() {
             e,
             directoryId,
           ),
+        label: "Open selected item",
       },
       {
         key: { key: "p", ctrlKey: true },
         handler: (e) => {
-          e.preventDefault();
+          e?.preventDefault();
           dialogActions.open("finder", { initialTab: "files" });
         },
+        label: "Find file",
+      },
+      {
+        key: { key: "k", ctrlKey: true, metaKey: true },
+        handler: (e) => {
+          e?.preventDefault();
+          dialogActions.open("commandPalette", {});
+        },
+        label: "Show keyboard shortcuts",
       },
       {
         key: { key: "s", ctrlKey: true },
         handler: (e) => {
-          e.preventDefault();
+          e?.preventDefault();
           dialogActions.open("finder", { initialTab: "strings" });
         },
+        label: "Find string",
       },
       {
         key: { key: "f", ctrlKey: true },
         handler: (e) => {
-          e.preventDefault();
+          e?.preventDefault();
           dialogActions.open("finder", { initialTab: "folders" });
         },
+        label: "Find folder",
       },
       {
         key: { key: "o", ctrlKey: true },
         handler: (_) => {
           directoryHelpers.onGoUpOrPrev(directoryHelpers.goPrev, directoryId);
         },
+        label: "Go to previous directory",
       },
       {
         key: { key: "i", ctrlKey: true },
         handler: (_) => {
           directoryHelpers.onGoUpOrPrev(directoryHelpers.goNext, directoryId);
         },
+        label: "Go to next directory",
       },
       {
         key: " ",
@@ -104,11 +118,13 @@ export function FileBrowserShortcuts() {
             directoryHelpers.selectManually(0, directoryId);
           }
         },
+        label: "Select first item",
       },
       {
         key: ["-", "h"],
         handler: () =>
           directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, directoryId),
+        label: "Go up to parent directory",
       },
       {
         key: { key: "Backspace", metaKey: true },
@@ -120,21 +136,24 @@ export function FileBrowserShortcuts() {
           directoryHelpers.handleDelete(itemsToDelete, data, directoryId);
         },
         enabledIn: () => true,
+        label: "Delete selected items",
       },
       {
         key: { key: "n", ctrlKey: true },
         handler: (e) => {
-          e.preventDefault();
+          e?.preventDefault();
           dialogActions.open("newItem", {});
         },
+        label: "Create new item",
       },
       {
         key: "r",
         notKey: { key: "r", metaKey: true },
         handler: (e) => {
-          e.preventDefault();
+          e?.preventDefault();
           directoryHelpers.reload(directoryId);
         },
+        label: "Reload directory",
       },
       {
         key: { key: "c", metaKey: true },
@@ -145,7 +164,7 @@ export function FileBrowserShortcuts() {
             return; // Allow default text copy
           }
 
-          e.preventDefault();
+          e?.preventDefault();
           if (s.state.indexes.size === 0) return;
           const itemsToCopy = [...s.state.indexes].map(
             (i) => getData(directoryId)[i],
@@ -153,6 +172,7 @@ export function FileBrowserShortcuts() {
           directoryHelpers.handleCopy(itemsToCopy, false, directoryId);
         },
         enabledIn: () => true,
+        label: "Copy selected items",
       },
       {
         key: { key: "x", metaKey: true },
@@ -163,7 +183,7 @@ export function FileBrowserShortcuts() {
             return; // Allow default text cut
           }
 
-          e.preventDefault();
+          e?.preventDefault();
           if (s.state.indexes.size === 0) return;
           const itemsToCut = [...s.state.indexes].map(
             (i) => getData(directoryId)[i],
@@ -171,12 +191,13 @@ export function FileBrowserShortcuts() {
           directoryHelpers.handleCopy(itemsToCut, true, directoryId);
         },
         enabledIn: () => true,
+        label: "Cut selected items",
       },
       {
         key: { key: "v", metaKey: true },
         handler: (e) => {
           // Check if user is in an input field
-          const target = e.target as HTMLElement;
+          const target = e?.target as HTMLElement;
           if (
             target.tagName === "INPUT" ||
             target.tagName === "TEXTAREA" ||
@@ -185,10 +206,11 @@ export function FileBrowserShortcuts() {
             return; // Allow default paste in inputs
           }
 
-          e.preventDefault();
+          e?.preventDefault();
           directoryHelpers.handlePaste(directoryId);
         },
         enabledIn: () => true,
+        label: "Paste items",
       },
       {
         key: { key: "0", ctrlKey: true },
@@ -196,38 +218,43 @@ export function FileBrowserShortcuts() {
           // @ts-ignore
           document.querySelector("webview")?.openDevTools();
         },
+        label: "Open dev tools",
       },
       {
         key: { key: "/" },
         handler: (e) => {
           directoryStore.trigger.focusFuzzyInput({ e });
         },
+        label: "Focus search",
       },
       {
         key: { key: "l", ctrlKey: true, metaKey: true },
         handler: (e) => {
-          e.preventDefault();
+          e?.preventDefault();
           directoryHelpers.loadDirectorySizes(directoryId);
         },
+        label: "Load directory sizes",
       },
       // Option+1 through Option+9 to open favorites
       ...Array.from({ length: 9 }, (_, i) => ({
         key: { key: `Digit${i + 1}`, isCode: true, altKey: true },
-        handler: (e: KeyboardEvent) => {
-          e.preventDefault();
+        handler: (e: KeyboardEvent | undefined) => {
+          e?.preventDefault();
           const favorite = favoritesStore.get().context.favorites[i];
           if (favorite) {
             directoryHelpers.openItemFull(favorite, directoryId);
           }
         },
+        label: `Open favorite ${i + 1}`,
       })),
       ...directoryHelpers.getSelectionShortcuts(dataCount, directoryId),
       ...directories.map((d, i) => ({
         key: { key: (i + 1).toString(), metaKey: true },
-        handler: (e: KeyboardEvent) => {
-          e.preventDefault();
+        handler: (e: KeyboardEvent | undefined) => {
+          e?.preventDefault();
           directoryStore.send({ type: "setActiveDirectoryId", directoryId: d });
         },
+        label: `Switch to pane ${i + 1}`,
       })),
     ],
     {

@@ -140,11 +140,18 @@ export const directoryStore = createStore({
     activeDirectoryId: dummyDirectoryId,
   } as DirectoryContext,
   emits: {
-    focusFuzzyInput: (_: { e: KeyboardEvent; directoryId: DirectoryId }) => {},
+    focusFuzzyInput: (_: {
+      e: KeyboardEvent | undefined;
+      directoryId: DirectoryId;
+    }) => {},
     directoryCreated: (_: { directoryId: DirectoryId; tabId?: string }) => {},
   },
   on: {
-    focusFuzzyInput: (context, event: { e: KeyboardEvent }, enqueue) => {
+    focusFuzzyInput: (
+      context,
+      event: { e: KeyboardEvent | undefined },
+      enqueue,
+    ) => {
       enqueue.emit.focusFuzzyInput({
         e: event.e,
         directoryId: context.activeDirectoryId,
@@ -774,14 +781,14 @@ export const directoryHelpers = {
       }
     } else {
       const fullPath = item.fullPath || getFullPath(item.name, directoryId);
-      
+
       // Check if it's a zip file - if so, open the unzip dialog instead
       if (item.ext === ".zip") {
         const suggestedName = item.name.replace(/\.zip$/i, "");
         dialogActions.open("unzip", { zipFilePath: fullPath, suggestedName });
         return;
       }
-      
+
       recentsStore.send({
         type: "addRecent",
         item: { fullPath, type: "file" },
@@ -806,7 +813,7 @@ export const directoryHelpers = {
   // Selection helpers
   select: (
     index: number,
-    event: React.MouseEvent | KeyboardEvent,
+    event: React.MouseEvent | KeyboardEvent | undefined,
     directoryId: DirectoryId,
   ) => {
     const state = getActiveDirectory(
@@ -822,6 +829,7 @@ export const directoryHelpers = {
     };
 
     const isShiftEvent =
+      event &&
       event.shiftKey &&
       (!("key" in event) || (event.key !== "G" && event.key !== "g"));
     if (isShiftEvent && state.selection.last != null) {
@@ -876,6 +884,7 @@ export const directoryHelpers = {
     }
 
     const isCtrlEvent =
+      event &&
       (event.ctrlKey || event.metaKey) &&
       (!("key" in event) || (event.key !== "u" && event.key !== "d"));
     if (isCtrlEvent) {
@@ -911,19 +920,20 @@ export const directoryHelpers = {
   ): ShortcutInput[] => [
     {
       key: [{ key: "a", metaKey: true }],
-      handler: (e: KeyboardEvent) => {
+      handler: (e) => {
         directoryStore.send({
           type: "setSelection",
           indexes: new Set(Array.from({ length: count }).map((_, i) => i)),
           last: count - 1,
           directoryId,
         });
-        e.preventDefault();
+        e?.preventDefault();
       },
+      label: "Select all items",
     },
     {
       key: ["ArrowUp", "k", "K"],
-      handler: (e: KeyboardEvent) => {
+      handler: (e) => {
         const state = getActiveDirectory(
           directoryStore.getSnapshot().context,
           directoryId,
@@ -945,12 +955,13 @@ export const directoryHelpers = {
             directoryHelpers.select(lastSelected - 1, e, directoryId);
           }
         }
-        e.preventDefault();
+        e?.preventDefault();
       },
+      label: "Select previous item",
     },
     {
       key: ["ArrowDown", "j", "J"],
-      handler: (e: KeyboardEvent) => {
+      handler: (e) => {
         const state = getActiveDirectory(
           directoryStore.getSnapshot().context,
           directoryId,
@@ -972,52 +983,57 @@ export const directoryHelpers = {
             directoryHelpers.select(lastSelected + 1, e, directoryId);
           }
         }
-        e.preventDefault();
+        e?.preventDefault();
       },
+      label: "Select next item",
     },
     {
       key: "ArrowLeft",
-      handler: (e: KeyboardEvent) => {
+      handler: (e) => {
         const state = getActiveDirectory(
           directoryStore.getSnapshot().context,
           directoryId,
         );
         const lastSelected = state.selection.last ?? 0;
         directoryHelpers.select(lastSelected - 10, e, directoryId);
-        e.preventDefault();
+        e?.preventDefault();
       },
+      label: "Jump 10 items up",
     },
     {
       key: "ArrowRight",
-      handler: (e: KeyboardEvent) => {
+      handler: (e) => {
         const state = getActiveDirectory(
           directoryStore.getSnapshot().context,
           directoryId,
         );
         const lastSelected = state.selection.last ?? 0;
         directoryHelpers.select(lastSelected + 10, e, directoryId);
-        e.preventDefault();
+        e?.preventDefault();
       },
+      label: "Jump 10 items down",
     },
     {
       key: "G",
-      handler: (e: KeyboardEvent) => {
+      handler: (e) => {
         // Go to the bottom (like vim G)
         directoryHelpers.select(count - 1, e, directoryId);
-        e.preventDefault();
+        e?.preventDefault();
       },
+      label: "Go to last item",
     },
     {
       // Go to the top (like vim gg)
       sequence: ["g", "g"],
-      handler: (e: KeyboardEvent) => {
+      handler: (e) => {
         directoryHelpers.select(0, e, directoryId);
-        e.preventDefault();
+        e?.preventDefault();
       },
+      label: "Go to first item",
     },
     {
       key: { key: "d", ctrlKey: true },
-      handler: (e: KeyboardEvent) => {
+      handler: (e) => {
         const state = getActiveDirectory(
           directoryStore.getSnapshot().context,
           directoryId,
@@ -1028,20 +1044,22 @@ export const directoryHelpers = {
           e,
           directoryId,
         );
-        e.preventDefault();
+        e?.preventDefault();
       },
+      label: "Page down",
     },
     {
       key: { key: "u", ctrlKey: true },
-      handler: (e: KeyboardEvent) => {
+      handler: (e) => {
         const state = getActiveDirectory(
           directoryStore.getSnapshot().context,
           directoryId,
         );
         const lastSelected = state.selection.last ?? 0;
         directoryHelpers.select(Math.max(lastSelected - 10, 0), e, directoryId);
-        e.preventDefault();
+        e?.preventDefault();
       },
+      label: "Page up",
     },
   ],
 
@@ -1388,7 +1406,9 @@ export const directoryHelpers = {
     }
 
     try {
-      const finalZipName = zipName.endsWith(".zip") ? zipName : `${zipName}.zip`;
+      const finalZipName = zipName.endsWith(".zip")
+        ? zipName
+        : `${zipName}.zip`;
       const destinationZipPath = mergeMaybeSlashed(
         context.directory.fullPath,
         finalZipName,
