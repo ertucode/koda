@@ -64,26 +64,29 @@ export const FinderDialog = forwardRef<
         key: "Tab",
         notKey: { key: "Tab", shiftKey: true },
         handler: (e) => {
-          e.preventDefault();
+          e?.preventDefault();
           handleTabSwitch();
         },
         enabledIn: () => true,
+        label: "Next finder tab",
       },
       {
         key: { key: "Tab", shiftKey: true },
         handler: (e) => {
-          e.preventDefault();
+          e?.preventDefault();
           goPrevTab();
         },
         enabledIn: () => true,
+        label: "Previous finder tab",
       },
       {
         key: "Escape",
         handler: (e) => {
-          e.preventDefault();
+          e?.preventDefault();
           onClose();
         },
         enabledIn: () => true,
+        label: "Close finder dialog",
       },
     ],
     { isDisabled: !dialogOpen },

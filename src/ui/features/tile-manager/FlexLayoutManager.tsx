@@ -204,6 +204,7 @@ export const FlexLayoutManager: React.FC = () => {
           customIcon: SaveIcon,
         });
       },
+      label: "Save layout",
     },
     {
       key: { key: "y", ctrlKey: true, metaKey: true },
@@ -215,6 +216,7 @@ export const FlexLayoutManager: React.FC = () => {
           customIcon: Trash2Icon,
         });
       },
+      label: "Clear layout",
     },
   ]);
 

@@ -24,7 +24,7 @@ export function FuzzyInput({ directoryId }: { directoryId: DirectoryId }) {
   useEffect(() => {
     return directoryStore.on("focusFuzzyInput", ({ e, directoryId: dId }) => {
       if (dId !== directoryId) return;
-      e.preventDefault();
+      e?.preventDefault();
       inputRef.current?.focus();
       const query =
         directoryStore.getSnapshot().context.directoriesById[directoryId]

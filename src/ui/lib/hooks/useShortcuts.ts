@@ -1,4 +1,5 @@
 import { RefObject, useEffect, useRef } from "react";
+import { shortcutRegistryAPI } from "./shortcutRegistry";
 
 export type ShortcutDefinition =
   | string
@@ -13,34 +14,40 @@ export type ShortcutDefinition =
 
 export type ShortcutWithHandler = {
   key: ShortcutDefinition | ShortcutDefinition[];
-  handler: (e: KeyboardEvent) => void;
-  enabledIn?: RefObject<HTMLElement | null> | ((e: KeyboardEvent) => boolean);
+  handler: (e: KeyboardEvent | undefined) => void;
+  enabledIn?:
+    | RefObject<HTMLElement | null>
+    | ((e: KeyboardEvent | undefined) => boolean);
   notKey?: ShortcutDefinition | ShortcutDefinition[];
+  label: string; // Required label for the command palette
 };
 
 export type SequenceShortcut = {
   sequence: string[];
-  handler: (e: KeyboardEvent) => void;
+  handler: (e: KeyboardEvent | undefined) => void;
   timeout?: number;
   enabledIn?: RefObject<HTMLElement | null> | ((e: KeyboardEvent) => boolean);
+  label: string; // Required label for the command palette
 };
 
 export type UseShortcutsOptions = {
   isDisabled?: boolean;
   /** Timeout in ms for key sequences (default: 500) */
   sequenceTimeout?: number;
+  hideInPalette?: boolean;
 };
 
-export type ShortcutInput =
-  | $Maybe<ShortcutWithHandler | SequenceShortcut>
-  | boolean;
+export type ShortcutInput = $Maybe<DefinedShortcutInput> | boolean;
 
-function isSequenceShortcut(
+export type DefinedShortcutInput = ShortcutWithHandler | SequenceShortcut;
+
+export function isSequenceShortcut(
   shortcut: ShortcutWithHandler | SequenceShortcut,
 ): shortcut is SequenceShortcut {
   return "sequence" in shortcut;
 }
 
+// Helper to convert ShortcutDefinition to human-readable string
 export function useShortcuts(
   shortcuts: ShortcutInput[],
   opts?: UseShortcutsOptions,
@@ -61,6 +68,24 @@ export function useShortcuts(
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [shortcuts, opts]);
+
+  // Register shortcuts in the global registry
+  useEffect(() => {
+    if (opts?.hideInPalette || opts?.isDisabled) return;
+    shortcuts.forEach((shortcut) => {
+      if (!shortcut || shortcut === true) return;
+
+      shortcutRegistryAPI.register(shortcut.label, shortcut);
+    });
+
+    // Cleanup: unregister shortcuts when component unmounts
+    return () => {
+      shortcuts.forEach((shortcut) => {
+        if (!shortcut || shortcut === true) return;
+        shortcutRegistryAPI.unregister(shortcut.label);
+      });
+    };
+  }, [shortcuts]);
 }
 
 function checkShortcut(shortcut: ShortcutDefinition, e: KeyboardEvent) {
