@@ -31,4 +31,18 @@ export namespace LayoutHelpers {
   export function getDirectoryId(node: TabNode) {
     return node.getConfig()?.directoryId;
   }
+
+  export function getDirectoryIds() {
+    const nodes: DirectoryId[] = [];
+
+    layoutModel.visitNodes((node) => {
+      if (node instanceof TabNode && node.getComponent() === "directory") {
+        if (node.getConfig()?.directoryId) {
+          nodes.push(node.getConfig()?.directoryId);
+        }
+      }
+    });
+
+    return nodes;
+  }
 }
