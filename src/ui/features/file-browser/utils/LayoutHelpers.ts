@@ -1,4 +1,4 @@
-import { Node, TabNode } from "flexlayout-react";
+import { Node, TabNode, TabSetNode } from "flexlayout-react";
 import { layoutModel } from "../initializeDirectory";
 import { DirectoryId } from "../directory";
 
@@ -7,13 +7,7 @@ export namespace LayoutHelpers {
     const active = layoutModel.getActiveTabset();
     if (!active) return;
 
-    const first = active.getChildren()[0];
-    if (!first) return;
-
-    if (first instanceof TabNode && first.getComponent() === "directory")
-      return active;
-
-    return undefined;
+    if (isDirectoryTabSet(active)) return active;
   }
 
   export function getActiveDirectoryId() {
@@ -25,6 +19,10 @@ export namespace LayoutHelpers {
   }
 
   export function isDirectory(node: Node | undefined): node is TabNode {
+    return node instanceof TabNode && node.getComponent() === "directory";
+  }
+
+  export function isDirectoryStupidTypescript(node: Node | undefined) {
     return node instanceof TabNode && node.getComponent() === "directory";
   }
 
@@ -44,5 +42,40 @@ export namespace LayoutHelpers {
     });
 
     return nodes;
+  }
+
+  export function isDirectoryTabSet(node: Node): node is TabNode {
+    const first = node.getChildren()[0];
+    if (!first) return false;
+
+    return first instanceof TabNode && first.getComponent() === "directory";
+  }
+
+  export function isSelected(node: TabNode) {
+    const parent = node.getParent();
+    if (parent && parent instanceof TabSetNode) {
+      const selectedIndex = parent.getSelected();
+      const children = parent.getChildren();
+      if (selectedIndex >= 0 && selectedIndex < children.length) {
+        return children[selectedIndex] === node;
+      }
+    }
+    return false;
+  }
+
+  export function hasSiblings(node: TabNode) {
+    const parent = node.getParent();
+    if (parent && parent instanceof TabSetNode) {
+      return parent.getChildren().length > 1;
+    }
+    return false;
+  }
+
+  export function parentIsActive(node: TabNode) {
+    const parent = node.getParent();
+    if (parent && parent instanceof TabSetNode) {
+      return parent.isActive();
+    }
+    return false;
   }
 }
