@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import {
   Layout,
-  Model,
   TabNode,
   ITabSetRenderValues,
   ITabRenderValues,
@@ -63,6 +62,7 @@ import {
 } from "../file-browser/initializeDirectory";
 import { toast } from "@/lib/components/toast";
 import { useDirectoryLoading } from "../file-browser/directoryLoadingStore";
+import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";
 
 // Component factory function
 function createFactory(isResizing: boolean) {
@@ -182,6 +182,7 @@ export const FlexLayoutManager: React.FC = () => {
   const layoutRef = useRef<Layout>(null);
   const dialogs = useDialogStoreRenderer();
   const [isResizing, setIsResizing] = useState(false);
+  const isSyncingFromStore = useRef(false); // Prevent feedback loop
 
   // Icons for the layout
   const icons: IIcons = useMemo(
@@ -221,30 +222,15 @@ export const FlexLayoutManager: React.FC = () => {
   ]);
 
   // Save model to localStorage on changes
-  const handleModelChange = useCallback((newModel: Model) => {
-    // const json = newModel.toJson();
-    // localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(json));
-
-    const node = newModel.getActiveTabset()?.getSelectedNode();
-    if (
-      node instanceof TabNode &&
-      node.getComponent() === "directory" &&
-      node.getConfig()?.directoryId
-    ) {
-      const directoryId = node.getConfig()?.directoryId as DirectoryId;
-      directoryStore.trigger.setActiveDirectoryId({ directoryId });
+  const handleModelChange = useCallback(() => {
+    // Prevent feedback loop: Don't update directoryStore if we're syncing FROM directoryStore
+    if (isSyncingFromStore.current) {
+      return;
     }
 
-    const nodeIds: DirectoryId[] = [];
-    newModel.visitNodes((node) => {
-      if (
-        node instanceof TabNode &&
-        node.getComponent() === "directory" &&
-        node.getConfig()?.directoryId
-      ) {
-        nodeIds.push(node.getConfig()?.directoryId as DirectoryId);
-      }
-    });
+    const directoryId = LayoutHelpers.getActiveDirectoryId();
+    if (!directoryId) return;
+    directoryStore.trigger.setActiveDirectoryId({ directoryId });
   }, []);
 
   useEffect(() => {
@@ -257,8 +243,7 @@ export const FlexLayoutManager: React.FC = () => {
       layoutModel.visitNodes((node) => {
         if (done) return;
         if (
-          node instanceof TabNode &&
-          node.getComponent() === "directory" &&
+          LayoutHelpers.isDirectory(node) &&
           node.getConfig()?.directoryId === directoryId
         ) {
           done = true;
@@ -280,6 +265,9 @@ export const FlexLayoutManager: React.FC = () => {
             return;
           }
 
+          // Set flag to prevent feedback loop
+          isSyncingFromStore.current = true;
+
           // 1️⃣ Activate tabset
           layoutModel.doAction(Actions.setActiveTabset(tabset.getId()));
 
@@ -289,6 +277,11 @@ export const FlexLayoutManager: React.FC = () => {
           if (idx !== -1) {
             tabset.setSelected(idx);
           }
+
+          // Reset flag after a brief delay to allow FlexLayout to settle
+          setTimeout(() => {
+            isSyncingFromStore.current = false;
+          }, 100);
         }
       });
     });

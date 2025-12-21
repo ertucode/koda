@@ -10,6 +10,9 @@ import {
   selectSelection,
 } from "./directory";
 import { favoritesStore } from "./favorites";
+import { layoutModel } from "./initializeDirectory";
+import { Actions, TabNode } from "flexlayout-react";
+import { LayoutHelpers } from "./utils/LayoutHelpers";
 
 function getData(activeDirectoryId: DirectoryId) {
   return directoryDerivedStores
@@ -235,6 +238,34 @@ export function FileBrowserShortcuts() {
         },
         label: "Load directory sizes",
       },
+      {
+        key: { key: "t", metaKey: true },
+        handler: (e) => {
+          e?.preventDefault();
+          const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory();
+          if (!activeTabSet) return;
+
+          directoryStore.trigger.createDirectory({
+            tabId: activeTabSet.getId(),
+          });
+        },
+        label: "New tab",
+      },
+      {
+        // layoutModel.doAction(Actions.deleteTab(node.getId()));
+
+        key: { key: "w", metaKey: true },
+        handler: (e) => {
+          e?.preventDefault();
+          const activeTab =
+            LayoutHelpers.getActiveTabsetThatHasDirectory()?.getSelectedNode();
+          if (!activeTab) return;
+          if (!LayoutHelpers.isDirectory(activeTab)) return;
+
+          layoutModel.doAction(Actions.deleteTab(activeTab.getId()));
+        },
+        label: "Close tab",
+      },
       // Option+1 through Option+9 to open favorites
       ...Array.from({ length: 9 }, (_, i) => ({
         key: { key: `Digit${i + 1}`, isCode: true, altKey: true },
@@ -242,25 +273,54 @@ export function FileBrowserShortcuts() {
           e?.preventDefault();
           const favorite = favoritesStore.get().context.favorites[i];
           if (favorite) {
-            directoryHelpers.openItemFull(favorite, directoryId);
+            // Use the current active directory, not the one from the closure
+            const currentActiveId =
+              directoryStore.getSnapshot().context.activeDirectoryId;
+            directoryHelpers.openItemFull(favorite, currentActiveId);
           }
         },
         label: `Open favorite ${i + 1}`,
       })),
       ...directoryHelpers.getSelectionShortcuts(dataCount, directoryId),
-      ...directories.map((d, i) => ({
+      ...directories.map((_, i) => ({
         key: { key: (i + 1).toString(), metaKey: true },
         handler: (e: KeyboardEvent | undefined) => {
           e?.preventDefault();
-          directoryStore.send({ type: "setActiveDirectoryId", directoryId: d });
+          const dir = getNthLayoutDirectory(i + 1);
+          if (!dir) return;
+
+          directoryStore.send({
+            type: "setActiveDirectoryId",
+            directoryId: dir,
+          });
         },
         label: `Switch to pane ${i + 1}`,
       })),
     ],
     {
-      isDisabled:
-        isConfirmationOpen || isDialogsOpen || directoryId !== directoryId,
+      isDisabled: isConfirmationOpen || isDialogsOpen,
     },
   );
   return undefined;
+}
+
+function getNthLayoutDirectory(n: number) {
+  let dir: DirectoryId | undefined = undefined;
+  let count = 0;
+  const nodes: DirectoryId[] = [];
+
+  layoutModel.visitNodes((node) => {
+    // if (dir) return;
+    if (node instanceof TabNode && node.getComponent() === "directory") {
+      if (node.getConfig()?.directoryId) {
+        count++;
+        nodes.push(node.getConfig()?.directoryId);
+        if (count === n) {
+          dir = node.getConfig()?.directoryId;
+        }
+      }
+    }
+  });
+
+  return dir;
 }
