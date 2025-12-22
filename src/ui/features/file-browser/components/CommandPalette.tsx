@@ -13,49 +13,70 @@ import {
   useShortcuts,
 } from "@/lib/hooks/useShortcuts";
 import { clsx } from "@/lib/functions/clsx";
+import Fuse from "fuse.js";
 
 export const CommandPalette = forwardRef<DialogForItem<{}>, {}>(
   function CommandPalette(_props, ref) {
     const { dialogOpen, onClose } = useDialogStoreDialog<{}>(ref);
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [searchQuery, setSearchQuery] = useState("");
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     const shortcuts = useMemo(() => {
       if (!dialogOpen) return [];
       return shortcutRegistryAPI.getAll();
     }, [dialogOpen]);
 
+    const fuse = useMemo(() => {
+      return new Fuse(shortcuts, {
+        keys: ["label"],
+        threshold: 0.4,
+        ignoreLocation: true,
+      });
+    }, [shortcuts]);
+
+    const filteredShortcuts = useMemo(() => {
+      if (!searchQuery.trim()) {
+        return shortcuts;
+      }
+      return fuse.search(searchQuery).map((result) => result.item);
+    }, [searchQuery, shortcuts, fuse]);
+
     useShortcuts(
       [
         {
-          key: [{ key: "ArrowDown" }, { key: "j" }],
+          key: [{ key: "ArrowDown" }, { key: "j", ctrlKey: true }],
           handler: (e) => {
             e?.preventDefault();
             setSelectedIndex((prev) =>
-              prev + 1 === shortcuts.length ? 0 : prev + 1,
+              prev + 1 === filteredShortcuts.length ? 0 : prev + 1,
             );
           },
           label: "",
+          enabledIn: () => true,
         },
         {
-          key: [{ key: "ArrowUp" }, { key: "k" }],
+          key: [{ key: "ArrowUp" }, { key: "k", ctrlKey: true }],
           handler: (e) => {
             e?.preventDefault();
             setSelectedIndex((prev) => {
-              return prev - 1 === -1 ? shortcuts.length - 1 : prev - 1;
+              return prev - 1 === -1 ? filteredShortcuts.length - 1 : prev - 1;
             });
           },
           label: "",
+          enabledIn: () => true,
         },
         {
           key: { key: "Enter" },
           handler: (e) => {
             e?.preventDefault();
-            if (shortcuts[selectedIndex]) {
+            if (filteredShortcuts[selectedIndex]) {
               onClose();
-              shortcuts[selectedIndex].shortcut.handler(undefined);
+              filteredShortcuts[selectedIndex].shortcut.handler(undefined);
             }
           },
           label: "",
+          enabledIn: () => true,
         },
       ],
       { hideInPalette: true, isDisabled: !dialogOpen },
@@ -82,6 +103,22 @@ export const CommandPalette = forwardRef<DialogForItem<{}>, {}>(
       }
     }, [selectedIndex]);
 
+    useEffect(() => {
+      if (dialogOpen) {
+        setSearchQuery("");
+        setSelectedIndex(0);
+        // Focus the search input when dialog opens
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 0);
+      }
+    }, [dialogOpen]);
+
+    useEffect(() => {
+      // Reset selected index when search results change
+      setSelectedIndex(0);
+    }, [searchQuery]);
+
     if (!dialogOpen) return null;
 
     return (
@@ -96,18 +133,30 @@ export const CommandPalette = forwardRef<DialogForItem<{}>, {}>(
         className="max-w-2xl"
         footer={<Button onClick={onClose}>Close</Button>}
       >
-        <div className="overflow-y-auto max-h-[60vh]" ref={containerRef}>
-          <div className="space-y-1">
-            {shortcuts.length === 0 ? (
+        <div className="mb-4">
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search shortcuts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="overflow-y-auto h-[60vh]" ref={containerRef}>
+          <div className="space-y-1 min-h-full">
+            {filteredShortcuts.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
-                No shortcuts registered
+                {searchQuery.trim()
+                  ? "No shortcuts match your search"
+                  : "No shortcuts registered"}
               </div>
             ) : (
-              shortcuts.map((shortcut, index) => (
+              filteredShortcuts.map((shortcut, index) => (
                 <div
                   key={shortcut.label}
                   className={clsx(
-                    "flex items-center justify-between py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800 command-palette-item",
+                    "flex items-center justify-between py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800 command-palette-item cursor-pointer",
                     index === selectedIndex ? "bg-base-content/10" : "",
                   )}
                   onClick={() => {
