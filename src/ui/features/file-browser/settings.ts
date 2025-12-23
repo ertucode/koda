@@ -1,7 +1,7 @@
 import { createStore } from "@xstate/store";
 import { z } from "zod";
 import { createLocalStoragePersistence } from "./utils/localStorage";
-import { sortNames } from "./config/columns";
+import { sortNames } from "./schemas";
 
 const fileCategoryFilter = z.enum([
   "all",
@@ -111,38 +111,50 @@ export const fileBrowserSettingsHelpers = {
   setFileTypeFilter: (filter: FileCategoryFilter) =>
     fileBrowserSettingsStore.send({ type: "setFileTypeFilter", filter }),
 
-  setSort: (stateOrCb: FileBrowserSort | ((current: FileBrowserSort) => FileBrowserSort)) => {
+  setSort: (
+    stateOrCb:
+      | FileBrowserSort
+      | ((current: FileBrowserSort) => FileBrowserSort),
+  ) => {
     const currentSort = selectSettings(fileBrowserSettingsStore.get()).sort;
     let newSort: FileBrowserSort;
-    
+
     if (typeof stateOrCb === "function") {
       newSort = stateOrCb(currentSort);
     } else {
       newSort = stateOrCb;
     }
-    
+
     fileBrowserSettingsStore.send({ type: "setSort", sort: newSort });
   },
 
   setSettings: (newSettings: FileBrowserSettings) =>
-    fileBrowserSettingsStore.send({ type: "setSettings", settings: newSettings }),
+    fileBrowserSettingsStore.send({
+      type: "setSettings",
+      settings: newSettings,
+    }),
 };
 
 // Selector functions for common use cases
-export const selectSettings = (state: ReturnType<typeof fileBrowserSettingsStore.get>) =>
-  state.context.settings;
+export const selectSettings = (
+  state: ReturnType<typeof fileBrowserSettingsStore.get>,
+) => state.context.settings;
 
-export const selectShowDotFiles = (state: ReturnType<typeof fileBrowserSettingsStore.get>) =>
-  state.context.settings.showDotFiles;
+export const selectShowDotFiles = (
+  state: ReturnType<typeof fileBrowserSettingsStore.get>,
+) => state.context.settings.showDotFiles;
 
-export const selectFoldersOnTop = (state: ReturnType<typeof fileBrowserSettingsStore.get>) =>
-  state.context.settings.foldersOnTop;
+export const selectFoldersOnTop = (
+  state: ReturnType<typeof fileBrowserSettingsStore.get>,
+) => state.context.settings.foldersOnTop;
 
-export const selectFileTypeFilter = (state: ReturnType<typeof fileBrowserSettingsStore.get>) =>
-  state.context.settings.fileTypeFilter;
+export const selectFileTypeFilter = (
+  state: ReturnType<typeof fileBrowserSettingsStore.get>,
+) => state.context.settings.fileTypeFilter;
 
-export const selectSort = (state: ReturnType<typeof fileBrowserSettingsStore.get>) =>
-  state.context.settings.sort;
+export const selectSort = (
+  state: ReturnType<typeof fileBrowserSettingsStore.get>,
+) => state.context.settings.sort;
 
 export const FILE_TYPE_FILTER_OPTIONS: {
   value: FileCategoryFilter;
@@ -161,3 +173,4 @@ export const FILE_TYPE_FILTER_OPTIONS: {
   { value: "executable", label: "Executables" },
   { value: "other", label: "Other" },
 ];
+

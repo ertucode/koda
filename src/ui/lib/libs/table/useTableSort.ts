@@ -1,5 +1,5 @@
-import { sortNames } from "@/features/file-browser/config/columns";
 import { directoryHelpers } from "@/features/file-browser/directoryStore/directory";
+import { sortNames } from "@/features/file-browser/schemas";
 
 export function onSortKey(key: $Maybe<string | number>) {
   if (key == null)
