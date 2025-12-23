@@ -12,6 +12,7 @@ export type PerDirectoryData = {
 // Non reactive data
 export const perDirectoryData: Record<DirectoryId, PerDirectoryData> = {};
 
+const DIFF_FOR_CLICK = 500;
 export const perDirectoryDataHelpers = {
   getOnClick: (
     directoryId: DirectoryId,
@@ -26,7 +27,7 @@ export const perDirectoryDataHelpers = {
       if (
         lastClick &&
         lastClick.index === index &&
-        now - lastClick.timestamp < 500
+        now - lastClick.timestamp < DIFF_FOR_CLICK
       ) {
         e.preventDefault();
         e.stopPropagation();
@@ -43,6 +44,15 @@ export const perDirectoryDataHelpers = {
         };
       }
     };
+  },
+  lastClickIsRecent: (directoryId: DirectoryId, index: number) => {
+    const dirData = perDirectoryData[directoryId];
+    const lastClick = dirData.lastClick;
+    if (!lastClick) return false;
+    return (
+      lastClick.index === index &&
+      Date.now() - lastClick.timestamp < DIFF_FOR_CLICK
+    );
   },
 };
 

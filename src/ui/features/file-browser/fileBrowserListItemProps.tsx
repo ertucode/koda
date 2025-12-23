@@ -6,7 +6,6 @@ import { DirectoryId } from "./directoryStore/DirectoryBase";
 import { directoryHelpers } from "./directoryStore/directoryHelpers";
 import { perDirectoryDataHelpers } from "./directoryStore/perDirectoryData";
 import { fileDragDropHandlers, fileDragDropStore } from "./fileDragDrop";
-import { directorySelection } from "./directoryStore/directorySelection";
 
 export function fileBrowserListItemProps({
   item,
@@ -35,13 +34,11 @@ export function fileBrowserListItemProps({
       // If item is not selected, start drag-to-select mode
       if (!isItemSelected) {
         fileDragDropHandlers.startDragToSelect(index, directoryId);
-        // Select the starting item
-        directorySelection.select(index, undefined, directoryId);
       }
     },
     onMouseEnter: () => {
       const dragState = fileDragDropStore.getSnapshot();
-      
+
       // If we're in drag-to-select mode for this directory, update the selection
       if (
         dragState.context.isDragToSelect &&
@@ -49,7 +46,7 @@ export function fileBrowserListItemProps({
       ) {
         const startIdx = dragState.context.dragToSelectStartIdx!;
         const currentIdx = index;
-        
+
         // Create selection range from start to current
         const minIdx = Math.min(startIdx, currentIdx);
         const maxIdx = Math.max(startIdx, currentIdx);
@@ -57,7 +54,7 @@ export function fileBrowserListItemProps({
         for (let i = minIdx; i <= maxIdx; i++) {
           newIndexes.add(i);
         }
-        
+
         directoryStore.send({
           type: "setSelection",
           indexes: newIndexes,
@@ -88,7 +85,7 @@ export function fileBrowserListItemProps({
       const state = directoryStore.getSnapshot();
       const directory = state.context.directoriesById[directoryId];
       const isItemSelected = directory.selection.indexes.has(index);
-      
+
       const target = e.currentTarget as HTMLElement;
       target.draggable = isItemSelected;
     },

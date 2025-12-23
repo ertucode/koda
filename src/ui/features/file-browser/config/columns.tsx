@@ -1,5 +1,4 @@
 import type { ColumnDef } from "@/lib/libs/table/table-types";
-import z from "zod";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileCategory } from "@common/file-category";
 import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../tags";
@@ -8,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { directoryHelpers, directoryStore } from "../directoryStore/directory";
 import { DirectoryId, DirectoryType } from "../directoryStore/DirectoryBase";
 import { CategoryHelpers } from "../CategoryHelpers";
+import { perDirectoryDataHelpers } from "../directoryStore/perDirectoryData";
 
 function CategoryIcon({ category }: { category: FileCategory | "folder" }) {
   const config = CategoryHelpers.get(category);
@@ -136,6 +136,11 @@ function DirectoryNameColumn({
           className="block truncate"
           title={row.name}
           onClick={(e) => {
+            if (
+              perDirectoryDataHelpers.lastClickIsRecent(ctx.directoryId, idx)
+            ) {
+              return;
+            }
             if (e.metaKey || checkIfRowIsSelected(ctx, idx)) {
               e.preventDefault();
               setRenaming(true);
@@ -231,5 +236,3 @@ function RenameInput({
     />
   );
 }
-
-export const sortNames = z.enum(["name", "modifiedTimestamp", "size", "ext"]);
