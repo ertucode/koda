@@ -62,7 +62,10 @@ export const favoritesStore = createStore({
       ),
     }),
 
-    toggleFavorite: (context, event: { fullPath: string }) => {
+    toggleFavorite: (
+      context,
+      event: { fullPath: string; type: "file" | "dir" },
+    ) => {
       const isFav = context.favorites.some(
         (fav) => fav.fullPath === event.fullPath,
       );
@@ -76,7 +79,7 @@ export const favoritesStore = createStore({
       } else {
         const newFavorite: FavoriteItem = {
           fullPath: event.fullPath,
-          type: "file",
+          type: event.type,
         };
         return {
           ...context,
@@ -84,6 +87,28 @@ export const favoritesStore = createStore({
         };
       }
     },
+
+    reorderFavorites: (
+      context,
+      event: { fromIndex: number; toIndex: number },
+    ) => {
+      const { fromIndex, toIndex } = event;
+      if (fromIndex === toIndex) return context;
+
+      const newFavorites = [...context.favorites];
+      const [movedItem] = newFavorites.splice(fromIndex, 1);
+      newFavorites.splice(toIndex, 0, movedItem);
+
+      return {
+        ...context,
+        favorites: newFavorites,
+      };
+    },
+
+    setFavorites: (context, event: { favorites: FavoriteItem[] }) => ({
+      ...context,
+      favorites: event.favorites,
+    }),
   },
 });
 

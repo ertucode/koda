@@ -7,7 +7,7 @@ export type BaseThumbnailProps = {
 };
 
 export function BaseThumbnail({ item }: BaseThumbnailProps) {
-  const IconComponent = CategoryHelpers.getIcon(item.category);
+  const IconComponent = CategoryHelpers.getIcon(item.category).icon;
 
   return (
     <div className="w-full h-full flex items-center justify-center">
