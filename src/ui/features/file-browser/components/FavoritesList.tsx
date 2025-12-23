@@ -29,6 +29,59 @@ export function FavoritesList({ className }: FavoritesListProps) {
     selectDirectory(activeDirectoryId),
   );
 
+  const handleReorder = (fromIndex: number, toIndex: number) => {
+    favoritesStore.send({
+      type: "reorderFavorites",
+      fromIndex,
+      toIndex,
+    });
+  };
+
+  const handleExternalDrop = (e: React.DragEvent, insertIndex: number) => {
+    // Get dragged items from dataTransfer
+    const dragItemsJson = e.dataTransfer.getData("application/x-mygui-drag-items");
+    
+    if (!dragItemsJson) {
+      return;
+    }
+
+    let itemsToAdd: Array<{ fullPath: string; type: "file" | "dir"; name: string }>;
+    try {
+      itemsToAdd = JSON.parse(dragItemsJson);
+    } catch (error) {
+      console.error("Failed to parse drag items", error);
+      return;
+    }
+
+    if (itemsToAdd.length === 0) {
+      return;
+    }
+
+    // Add each item to favorites at the insert position
+    const currentFavorites = favoritesStore.getSnapshot().context.favorites;
+    const newFavorites = [...currentFavorites];
+
+    // Insert items at the specified index
+    let insertOffset = 0;
+    for (const item of itemsToAdd) {
+      // Skip if already in favorites
+      if (newFavorites.some((fav) => fav.fullPath === item.fullPath)) {
+        continue;
+      }
+
+      const favoriteItem: FavoriteItem = {
+        fullPath: item.fullPath,
+        type: item.type,
+      };
+
+      newFavorites.splice(insertIndex + insertOffset, 0, favoriteItem);
+      insertOffset++;
+    }
+
+    // Update the favorites store with the new array
+    favoritesStore.send({ type: "setFavorites", favorites: newFavorites });
+  };
+
   return (
     <FileBrowserSidebarSection
       items={f}
@@ -57,6 +110,10 @@ export function FavoritesList({ className }: FavoritesListProps) {
         },
       ]}
       className={className}
+      isDraggable={true}
+      onReorder={handleReorder}
+      acceptsExternalDrop={true}
+      onExternalDrop={handleExternalDrop}
       render={(favorite) => (
         <>
           {favorite.type === "dir" ? (

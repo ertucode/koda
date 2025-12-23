@@ -40,6 +40,18 @@ export function fileBrowserListItemProps({
         directoryHelpers.getFullPathForItem(i, directoryId),
       );
 
+      // Store dragged items data for favorites/other drop targets
+      e.dataTransfer.setData(
+        "application/x-mygui-drag-items",
+        JSON.stringify(
+          items.map((i) => ({
+            fullPath: directoryHelpers.getFullPathForItem(i, directoryId),
+            type: i.type,
+            name: i.name,
+          })),
+        ),
+      );
+
       // Handle drag start
       await fileDragDropHandlers.handleRowDragStart(items, directoryId);
 
@@ -54,7 +66,7 @@ export function fileBrowserListItemProps({
         image: await captureDivAsBase64(table as HTMLElement),
       });
     },
-    onPointerDown: (_) => {
+    onPointerDown: () => {
       if (item.type === "dir") {
         directoryHelpers.preloadDirectory(
           item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId),

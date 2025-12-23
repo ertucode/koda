@@ -39,6 +39,7 @@ export function TagsList({ className }: TagsListProps) {
 function TagListItem({ tag }: { tag: TagColor }) {
   const [editingTag, setEditingTag] = useState<boolean>(false);
   const [editValue, setEditValue] = useState("");
+  const [isDragOver, setIsDragOver] = useState(false);
   const activeDirectoryId = useSelector(
     directoryStore,
     (s) => s.context.activeDirectoryId,
@@ -88,14 +89,70 @@ function TagListItem({ tag }: { tag: TagColor }) {
     setEditValue(tagName);
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    // Check if this is a file drag operation
+    if (e.dataTransfer.types.includes("application/x-mygui-file-drag")) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "copy";
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    // Check if this is a file drag operation
+    if (!e.dataTransfer.types.includes("application/x-mygui-file-drag")) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    // Get dragged items from dataTransfer
+    const dragItemsJson = e.dataTransfer.getData("application/x-mygui-drag-items");
+    if (!dragItemsJson) {
+      return;
+    }
+
+    let items: Array<{ fullPath: string; type: "file" | "dir"; name: string }>;
+    try {
+      items = JSON.parse(dragItemsJson);
+    } catch (error) {
+      console.error("Failed to parse drag items", error);
+      return;
+    }
+
+    if (items.length === 0) {
+      return;
+    }
+
+    // Add tag to all dragged files
+    const filePaths = items.map((item) => item.fullPath);
+    tagsStore.send({
+      type: "addTagToFiles",
+      fullPaths: filePaths,
+      color: tag,
+    });
+  };
+
   return (
     <div key={tag}>
       <div
         className={clsx(
-          "flex items-center gap-2 hover:bg-base-200 rounded text-xs h-6 px-2 cursor-pointer w-full group",
+          "flex items-center gap-2 hover:bg-base-200 rounded text-xs h-6 px-2 cursor-pointer w-full group transition-all",
           isShowingTag(tag) && "bg-base-300 font-medium",
+          isDragOver && "ring-2 ring-inset",
+          isDragOver && `ring-${tag}-500 ${TAG_COLOR_CLASSES[tag].bg}`,
         )}
         onClick={() => !editingTag && handleTagClick()}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <span
           className={clsx(
