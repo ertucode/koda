@@ -1,7 +1,10 @@
 {
-  "name": "mygui",
+  "name": "koda",
+  "productName": "Koda",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "A modern file browser for macOS",
+  "author": "ertucode",
   "type": "module",
   "main": "dist-electron/electron/main.js",
   "scripts": {

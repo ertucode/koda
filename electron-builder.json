@@ -1,5 +1,7 @@
 {
-  "appId": "com.ertucode.mygui",
+  "appId": "com.ertucode.koda",
+  "productName": "Koda",
+  "copyright": "Copyright © 2025 ertucode",
   "files": ["dist-electron", "dist-react", "assets"],
   "extraResources": [
     "dist-electron/electron/preload.cjs",
@@ -10,7 +12,9 @@
     "vendor-bin/ffmpeg"
   ],
   "mac": {
-    "target": ["dmg"]
+    "target": ["dmg"],
+    "icon": "assets/koda.icns",
+    "category": "public.app-category.utilities"
   },
   "linux": {
     "target": ["AppImage"],
