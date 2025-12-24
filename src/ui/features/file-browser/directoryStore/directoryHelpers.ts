@@ -26,8 +26,11 @@ import {
   DirectoryId,
   getActiveDirectory,
   directoryInfoEquals,
+  DirectoryContextDirectory,
 } from "./DirectoryBase";
 import { initialDirectoryInfo } from "../defaultPath";
+import { columnPreferencesStore } from "../columnPreferences";
+import { resolveSortFromStores } from "../schemas";
 
 export const cd = async (
   newDirectory: DirectoryInfo,
@@ -82,6 +85,27 @@ const getFullPathForItem = (
   return item.fullPath ?? getFullPath(item.name, directoryId);
 };
 
+const goNextOrPrev = async (
+  directoryId: DirectoryId,
+  nextOrPrev: "Next" | "Prev",
+) => {
+  const context = getActiveDirectory(
+    directoryStore.getSnapshot().context,
+    directoryId,
+  );
+  if (!context.historyStack[`has${nextOrPrev}`]) return;
+  directoryStore.send({ type: `historyGo${nextOrPrev}`, directoryId });
+  const newContext = getActiveDirectory(
+    directoryStore.getSnapshot().context,
+    directoryId,
+  );
+  const directoryData = await loadDirectoryInfo(
+    newContext.directory,
+    directoryId,
+  );
+  return createCdMetadata(directoryData, context);
+};
+
 const cdWithMetadata = async (
   newDirectory: DirectoryInfo,
   isNew: boolean,
@@ -91,16 +115,28 @@ const cdWithMetadata = async (
     directoryStore.getSnapshot().context,
     directoryId,
   );
-  const beforeNavigation = context.directory;
   const directoryData = await cd(newDirectory, isNew, directoryId);
+  return createCdMetadata(directoryData, context);
+};
+
+// TODO: Bunu selection restore icin yapıyoruz. Direkt olarak History içine koymak daha mantıklı sanki.
+function createCdMetadata(
+  directoryData: GetFilesAndFoldersInDirectoryItem[] | undefined,
+  prevContext: DirectoryContextDirectory,
+) {
   const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
+  const columnPrefs = columnPreferencesStore.getSnapshot().context;
   return {
     directoryData:
       directoryData &&
-      DirectoryDataFromSettings.getDirectoryData(directoryData, settings),
-    beforeNavigation,
+      DirectoryDataFromSettings.getDirectoryData(
+        directoryData,
+        settings,
+        resolveSortFromStores(prevContext, columnPrefs),
+      ),
+    beforeNavigation: prevContext.directory,
   };
-};
+}
 
 const changeDirectory = async (
   newDirectory: string,
@@ -225,54 +261,12 @@ export const directoryHelpers = {
     return cd({ type: "tags", color }, true, directoryId);
   },
 
-  goNext: async (directoryId: DirectoryId) => {
-    const context = getActiveDirectory(
-      directoryStore.getSnapshot().context,
-      directoryId,
-    );
-    if (!context.historyStack.hasNext) return;
-    const beforeNavigation = context.directory;
-    directoryStore.send({ type: "historyGoNext", directoryId });
-    const newContext = getActiveDirectory(
-      directoryStore.getSnapshot().context,
-      directoryId,
-    );
-    const directoryData = await loadDirectoryInfo(
-      newContext.directory,
-      directoryId,
-    );
-    const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
-    return {
-      directoryData:
-        directoryData &&
-        DirectoryDataFromSettings.getDirectoryData(directoryData, settings),
-      beforeNavigation,
-    };
+  goNext: (directoryId: DirectoryId) => {
+    return goNextOrPrev(directoryId, "Next");
   },
 
-  goPrev: async (directoryId: DirectoryId) => {
-    const context = getActiveDirectory(
-      directoryStore.getSnapshot().context,
-      directoryId,
-    );
-    if (!context.historyStack.hasPrev) return;
-    const beforeNavigation = context.directory;
-    directoryStore.send({ type: "historyGoPrev", directoryId });
-    const newContext = getActiveDirectory(
-      directoryStore.getSnapshot().context,
-      directoryId,
-    );
-    const directoryData = await loadDirectoryInfo(
-      newContext.directory,
-      directoryId,
-    );
-    const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
-    return {
-      directoryData:
-        directoryData &&
-        DirectoryDataFromSettings.getDirectoryData(directoryData, settings),
-      beforeNavigation,
-    };
+  goPrev: (directoryId: DirectoryId) => {
+    return goNextOrPrev(directoryId, "Prev");
   },
 
   goUp: async (directoryId: DirectoryId) => {
@@ -305,7 +299,6 @@ export const directoryHelpers = {
   preloadDirectory,
 
   setSettings: fileBrowserSettingsHelpers.setSettings,
-  setSort: fileBrowserSettingsHelpers.setSort,
 
   reload: (directoryId: DirectoryId) => {
     const context = getActiveDirectory(

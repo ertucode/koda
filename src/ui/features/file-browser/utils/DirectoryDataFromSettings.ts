@@ -1,26 +1,36 @@
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileBrowserSettings } from "../settings";
+import { SortState } from "../schemas";
 
 export class DirectoryDataFromSettings {
   static lastSettings: FileBrowserSettings | undefined;
+  static lastSort: SortState | undefined;
   static lastData: GetFilesAndFoldersInDirectoryItem[] | undefined;
   static lastResult: GetFilesAndFoldersInDirectoryItem[] | undefined;
 
   static getDirectoryData(
     d: GetFilesAndFoldersInDirectoryItem[],
     settings: FileBrowserSettings,
+    sort: SortState,
   ) {
-    if (settings === this.lastSettings && d === this.lastData)
+    if (
+      equalStringified(settings, this.lastSettings) &&
+      equalStringified(sort, this.lastSort) &&
+      d === this.lastData
+    ) {
       return this.lastResult!;
+    }
     this.lastSettings = settings;
+    this.lastSort = sort;
     this.lastData = d;
-    this.lastResult = this.getDirectoryDataWithoutCache(d, settings);
+    this.lastResult = this.getDirectoryDataWithoutCache(d, settings, sort);
     return this.lastResult;
   }
 
   private static getDirectoryDataWithoutCache(
     d: GetFilesAndFoldersInDirectoryItem[],
     settings: FileBrowserSettings,
+    sort: SortState,
   ) {
     let data = d;
 
@@ -34,35 +44,38 @@ export class DirectoryDataFromSettings {
       );
     }
 
-    if (settings.sort.by === "name") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.slice().sort((a, b) => {
-        return a.name.localeCompare(b.name) * times;
-      });
-    } else if (settings.sort.by === "modifiedTimestamp") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.slice().sort((a, b) => {
-        if (!a.modifiedTimestamp && !b.modifiedTimestamp) return 0;
-        if (!a.modifiedTimestamp) return -1;
-        if (!b.modifiedTimestamp) return 1;
-        return (a.modifiedTimestamp - b.modifiedTimestamp) * times;
-      });
-    } else if (settings.sort.by === "size") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.slice().sort((a, b) => {
-        if (!a.size && !b.size) return 0;
-        if (!a.size) return 1;
-        if (!b.size) return -1;
-        return (a.size - b.size) * times;
-      });
-    } else if (settings.sort.by === "ext") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.slice().sort((a, b) => {
-        if (!a.ext && !b.ext) return 0;
-        if (!a.ext) return 1;
-        if (!b.ext) return -1;
-        return a.ext.localeCompare(b.ext) * times;
-      });
+    // Apply sorting if sort state exists
+    if (sort?.by) {
+      if (sort.by === "name") {
+        const times = sort.order === "asc" ? 1 : -1;
+        data = data
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name) * times);
+      } else if (sort.by === "modifiedTimestamp") {
+        const times = sort.order === "asc" ? 1 : -1;
+        data = data.slice().sort((a, b) => {
+          if (!a.modifiedTimestamp && !b.modifiedTimestamp) return 0;
+          if (!a.modifiedTimestamp) return -1;
+          if (!b.modifiedTimestamp) return 1;
+          return (a.modifiedTimestamp - b.modifiedTimestamp) * times;
+        });
+      } else if (sort.by === "size") {
+        const times = sort.order === "asc" ? 1 : -1;
+        data = data.slice().sort((a, b) => {
+          if (!a.size && !b.size) return 0;
+          if (!a.size) return 1;
+          if (!b.size) return -1;
+          return (a.size - b.size) * times;
+        });
+      } else if (sort.by === "ext") {
+        const times = sort.order === "asc" ? 1 : -1;
+        data = data.slice().sort((a, b) => {
+          if (!a.ext && !b.ext) return 0;
+          if (!a.ext) return 1;
+          if (!b.ext) return -1;
+          return a.ext.localeCompare(b.ext) * times;
+        });
+      }
     }
 
     if (settings.foldersOnTop) {
@@ -75,4 +88,9 @@ export class DirectoryDataFromSettings {
 
     return data;
   }
+}
+
+function equalStringified<T>(a: T, b: T | undefined) {
+  if (b === undefined) return false;
+  return JSON.stringify(a) === JSON.stringify(b);
 }

@@ -1,7 +1,6 @@
 import { createStore } from "@xstate/store";
 import { z } from "zod";
 import { createLocalStoragePersistence } from "./utils/localStorage";
-import { sortNames } from "./schemas";
 
 const fileCategoryFilter = z.enum([
   "all",
@@ -24,23 +23,14 @@ const SettingsSchema = z.object({
   showDotFiles: z.boolean(),
   foldersOnTop: z.boolean(),
   fileTypeFilter: fileCategoryFilter.optional(),
-  sort: z.object({
-    by: sortNames.nullish(),
-    order: z.enum(["asc", "desc"]).nullish(),
-  }),
 });
 
 export type FileBrowserSettings = z.infer<typeof SettingsSchema>;
-export type FileBrowserSort = FileBrowserSettings["sort"];
 
 const defaultSettings: FileBrowserSettings = {
   showDotFiles: false,
   foldersOnTop: true,
   fileTypeFilter: "all",
-  sort: {
-    by: "ext",
-    order: "asc",
-  },
 };
 
 // Create localStorage persistence helper
@@ -79,14 +69,6 @@ export const fileBrowserSettingsStore = createStore({
       },
     }),
 
-    setSort: (context, event: { sort: FileBrowserSort }) => ({
-      ...context,
-      settings: {
-        ...context.settings,
-        sort: event.sort,
-      },
-    }),
-
     setSettings: (context, event: { settings: FileBrowserSettings }) => ({
       ...context,
       settings: event.settings,
@@ -111,23 +93,6 @@ export const fileBrowserSettingsHelpers = {
   setFileTypeFilter: (filter: FileCategoryFilter) =>
     fileBrowserSettingsStore.send({ type: "setFileTypeFilter", filter }),
 
-  setSort: (
-    stateOrCb:
-      | FileBrowserSort
-      | ((current: FileBrowserSort) => FileBrowserSort),
-  ) => {
-    const currentSort = selectSettings(fileBrowserSettingsStore.get()).sort;
-    let newSort: FileBrowserSort;
-
-    if (typeof stateOrCb === "function") {
-      newSort = stateOrCb(currentSort);
-    } else {
-      newSort = stateOrCb;
-    }
-
-    fileBrowserSettingsStore.send({ type: "setSort", sort: newSort });
-  },
-
   setSettings: (newSettings: FileBrowserSettings) =>
     fileBrowserSettingsStore.send({
       type: "setSettings",
@@ -151,10 +116,6 @@ export const selectFoldersOnTop = (
 export const selectFileTypeFilter = (
   state: ReturnType<typeof fileBrowserSettingsStore.get>,
 ) => state.context.settings.fileTypeFilter;
-
-export const selectSort = (
-  state: ReturnType<typeof fileBrowserSettingsStore.get>,
-) => state.context.settings.sort;
 
 export const FILE_TYPE_FILTER_OPTIONS: {
   value: FileCategoryFilter;

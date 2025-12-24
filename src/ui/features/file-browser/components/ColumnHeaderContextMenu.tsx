@@ -4,9 +4,19 @@ import {
   columnPreferencesStore,
   selectGlobalPreferences,
   selectLocalPreferences,
+  selectGlobalSort,
+  selectLocalSort,
 } from "../columnPreferences";
 import { ColumnDef } from "@/lib/libs/table/table-types";
-import { EyeIcon, EyeOffIcon, RefreshCcwIcon } from "lucide-react";
+import {
+  EyeIcon,
+  EyeOffIcon,
+  RefreshCcwIcon,
+  ArrowUpAZIcon,
+  ArrowDownAZIcon,
+} from "lucide-react";
+import { sortNames, SortState } from "../schemas";
+import { columnSortKey } from "@/lib/libs/table/useTable";
 
 type ColumnHeaderContextMenuProps = {
   columns: ColumnDef<any>[];
@@ -27,12 +37,18 @@ export function ColumnHeaderContextMenu({
     columnPreferencesStore,
     selectLocalPreferences(directoryPath),
   );
+  const globalSort = useSelector(columnPreferencesStore, selectGlobalSort);
+  const localSort = useSelector(
+    columnPreferencesStore,
+    selectLocalSort(directoryPath),
+  );
 
   // Create column IDs from columns
   const columnIds = columns.map((col) => col.id?.toString() || col.accessorKey);
 
-  // Get current preferences for the active tab
+  // Get current preferences and sort for the active tab
   const currentPrefs = activeTab === "local" ? localPrefs : globalPrefs;
+  const currentSort = activeTab === "local" ? localSort : globalSort;
 
   // Merge columns with preferences, maintaining order
   const getOrderedColumns = () => {
@@ -42,6 +58,7 @@ export function ColumnHeaderContextMenu({
         id,
         visible: true,
         header: columns[index].headerConfigView || columns[index].header || id,
+        sortKey: columnSortKey(columns[index]),
       }));
     }
 
@@ -59,6 +76,7 @@ export function ColumnHeaderContextMenu({
           id: p.id,
           visible: p.visible,
           header: col?.headerConfigView || col?.header || p.id,
+          sortKey: col ? columnSortKey(col) : undefined,
         };
       });
 
@@ -70,6 +88,7 @@ export function ColumnHeaderContextMenu({
           visible: true,
           header:
             columns[index].headerConfigView || columns[index].header || id,
+          sortKey: columnSortKey(columns[index]),
         });
       }
     });
@@ -124,6 +143,36 @@ export function ColumnHeaderContextMenu({
     }
   };
 
+  const toggleSort = (sortKey: string | number | undefined) => {
+    if (sortKey == null) return;
+
+    const p = sortNames.safeParse(sortKey);
+    if (!p.success) return;
+
+    const newSort: SortState = {
+      by: p.data,
+      order:
+        currentSort?.by === p.data
+          ? currentSort.order === "asc"
+            ? "desc"
+            : "asc"
+          : "asc",
+    };
+
+    if (activeTab === "local") {
+      columnPreferencesStore.send({
+        type: "setLocalSort",
+        directoryPath,
+        sort: newSort,
+      });
+    } else {
+      columnPreferencesStore.send({
+        type: "setGlobalSort",
+        sort: newSort,
+      });
+    }
+  };
+
   const clearPreferences = () => {
     if (activeTab === "local") {
       columnPreferencesStore.send({
@@ -136,6 +185,9 @@ export function ColumnHeaderContextMenu({
       });
     }
   };
+
+  const isRefreshEnabled =
+    (currentPrefs && currentPrefs.length > 0) || !!currentSort;
 
   return (
     <div className="bg-base-200 rounded-box w-64 shadow-xl text-xs">
@@ -166,6 +218,8 @@ export function ColumnHeaderContextMenu({
             index={index}
             onToggle={() => toggleVisibility(col.id)}
             onMove={moveColumn}
+            onSort={() => toggleSort(col.sortKey)}
+            currentSort={currentSort}
           />
         ))}
       </div>
@@ -175,7 +229,7 @@ export function ColumnHeaderContextMenu({
         <button
           className="btn btn-xs btn-ghost gap-1 h-6 min-h-6 w-full"
           onClick={clearPreferences}
-          disabled={!currentPrefs || currentPrefs.length === 0}
+          disabled={!isRefreshEnabled}
         >
           <RefreshCcwIcon className="size-3" />
           Reset
@@ -186,13 +240,27 @@ export function ColumnHeaderContextMenu({
 }
 
 type ColumnRowProps = {
-  column: { id: string; visible: boolean; header: ReactNode };
+  column: {
+    id: string;
+    visible: boolean;
+    header: ReactNode;
+    sortKey?: string | number;
+  };
   index: number;
   onToggle: () => void;
   onMove: (fromIndex: number, toIndex: number) => void;
+  onSort: () => void;
+  currentSort: SortState | null | undefined;
 };
 
-function ColumnRow({ column, index, onToggle, onMove }: ColumnRowProps) {
+function ColumnRow({
+  column,
+  index,
+  onToggle,
+  onMove,
+  onSort,
+  currentSort,
+}: ColumnRowProps) {
   const [dragOver, setDragOver] = useState(false);
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -229,6 +297,11 @@ function ColumnRow({ column, index, onToggle, onMove }: ColumnRowProps) {
       className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded cursor-move hover:bg-base-300 ${
         dragOver ? "bg-primary/20 ring-1 ring-primary" : ""
       }`}
+      onClick={(e) => {
+        if (!column.sortKey) return;
+        e.stopPropagation();
+        onSort();
+      }}
     >
       <button
         onClick={onToggle}
@@ -245,6 +318,13 @@ function ColumnRow({ column, index, onToggle, onMove }: ColumnRowProps) {
       >
         {column.header}
       </span>
+      {column.sortKey &&
+        currentSort?.by === column.sortKey &&
+        (currentSort.order === "asc" ? (
+          <ArrowDownAZIcon className="size-4" />
+        ) : (
+          <ArrowUpAZIcon className="size-4" />
+        ))}
     </div>
   );
 }

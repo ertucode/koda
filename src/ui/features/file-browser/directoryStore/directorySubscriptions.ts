@@ -11,6 +11,8 @@ import Fuse from "fuse.js";
 import { directoryStore } from "./directory";
 import { DirectoryId } from "./DirectoryBase";
 import { directorySelection } from "./directorySelection";
+import { columnPreferencesStore } from "../columnPreferences";
+import { resolveSortFromStores, SortState } from "../schemas";
 
 export const directorySubscriptions = new Map<DirectoryId, (() => void)[]>();
 
@@ -21,10 +23,12 @@ export const directoryDerivedStores = new Map<
     getFilteredDirectoryData: () =>
       | GetFilesAndFoldersInDirectoryItem[]
       | undefined;
+    useSort: () => SortState;
+    getSort: () => SortState | undefined;
   }
 >();
 
-function computeFilteredData(
+function filterByQuery(
   directoryData: GetFilesAndFoldersInDirectoryItem[],
   query: string,
 ): GetFilesAndFoldersInDirectoryItem[] {
@@ -69,20 +73,41 @@ export function setupSubscriptions(directoryId: DirectoryId) {
     ),
   );
 
+  // TODO: find a better way
+  const [useSort, getSort] = createUseDerivedStoreValue(
+    [directoryStore, columnPreferencesStore],
+    ([d, columnPrefs]) => {
+      const dir = d.directoriesById[directoryId];
+      return [JSON.stringify(resolveSortFromStores(dir, columnPrefs))];
+    },
+    ([d, columnPrefs]) => {
+      const dir = d.directoriesById[directoryId];
+      const sort = resolveSortFromStores(dir, columnPrefs);
+      return sort;
+    },
+  );
+
   const [useFilteredDirectoryData, getFilteredDirectoryData] =
     createUseDerivedStoreValue(
-      [directoryStore, fileBrowserSettingsStore],
-      ([d, settings]) => [
-        d.directoriesById[directoryId]?.directoryData,
-        settings.settings,
-        d.directoriesById[directoryId]?.fuzzyQuery,
-      ],
-      ([d, settings]) => {
-        const directoryData = DirectoryDataFromSettings.getDirectoryData(
-          d.directoriesById[directoryId]?.directoryData,
+      [directoryStore, fileBrowserSettingsStore, columnPreferencesStore],
+      ([d, settings, columnPrefs]) => {
+        const dir = d.directoriesById[directoryId];
+        return [
+          dir?.directoryData,
           settings.settings,
+          dir?.fuzzyQuery,
+          JSON.stringify(resolveSortFromStores(dir, columnPrefs)),
+        ];
+      },
+      ([d, settings, columnPrefs]) => {
+        const dir = d.directoriesById[directoryId];
+        const sort = resolveSortFromStores(dir, columnPrefs);
+        const directoryData = DirectoryDataFromSettings.getDirectoryData(
+          dir?.directoryData,
+          settings.settings,
+          sort,
         );
-        const filteredDirectoryData = computeFilteredData(
+        const filteredDirectoryData = filterByQuery(
           directoryData,
           d.directoriesById[directoryId]?.fuzzyQuery,
         );
@@ -94,6 +119,8 @@ export function setupSubscriptions(directoryId: DirectoryId) {
   directoryDerivedStores.set(directoryId, {
     useFilteredDirectoryData,
     getFilteredDirectoryData,
+    useSort,
+    getSort,
   });
 
   // DO NOT MOVE THIS FUNCTION, Terrible code!!!

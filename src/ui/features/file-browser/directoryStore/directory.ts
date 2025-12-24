@@ -25,6 +25,7 @@ import {
   DirectoryContextDirectory,
   getActiveDirectory,
   DirectoryInfo,
+  DirectoryLocalSort,
 } from "./DirectoryBase";
 
 function updateDirectory(
@@ -66,6 +67,7 @@ export function createDirectoryContext(
     },
     fuzzyQuery: "",
     viewMode: "list",
+    localSort: undefined,
   };
 }
 
@@ -93,6 +95,8 @@ export const directoryStore = createStore({
         fuzzyQuery: "",
         // View mode
         viewMode: "list" as "list" | "grid",
+        // Local sort state
+        localSort: undefined,
       },
     },
     directoryOrder: [dummyDirectoryId],
@@ -241,6 +245,16 @@ export const directoryStore = createStore({
         ...d,
         viewMode: d.viewMode === "list" ? "grid" : "list",
       })),
+
+    setLocalSort: (
+      context,
+      event: { sort: DirectoryLocalSort | undefined; directoryId: DirectoryId },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
+        localSort: event.sort,
+      })),
+
     setActiveDirectoryId: (context, event: { directoryId: DirectoryId }) => {
       if (context.activeDirectoryId === event.directoryId) return context;
       return {
@@ -375,6 +389,8 @@ export const directoryStore = createStore({
               fuzzyQuery: "",
               // View mode
               viewMode: "list" as "list" | "grid",
+              // Local sort state
+              localSort: undefined,
             };
             return acc;
           },
