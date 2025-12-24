@@ -2,10 +2,8 @@ import { ChevronDownIcon, ChevronUpIcon, Loader2Icon } from "lucide-react";
 import { ContextMenu, useContextMenu } from "../../lib/components/context-menu";
 import { clsx } from "../../lib/functions/clsx";
 import { useTable } from "../../lib/libs/table/useTable";
-import { onSortKey } from "../../lib/libs/table/useTableSort";
 import { memo, useMemo } from "react";
 import { useSelector } from "@xstate/store/react";
-import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
 import {
   directoryHelpers,
   directoryStore,
@@ -28,8 +26,10 @@ import { fileBrowserListContainerProps } from "./fileBrowserListContainerProps";
 import { ColumnHeaderContextMenu } from "./components/ColumnHeaderContextMenu";
 import {
   columnPreferencesStore,
+  resolveGlobalOrLocalSort,
   selectEffectivePreferences,
 } from "./columnPreferences";
+import { sortNames } from "./schemas";
 
 export type TableContextMenuProps<T> = {
   item: T;
@@ -52,8 +52,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
 
   const directory = useSelector(directoryStore, selectDirectory(directoryId));
 
-  const directoryPath =
-    directory?.type === "path" ? directory.fullPath : "";
+  const directoryPath = directory?.type === "path" ? directory.fullPath : "";
 
   const columnPreferences = useSelector(
     columnPreferencesStore,
@@ -76,11 +75,13 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     }
 
     const prefMap = new Map(columnPreferences.map((p) => [p.id, p]));
-    const columnIds = allColumns.map((col) => col.id?.toString() || col.accessorKey);
+    const columnIds = allColumns.map(
+      (col) => col.id?.toString() || col.accessorKey,
+    );
 
     // Create ordered list based on preferences
     const ordered: typeof allColumns = [];
-    
+
     // First, add columns in preference order
     columnPreferences.forEach((pref) => {
       if (!pref.visible) return; // Skip hidden columns
@@ -101,17 +102,14 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     return ordered;
   }, [allColumns, columnPreferences]);
 
+  const sort = directoryDerivedStores.get(directoryId)!.useSort();
+
   const table = useTable({
     columns,
     data: filteredDirectoryData,
   });
   const contextMenu = useContextMenu<GetFilesAndFoldersInDirectoryItem>();
   const headerContextMenu = useContextMenu<null>();
-
-  const sortSettings = useSelector(
-    fileBrowserSettingsStore,
-    (s) => s.context.settings.sort,
-  );
 
   const isDragOver = useSelector(
     fileDragDropStore,
@@ -143,14 +141,12 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
           }
         </ContextMenu>
       )}
-      
+
       {headerContextMenu.isOpen && (
         <ContextMenu menu={headerContextMenu}>
           <ColumnHeaderContextMenu
             columns={allColumns}
-            directoryPath={
-              directory?.type === "path" ? directory.fullPath : ""
-            }
+            directoryPath={directory?.type === "path" ? directory.fullPath : ""}
           />
         </ContextMenu>
       )}
@@ -167,10 +163,48 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
           <thead>
             <tr>
               {table.headers.map((header) => {
+                const handleHeaderClick = () => {
+                  const basedOn = resolveGlobalOrLocalSort(directoryPath);
+                  if (header.sortKey == null) {
+                    directoryStore.send({
+                      type: "setLocalSort",
+                      sort: {
+                        basedOn,
+                        actual: {
+                          by: undefined,
+                          order: !sort?.by ? "asc" : "desc",
+                        },
+                      },
+                      directoryId,
+                    });
+                    return;
+                  }
+                  const p = sortNames.safeParse(header.sortKey);
+                  if (p.success) {
+                    const newSort = {
+                      basedOn,
+                      actual: {
+                        by: p.data,
+                        order:
+                          sort?.by === p.data || (!p.data && !sort?.by)
+                            ? sort?.order === "asc"
+                              ? "desc"
+                              : "asc"
+                            : "asc",
+                      },
+                    } as const;
+                    directoryStore.send({
+                      type: "setLocalSort",
+                      sort: newSort,
+                      directoryId,
+                    });
+                  }
+                };
+
                 return (
-                  <th 
-                    key={header.id} 
-                    onClick={() => onSortKey(header.sortKey)}
+                  <th
+                    key={header.id}
+                    onClick={handleHeaderClick}
                     onContextMenu={(e) => {
                       e.preventDefault();
                       headerContextMenu.onRightClick(e, null);
@@ -181,8 +215,8 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
                         {header.value}
                       </span>
 
-                      {sortSettings.by === header.sortKey &&
-                        (sortSettings.order === "asc" ? (
+                      {sort?.by === header.sortKey &&
+                        (sort?.order === "asc" ? (
                           <ChevronDownIcon className="size-4 stroke-[3]" />
                         ) : (
                           <ChevronUpIcon className="size-4 stroke-[3]" />

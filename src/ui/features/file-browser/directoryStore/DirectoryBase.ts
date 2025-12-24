@@ -1,6 +1,7 @@
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { HistoryStack } from "@common/history-stack";
 import { TagColor } from "../tags";
+import { SortState } from "../schemas";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -26,6 +27,11 @@ export function getActiveDirectory(
 
 export type DirectoryId = $Branded<string, "DirectoryId">;
 
+export type DirectoryLocalSort = {
+  actual: SortState;
+  basedOn: SortState | undefined;
+};
+
 export type DirectoryContextDirectory = {
   directoryId: DirectoryId;
   directory: DirectoryInfo;
@@ -40,6 +46,7 @@ export type DirectoryContextDirectory = {
   };
   fuzzyQuery: string;
   viewMode: "list" | "grid";
+  localSort: DirectoryLocalSort | undefined;
 };
 
 export type DirectoryContext = {
