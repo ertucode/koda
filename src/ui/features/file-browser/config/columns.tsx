@@ -1,4 +1,3 @@
-import type { ColumnDef } from "@/lib/libs/table/table-types";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileCategory } from "@common/file-category";
 import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../tags";
@@ -8,6 +7,7 @@ import { directoryHelpers, directoryStore } from "../directoryStore/directory";
 import { DirectoryId, DirectoryType } from "../directoryStore/DirectoryBase";
 import { CategoryHelpers } from "../CategoryHelpers";
 import { perDirectoryDataHelpers } from "../directoryStore/perDirectoryData";
+import { ColumnDef } from "@tanstack/react-table";
 
 function CategoryIcon({ category }: { category: FileCategory | "folder" }) {
   const config = CategoryHelpers.get(category);
@@ -50,59 +50,60 @@ export function createColumns(
     {
       accessorKey: "type",
       header: "",
-      cell: (row) => {
-        return <CategoryIcon category={row.category} />;
+      cell: ({ row }) => {
+        return <CategoryIcon category={row.original.category} />;
       },
       size: 24,
+      enableSorting: false,
     },
     {
       accessorKey: "name",
       header: "Name",
-      cell: (row, { index: idx }) => {
-        return <DirectoryNameColumn row={row} ctx={ctx} idx={idx} />;
+      cell: ({ row }) => {
+        return (
+          <DirectoryNameColumn row={row.original} ctx={ctx} idx={row.index} />
+        );
       },
     },
     {
       accessorKey: "ext",
       header: "Ext",
       size: 24,
-      cell: (row) => (
+      cell: ({ row }) => (
         <span
           className="block truncate"
           style={{ maxWidth: 24 }}
-          title={row.ext ?? undefined}
+          title={row.original.ext ?? undefined}
         >
-          {row.ext}
+          {row.original.ext}
         </span>
       ),
     },
     {
       accessorKey: "sizeStr",
-      sortKey: "size",
       header: "Size",
       size: 84,
-      cell: (row) => (
+      cell: ({ row }) => (
         <span
           className="block truncate"
           style={{ maxWidth: 84 }}
-          title={row.sizeStr ?? undefined}
+          title={row.original.sizeStr ?? undefined}
         >
-          {row.sizeStr}
+          {row.original.sizeStr}
         </span>
       ),
     },
     {
-      accessorKey: "modifiedAt",
-      sortKey: "modifiedTimestamp",
+      accessorKey: "modifiedTimestamp",
       header: "Modified",
       size: 148,
-      cell: (row) => (
+      cell: ({ row }) => (
         <span
           className="block truncate"
           style={{ maxWidth: 148 }}
-          title={row.modifiedAt ?? undefined}
+          title={row.original.modifiedAt ?? undefined}
         >
-          {row.modifiedAt}
+          {row.original.modifiedAt}
         </span>
       ),
     },
