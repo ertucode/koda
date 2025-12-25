@@ -1,6 +1,13 @@
 import { Node, TabNode, TabSetNode } from "flexlayout-react";
 import { layoutModel } from "../initializeDirectory";
 import { DirectoryId } from "../directoryStore/DirectoryBase";
+import {
+  HeartIcon,
+  ClockIcon,
+  TagIcon,
+  EyeIcon,
+  FoldersIcon,
+} from "lucide-react";
 
 export namespace LayoutHelpers {
   export function getActiveTabsetThatHasDirectory() {
@@ -77,5 +84,13 @@ export namespace LayoutHelpers {
       return parent.isActive();
     }
     return false;
+  }
+
+  export function getIconForComponent(component: string | undefined) {
+    if (component === "favorites") return HeartIcon;
+    else if (component === "recents") return ClockIcon;
+    else if (component === "tags") return TagIcon;
+    else if (component === "preview") return EyeIcon;
+    return FoldersIcon;
   }
 }
