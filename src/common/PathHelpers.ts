@@ -64,4 +64,12 @@ export namespace PathHelpers {
 
     return fullPath;
   }
+
+  export function withExtension<TExtension extends `.${string}`>(
+    filePath: string,
+    extension: TExtension,
+  ) {
+    if (filePath.endsWith(extension)) return filePath;
+    return filePath + extension;
+  }
 }
