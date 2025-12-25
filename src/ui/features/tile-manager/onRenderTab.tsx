@@ -2,10 +2,7 @@ import { clsx } from "@/lib/functions/clsx";
 import { TabNode, ITabRenderValues, Actions } from "flexlayout-react";
 import {
   FoldersIcon,
-  HeartIcon,
-  ClockIcon,
   TagIcon,
-  EyeIcon,
   XIcon,
   LoaderIcon,
   StarIcon,
@@ -37,7 +34,7 @@ export const onRenderTab = (node: TabNode, renderValues: ITabRenderValues) => {
   const component = node.getComponent();
   const config = node.getConfig();
 
-  const Icon = getIconForComponent(component);
+  const Icon = LayoutHelpers.getIconForComponent(component);
 
   const isSelected = LayoutHelpers.isSelected(node);
   const isDirectory = LayoutHelpers.isDirectoryStupidTypescript(node);
@@ -151,14 +148,6 @@ function DirectoryTabLabel({ directoryId }: { directoryId: DirectoryId }) {
       </span>
     </>
   );
-}
-
-export function getIconForComponent(component: string | undefined) {
-  if (component === "favorites") return HeartIcon;
-  else if (component === "recents") return ClockIcon;
-  else if (component === "tags") return TagIcon;
-  else if (component === "preview") return EyeIcon;
-  return FoldersIcon;
 }
 
 function DirectoryTabContextMenu({

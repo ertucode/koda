@@ -1,7 +1,7 @@
-import { getIconForComponent } from "@/features/tile-manager/onRenderTab";
 import { IJsonModel, Layout, Model, TabNode } from "flexlayout-react";
 import { FilesIcon } from "lucide-react";
 import { useMemo } from "react";
+import { LayoutHelpers } from "../utils/LayoutHelpers";
 
 interface LayoutPreviewProps {
   layoutJson: IJsonModel;
@@ -47,7 +47,7 @@ export function LayoutPreview({
               renderValues.content = <FilesIcon className="size-2 mr-2" />;
             }
           } else {
-            const Icon = getIconForComponent(node.getComponent());
+            const Icon = LayoutHelpers.getIconForComponent(node.getComponent());
             if (Icon) {
               renderValues.content = <Icon className="size-2" />;
             }
