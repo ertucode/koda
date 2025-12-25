@@ -29,12 +29,13 @@ import { TextWithIcon } from "@/lib/components/text-with-icon";
 import { favoritesStore, selectIsFavorite } from "../file-browser/favorites";
 import { setDefaultPath } from "../file-browser/defaultPath";
 import { dialogActions } from "../file-browser/dialogStore";
+import { LayoutUtils } from "../file-browser/utils/LayoutUtils";
 
 export const onRenderTab = (node: TabNode, renderValues: ITabRenderValues) => {
   const component = node.getComponent();
   const config = node.getConfig();
 
-  const Icon = LayoutHelpers.getIconForComponent(component);
+  const Icon = LayoutUtils.getIconForComponent(component);
 
   const isSelected = LayoutHelpers.isSelected(node);
   const isDirectory = LayoutHelpers.isDirectoryStupidTypescript(node);
