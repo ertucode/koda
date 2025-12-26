@@ -5,6 +5,7 @@ import {
   StringSearchOptions,
   WindowElectron,
 } from "../common/Contracts";
+import { ArchiveTypes } from "../common/ArchiveTypes";
 
 electron.contextBridge.exposeInMainWorld("electron", {
   getFilePath: (file: File) => electron.webUtils.getPathForFile(file),
@@ -38,8 +39,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("searchStringRecursively", options),
   fuzzyFolderFinder: (directory: string, query: string) =>
     ipcInvoke("fuzzyFolderFinder", { directory, query }),
-  readZipContents: (filePath: string) =>
-    ipcInvoke("readZipContents", filePath),
+  readArchiveContents: (
+    archivePath: string,
+    archiveType: ArchiveTypes.ArchiveType,
+  ) => ipcInvoke("readArchiveContents", { archivePath, archiveType }),
 } satisfies Partial<WindowElectron>);
 
 function getArgv(key: string) {

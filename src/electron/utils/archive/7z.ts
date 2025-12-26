@@ -6,6 +6,8 @@ import { Archive } from "./Archive.js";
 import { Result } from "../../../common/Result.js";
 import { GenericError } from "../../../common/GenericError.js";
 import { sevenZPath } from "../get-vendor-path.js";
+import { ArchiveTypes } from "../../../common/ArchiveTypes.js";
+import { expandHome } from "../expand-home.js";
 
 export namespace SevenZip {
   export function archive(
@@ -263,6 +265,120 @@ export namespace SevenZip {
       sevenZProcess.on("error", (err) => {
         finish(err);
       });
+    });
+  }
+
+  export async function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
+    return new Promise<ArchiveTypes.ReadContentsResult>((resolve) => {
+      try {
+        const expandedPath = expandHome(archivePath);
+        const sevenZBinary = sevenZPath;
+
+        // 7z l -slt <archive.7z>
+        // -slt = technical listing (provides detailed info)
+        const args = ["l", "-slt", expandedPath];
+
+        const sevenZProcess = spawn(sevenZBinary, args, {
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+
+        let output = "";
+        let errorOutput = "";
+
+        sevenZProcess.stdout?.on("data", (data) => {
+          output += data.toString();
+        });
+
+        sevenZProcess.stderr?.on("data", (data) => {
+          errorOutput += data.toString();
+        });
+
+        sevenZProcess.on("close", (code) => {
+          if (code !== 0) {
+            resolve(
+              GenericError.Message(
+                `7z list process exited with code ${code}: ${errorOutput}`,
+              ),
+            );
+            return;
+          }
+
+          try {
+            const entries: ArchiveTypes.ArchiveEntry[] = [];
+            const lines = output.split("\n");
+            let currentEntry: Partial<ArchiveTypes.ArchiveEntry> = {};
+
+            for (const line of lines) {
+              const trimmedLine = line.trim();
+
+              if (trimmedLine.startsWith("Path = ")) {
+                // Start of a new entry
+                if (currentEntry.name) {
+                  // Save previous entry
+                  entries.push({
+                    name: currentEntry.name,
+                    isDirectory: currentEntry.isDirectory ?? false,
+                    size: currentEntry.size ?? 0,
+                    compressedSize: currentEntry.compressedSize,
+                  });
+                }
+                currentEntry = {
+                  name: trimmedLine.substring("Path = ".length),
+                };
+              } else if (trimmedLine.startsWith("Size = ")) {
+                currentEntry.size = parseInt(
+                  trimmedLine.substring("Size = ".length),
+                  10,
+                );
+              } else if (trimmedLine.startsWith("Packed Size = ")) {
+                currentEntry.compressedSize = parseInt(
+                  trimmedLine.substring("Packed Size = ".length),
+                  10,
+                );
+              } else if (trimmedLine.startsWith("Folder = ")) {
+                const isFolder = trimmedLine.substring("Folder = ".length);
+                currentEntry.isDirectory = isFolder === "+" || isFolder === "yes";
+              } else if (trimmedLine.startsWith("Attributes = ")) {
+                // Also check attributes for directory marker
+                const attrs = trimmedLine.substring("Attributes = ".length);
+                if (attrs.includes("D")) {
+                  currentEntry.isDirectory = true;
+                }
+              }
+            }
+
+            // Don't forget the last entry
+            if (currentEntry.name) {
+              entries.push({
+                name: currentEntry.name,
+                isDirectory: currentEntry.isDirectory ?? false,
+                size: currentEntry.size ?? 0,
+                compressedSize: currentEntry.compressedSize,
+              });
+            }
+
+            resolve(Result.Success(entries));
+          } catch (error) {
+            if (error instanceof Error) {
+              resolve(GenericError.Message(error.message));
+            } else {
+              resolve(GenericError.Unknown(error));
+            }
+          }
+        });
+
+        sevenZProcess.on("error", (err) => {
+          resolve(GenericError.Unknown(err));
+        });
+      } catch (error) {
+        if (error instanceof Error) {
+          resolve(GenericError.Message(error.message));
+        } else {
+          resolve(GenericError.Unknown(error));
+        }
+      }
     });
   }
 }

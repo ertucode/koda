@@ -4,6 +4,8 @@ import { PathHelpers } from "../../../common/PathHelpers.js";
 import { Archive } from "./Archive.js";
 import { Result } from "../../../common/Result.js";
 import { GenericError } from "../../../common/GenericError.js";
+import { ArchiveTypes } from "../../../common/ArchiveTypes.js";
+import { expandHome } from "../expand-home.js";
 
 type CompressionType = "none" | "gzip" | "bzip2" | "xz";
 
@@ -28,6 +30,95 @@ function getCompressionFlag(type: CompressionType): string {
     default:
       return "";
   }
+}
+
+function readContentsWithTar(
+  archivePath: string,
+  compressionType: CompressionType,
+): Promise<ArchiveTypes.ReadContentsResult> {
+  return new Promise<ArchiveTypes.ReadContentsResult>((resolve) => {
+    try {
+      const expandedPath = expandHome(archivePath);
+      const compressionFlag = getCompressionFlag(compressionType);
+
+      // tar -t[z|j|J]vf archive.tar[.gz|.bz2|.xz]
+      // -t = list contents
+      // -v = verbose (shows permissions and size info)
+      const args = [`-t${compressionFlag}vf`, expandedPath];
+
+      const tarProcess = spawn("tar", args, {
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      let output = "";
+      let errorOutput = "";
+
+      tarProcess.stdout?.on("data", (data) => {
+        output += data.toString();
+      });
+
+      tarProcess.stderr?.on("data", (data) => {
+        errorOutput += data.toString();
+      });
+
+      tarProcess.on("close", (code) => {
+        if (code !== 0) {
+          resolve(
+            GenericError.Message(
+              `tar list process exited with code ${code}: ${errorOutput}`,
+            ),
+          );
+          return;
+        }
+
+        try {
+          const entries: ArchiveTypes.ArchiveEntry[] = [];
+          const lines = output.split("\n");
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+
+            // Parse tar -tv output format:
+            // drwxr-xr-x  0 user group       0 Dec 27 12:34 directory/
+            // -rw-r--r--  0 user group    1234 Dec 27 12:34 file.txt
+            const match = line.match(
+              /^([drwx-]+)\s+\d+\s+\S+\s+\S+\s+(\d+)\s+\S+\s+\d+\s+[\d:]+\s+(.+)$/,
+            );
+
+            if (match) {
+              const [, permissions, sizeStr, name] = match;
+              const isDirectory = permissions.startsWith("d");
+              const size = parseInt(sizeStr, 10);
+
+              entries.push({
+                name,
+                isDirectory,
+                size,
+              });
+            }
+          }
+
+          resolve(Result.Success(entries));
+        } catch (error) {
+          if (error instanceof Error) {
+            resolve(GenericError.Message(error.message));
+          } else {
+            resolve(GenericError.Unknown(error));
+          }
+        }
+      });
+
+      tarProcess.on("error", (err) => {
+        resolve(GenericError.Unknown(err));
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        resolve(GenericError.Message(error.message));
+      } else {
+        resolve(GenericError.Unknown(error));
+      }
+    }
+  });
 }
 
 function archiveWithTar(
@@ -338,6 +429,10 @@ export namespace Tar {
   export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "none" });
   }
+
+  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+    return readContentsWithTar(archivePath, "none");
+  }
 }
 
 export namespace TarGz {
@@ -347,6 +442,10 @@ export namespace TarGz {
 
   export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "gzip" });
+  }
+
+  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+    return readContentsWithTar(archivePath, "gzip");
   }
 }
 
@@ -358,6 +457,10 @@ export namespace Tgz {
   export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "gzip" });
   }
+
+  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+    return readContentsWithTar(archivePath, "gzip");
+  }
 }
 
 export namespace TarBz2 {
@@ -367,6 +470,10 @@ export namespace TarBz2 {
 
   export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "bzip2" });
+  }
+
+  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+    return readContentsWithTar(archivePath, "bzip2");
   }
 }
 
@@ -378,6 +485,10 @@ export namespace Tbz2 {
   export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "bzip2" });
   }
+
+  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+    return readContentsWithTar(archivePath, "bzip2");
+  }
 }
 
 export namespace TarXz {
@@ -388,6 +499,10 @@ export namespace TarXz {
   export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "xz" });
   }
+
+  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+    return readContentsWithTar(archivePath, "xz");
+  }
 }
 
 export namespace Txz {
@@ -397,5 +512,9 @@ export namespace Txz {
 
   export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "xz" });
+  }
+
+  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+    return readContentsWithTar(archivePath, "xz");
   }
 }

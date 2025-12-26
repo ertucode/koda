@@ -2,11 +2,14 @@ import fs from "fs";
 import path from "path";
 import archiver from "archiver";
 import extract from "extract-zip";
+import AdmZip from "adm-zip";
 import { PathHelpers } from "../../../common/PathHelpers.js";
 import { Archive } from "./Archive.js";
 import { Result } from "../../../common/Result.js";
 import { GenericError } from "../../../common/GenericError.js";
 import { getSizeForPath } from "../get-directory-size.js";
+import { ArchiveTypes } from "../../../common/ArchiveTypes.js";
+import { expandHome } from "../expand-home.js";
 
 export namespace Zip {
   export function archive(
@@ -224,5 +227,30 @@ export namespace Zip {
         finish(err as Error);
       }
     });
+  }
+
+  export async function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
+    try {
+      const expandedPath = expandHome(archivePath);
+      const zip = new AdmZip(expandedPath);
+      const entries = zip.getEntries();
+
+      const result: ArchiveTypes.ArchiveEntry[] = entries.map((entry) => ({
+        name: entry.entryName,
+        isDirectory: entry.isDirectory,
+        size: entry.header.size,
+        compressedSize: entry.header.compressedSize,
+        comment: entry.comment,
+      }));
+
+      return Result.Success(result);
+    } catch (error) {
+      if (error instanceof Error) {
+        return GenericError.Message(error.message);
+      }
+      return GenericError.Unknown(error);
+    }
   }
 }

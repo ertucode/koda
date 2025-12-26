@@ -4,6 +4,7 @@ import { PathHelpers } from "../../../common/PathHelpers.js";
 import { Archive } from "./Archive.js";
 import { Result } from "../../../common/Result.js";
 import { GenericError } from "../../../common/GenericError.js";
+import { ArchiveTypes } from "../../../common/ArchiveTypes.js";
 
 export namespace Bzip2 {
   export function archive(
@@ -275,5 +276,13 @@ export namespace Bzip2 {
         finish(err);
       });
     });
+  }
+
+  export async function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
+    return GenericError.Message(
+      "BZIP2 is a single-file compression format and does not support listing contents. Only container formats like ZIP, 7z, and TAR variants support this operation.",
+    );
   }
 }

@@ -15,12 +15,12 @@ export type StringSearchResult = {
   contextLines: ContextLine[];
 };
 
-export type ZipEntry = {
+export type ArchiveEntry = {
   name: string;
   isDirectory: boolean;
   size: number;
-  compressedSize: number;
-  comment: string;
+  compressedSize?: number;
+  comment?: string;
 };
 
 export type FileCategory =
@@ -88,7 +88,7 @@ export type EventResponseMapping = {
   fuzzyFileFinder: Promise<GenericResult<string[]>>;
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>;
   fuzzyFolderFinder: Promise<GenericResult<string[]>>;
-  readZipContents: Promise<GenericResult<ZipEntry[]>>;
+  readArchiveContents: Promise<GenericResult<ArchiveEntry[]>>;
   getDirectorySizes: Promise<Record<string, number>>;
   generateVideoThumbnail: Promise<string>;
   "task:event": TaskEvents;
@@ -148,7 +148,10 @@ export type EventRequestMapping = {
   fuzzyFileFinder: { directory: string; query: string };
   searchStringRecursively: StringSearchOptions;
   fuzzyFolderFinder: { directory: string; query: string };
-  readZipContents: string;
+  readArchiveContents: {
+    archivePath: string;
+    archiveType: ArchiveTypes.ArchiveType;
+  };
   getDirectorySizes: { parentPath: string; specificDirName?: string };
   generateVideoThumbnail: string;
   startArchive: {
@@ -242,7 +245,10 @@ export type WindowElectron = {
   getFileInfoByPaths: (
     filePaths: string[],
   ) => Promise<GetFilesAndFoldersInDirectoryItem[]>;
-  readZipContents: (filePath: string) => Promise<GenericResult<ZipEntry[]>>;
+  readArchiveContents: (
+    archivePath: string,
+    archiveType: ArchiveTypes.ArchiveType,
+  ) => Promise<GenericResult<ArchiveEntry[]>>;
   getDirectorySizes: (
     parentPath: string,
     specificDirName?: string,
