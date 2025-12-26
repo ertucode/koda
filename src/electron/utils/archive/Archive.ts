@@ -14,6 +14,10 @@ export namespace Archive {
 
   export type UnarchiveResult = ArchiveTypes.UnarchiveResult;
 
+  export type ArchiveEntry = ArchiveTypes.ArchiveEntry;
+
+  export type ReadContentsResult = ArchiveTypes.ReadContentsResult;
+
   function getNamespace(type: ArchiveTypes.ArchiveType): typeof SevenZip {
     switch (type) {
       case ".zip":
@@ -56,5 +60,12 @@ export namespace Archive {
     opts: UnarchiveOpts,
   ): Promise<UnarchiveResult> {
     return getNamespace(type).unarchive(opts);
+  }
+
+  export function readContents(
+    type: ArchiveTypes.ArchiveType,
+    archivePath: string,
+  ): Promise<ReadContentsResult> {
+    return getNamespace(type).readContents(archivePath);
   }
 }

@@ -9,8 +9,10 @@ import { renderAsync } from "docx-preview";
 import { getWindowElectron } from "@/getWindowElectron";
 import { fileSizeTooLarge } from "@common/file-size-too-large";
 import { isImageExtension, isVideoExtension } from "@common/file-category";
-import { ZipEntry } from "@common/Contracts";
+import { ArchiveEntry } from "@common/Contracts";
 import { useDebounce } from "@/lib/hooks/useDebounce";
+import { NO_PREVIEW_EXTENSIONS } from "@common/no-preview-extensions";
+import { ArchiveTypes } from "@common/ArchiveTypes";
 
 function expandHome(filePath: string): string {
   if (filePath.startsWith("~/")) {
@@ -28,7 +30,7 @@ type ContentType =
   | "xlsx"
   | "video"
   | "video-unsupported"
-  | "zip";
+  | "archive";
 
 type PreviewData = {
   filePath: string;
@@ -96,7 +98,20 @@ export function PreviewApp() {
 
   const PDF_EXTENSIONS = new Set([".pdf"]);
   const XLSX_EXTENSIONS = new Set([".xlsx", ".xls", ".csv"]);
-  const ZIP_EXTENSIONS = new Set([".zip"]);
+  
+  // Archive formats that support listing contents
+  const ARCHIVE_EXTENSIONS = new Set<ArchiveTypes.ArchiveType>([
+    ".zip",
+    ".7z",
+    ".tar",
+    ".tar.gz",
+    ".tgz",
+    ".tar.bz2",
+    ".tbz2",
+    ".tar.xz",
+    ".txz",
+  ]);
+  
   // Video formats that Chromium can play natively
   const PLAYABLE_VIDEO_EXTENSIONS = new Set([
     ".mp4",
@@ -113,7 +128,8 @@ export function PreviewApp() {
   const isPdf = PDF_EXTENSIONS.has(ext);
   const isVideo = isVideoExtension(ext);
   const isPlayableVideo = PLAYABLE_VIDEO_EXTENSIONS.has(ext);
-  const isZip = ZIP_EXTENSIONS.has(ext);
+  const isArchive = ARCHIVE_EXTENSIONS.has(ext as ArchiveTypes.ArchiveType);
+  const shouldSkipPreview = NO_PREVIEW_EXTENSIONS.has(ext);
   const { isTooLarge, limit: fileSizeLimit } = previewData?.fileSize
     ? fileSizeTooLarge(ext, previewData.fileSize)
     : { isTooLarge: false, limit: Infinity };
@@ -179,11 +195,14 @@ export function PreviewApp() {
       return;
     }
 
-    if (isZip) {
-      // Fetch zip contents via IPC
+    if (isArchive) {
+      // Fetch archive contents via IPC
       setLoading(true);
       getWindowElectron()
-        .readZipContents(previewData.filePath)
+        .readArchiveContents(
+          previewData.filePath,
+          ext as ArchiveTypes.ArchiveType,
+        )
         .then((result) => {
           if ("error" in result) {
             setError(String(result.error));
@@ -191,18 +210,26 @@ export function PreviewApp() {
             setContentType("text");
           } else {
             setContent(JSON.stringify(result.data));
-            setContentType("zip");
+            setContentType("archive");
             setError(null);
           }
         })
         .catch((err) => {
-          setError(err.message || "Failed to read zip file");
+          setError(err.message || "Failed to read archive file");
           setContent(null);
           setContentType("text");
         })
         .finally(() => {
           setLoading(false);
         });
+      return;
+    }
+
+    if (shouldSkipPreview) {
+      setContent(null);
+      setContentType("text");
+      setError("Preview not available for this file type");
+      setLoading(false);
       return;
     }
 
@@ -335,8 +362,8 @@ export function PreviewApp() {
     return <VideoUnsupportedPreview jsonContent={content} />;
   }
 
-  if (contentType === "zip") {
-    return <ZipPreview jsonContent={content} />;
+  if (contentType === "archive") {
+    return <ArchivePreview jsonContent={content} />;
   }
 
   return (
@@ -586,18 +613,18 @@ function VideoUnsupportedPreview({ jsonContent }: { jsonContent: string }) {
   );
 }
 
-function ZipPreview({ jsonContent }: { jsonContent: string }) {
-  const [entries, setEntries] = useState<ZipEntry[]>([]);
+function ArchivePreview({ jsonContent }: { jsonContent: string }) {
+  const [entries, setEntries] = useState<ArchiveEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
-      const parsed = JSON.parse(jsonContent) as ZipEntry[];
+      const parsed = JSON.parse(jsonContent) as ArchiveEntry[];
       setEntries(parsed);
       setError(null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to parse zip contents",
+        err instanceof Error ? err.message : "Failed to parse archive contents",
       );
     }
   }, [jsonContent]);
@@ -612,7 +639,7 @@ function ZipPreview({ jsonContent }: { jsonContent: string }) {
 
   const totalSize = entries.reduce((sum, entry) => sum + entry.size, 0);
   const totalCompressed = entries.reduce(
-    (sum, entry) => sum + entry.compressedSize,
+    (sum, entry) => sum + (entry.compressedSize ?? 0),
     0,
   );
   const compressionRatio =

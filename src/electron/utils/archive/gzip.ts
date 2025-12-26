@@ -4,6 +4,7 @@ import { PathHelpers } from "../../../common/PathHelpers.js";
 import { Archive } from "./Archive.js";
 import { Result } from "../../../common/Result.js";
 import { GenericError } from "../../../common/GenericError.js";
+import { ArchiveTypes } from "../../../common/ArchiveTypes.js";
 
 export namespace Gzip {
   export function archive(

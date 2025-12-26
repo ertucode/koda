@@ -49,7 +49,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("fuzzyFolderFinder", { directory, query }),
   getFileInfoByPaths: (filePaths: string[]) =>
     ipcInvoke("getFileInfoByPaths", filePaths),
-  readZipContents: (filePath: string) => ipcInvoke("readZipContents", filePath),
+  readArchiveContents: (
+    archivePath: string,
+    archiveType: ArchiveTypes.ArchiveType,
+  ) => ipcInvoke("readArchiveContents", { archivePath, archiveType }),
   getDirectorySizes: (parentPath: string, specificDirName?: string) =>
     ipcInvoke("getDirectorySizes", { parentPath, specificDirName }),
   generateVideoThumbnail: (filePath: string) =>

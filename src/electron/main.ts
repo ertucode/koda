@@ -25,13 +25,12 @@ import { pasteFiles } from "./utils/paste-files.js";
 import { fuzzyFileFinder } from "./utils/fuzzy-file-finder.js";
 import { searchStringRecursively } from "./utils/search-string-recursively.js";
 import { fuzzyFolderFinder } from "./utils/fuzzy-folder-finder.js";
-import { readZipContents } from "./utils/read-zip-contents.js";
-
 import { getDirectorySizes } from "./utils/get-directory-size.js";
 import { generateVideoThumbnail } from "./utils/generate-video-thumbnail.js";
 import { xlsxWorkerPool } from "./utils/xlsx-worker-pool.js";
 import { TaskManager } from "./TaskManager.js";
 import { startArchive, startUnarchive } from "./utils/start-archive-task.js";
+import { Archive } from "./utils/archive/Archive.js";
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined;
@@ -192,7 +191,9 @@ app.on("ready", () => {
     fuzzyFolderFinder(directory, query),
   );
   ipcHandle("getFileInfoByPaths", getFileInfoByPaths);
-  ipcHandle("readZipContents", (filePath) => readZipContents(filePath));
+  ipcHandle("readArchiveContents", ({ archivePath, archiveType }) =>
+    Archive.readContents(archiveType, archivePath),
+  );
   ipcHandle("getDirectorySizes", ({ parentPath, specificDirName }) =>
     getDirectorySizes(parentPath, specificDirName),
   );

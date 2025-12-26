@@ -47,4 +47,14 @@ export namespace ArchiveTypes {
   };
 
   export type UnarchiveResult = GenericResult<void>;
+
+  export type ArchiveEntry = {
+    name: string;
+    isDirectory: boolean;
+    size: number;
+    compressedSize?: number;
+    comment?: string;
+  };
+
+  export type ReadContentsResult = GenericResult<ArchiveEntry[]>;
 }
