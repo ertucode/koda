@@ -64,19 +64,26 @@ export function fileBrowserListItemProps({
           const gridContainer = document.querySelector(
             `[data-list-id="${directoryId}"] > div`,
           ) as HTMLElement;
-          
+
           if (gridContainer) {
-            const gridItems = gridContainer.querySelectorAll('[data-list-item]');
+            const gridItems =
+              gridContainer.querySelectorAll("[data-list-item]");
             let cols = 1;
-            
+
             if (gridItems.length >= 2) {
-              const firstRect = (gridItems[0] as HTMLElement).getBoundingClientRect();
-              const secondRect = (gridItems[1] as HTMLElement).getBoundingClientRect();
-              
+              const firstRect = (
+                gridItems[0] as HTMLElement
+              ).getBoundingClientRect();
+              const secondRect = (
+                gridItems[1] as HTMLElement
+              ).getBoundingClientRect();
+
               // If second item is on same row, count columns
               if (Math.abs(firstRect.top - secondRect.top) < 10) {
                 for (let i = 1; i < gridItems.length; i++) {
-                  const itemRect = (gridItems[i] as HTMLElement).getBoundingClientRect();
+                  const itemRect = (
+                    gridItems[i] as HTMLElement
+                  ).getBoundingClientRect();
                   if (Math.abs(itemRect.top - firstRect.top) < 10) {
                     cols++;
                   } else {
@@ -155,16 +162,18 @@ export function fileBrowserListItemProps({
       target.draggable = isItemSelected;
     },
     onDragStart: async (e) => {
-      // Mark this as a file drag operation
-      e.dataTransfer.setData("application/x-mygui-file-drag", "true");
-
       const items = directoryHelpers.getSelectedItemsOrCurrentItem(
         index,
         directoryId,
       );
-      const filePaths = items.map((i) =>
-        directoryHelpers.getFullPathForItem(i, directoryId),
-      );
+      const isOutsideDrag = e.metaKey;
+
+      if (isOutsideDrag) {
+        // e.preventDefault çağırmayınca başka uygulamaya taşıma yapılamıyor.
+        // e.preventDefault() çağırınca uygulama içinde taşıma yapılamıyor.
+        e.preventDefault();
+      }
+      e.dataTransfer.setData("application/x-mygui-file-drag", "true");
 
       // Store dragged items data for favorites/other drop targets
       e.dataTransfer.setData(
@@ -176,6 +185,10 @@ export function fileBrowserListItemProps({
             name: i.name,
           })),
         ),
+      );
+
+      const filePaths = items.map((i) =>
+        directoryHelpers.getFullPathForItem(i, directoryId),
       );
 
       // Handle drag start
