@@ -14,7 +14,11 @@ export function useDefaultResultHandler() {
     return {
       onResult: (
         result: ResultHandlerResult,
-        additional?: { success?: () => void; error?: () => void },
+        additional?: {
+          success?: () => void;
+          error?: () => void;
+          noToastOnSuccess?: boolean;
+        },
       ) => {
         if ("noResult" in result) return;
         if (result.success) {

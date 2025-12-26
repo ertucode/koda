@@ -22,14 +22,12 @@ export const UnarchiveDialog = createFormDialog<
     if (!item?.archiveFilePath) {
       return Promise.resolve(GenericError.Message("No archive file selected"));
     }
-    const result = await directoryHelpers.extractArchive(
+    return directoryHelpers.extractArchive(
       item.archiveFilePath,
       body.folderName,
       item.archiveType,
       directoryStore.getSnapshot().context.activeDirectoryId,
     );
-    if ("success" in result) return { noResult: true };
-    return result;
   },
   getConfigs: () => [
     {
@@ -48,4 +46,7 @@ export const UnarchiveDialog = createFormDialog<
     buttonLabel: "Extract",
     buttonIcon: FolderInputIcon,
   }),
+  onSuccessBehavior: {
+    noToastOnSuccess: true,
+  },
 });
