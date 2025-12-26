@@ -42,10 +42,11 @@ export function subscribeToTasks() {
       if (dir.directory.type === "tags") continue;
 
       if (PathHelpers.expandHome(home, dir.directory.fullPath) === path) {
-        directoryHelpers.reload(dir.directoryId);
-        if (fileToSelect) {
-          directoryHelpers.setPendingSelection(fileToSelect, dir.directoryId);
-        }
+        directoryHelpers.reload(dir.directoryId).then(() => {
+          if (fileToSelect) {
+            directoryHelpers.setPendingSelection(fileToSelect, dir.directoryId);
+          }
+        });
 
         return;
       }
