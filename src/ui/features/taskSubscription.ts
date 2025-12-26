@@ -15,6 +15,10 @@ export function subscribeToTasks() {
 
       if (task.type === "archive" || task.type === "unarchive") {
         const destination = task.metadata.destination;
+        const start = new Date(task.createdIso);
+        const elapsed = new Date().getTime() - start.getTime();
+        const fileToSelect =
+          elapsed < 1000 ? PathHelpers.getLastPathPart(destination) : undefined;
         return checkAndReloadDirectories(
           PathHelpers.getParentFolder(
             PathHelpers.expandHome(
@@ -22,20 +26,27 @@ export function subscribeToTasks() {
               destination,
             ),
           ).path,
+          fileToSelect,
         );
       }
     }
   });
 
-  function checkAndReloadDirectories(path: string) {
+  function checkAndReloadDirectories(
+    path: string,
+    fileToSelect: string | undefined,
+  ) {
     const directories = directoryStore.getSnapshot().context.directoriesById;
 
     for (const dir of Object.values(directories)) {
       if (dir.directory.type === "tags") continue;
 
       if (PathHelpers.expandHome(home, dir.directory.fullPath) === path) {
-        // TODO: set selection?, set selection if time is really low amount?
         directoryHelpers.reload(dir.directoryId);
+        if (fileToSelect) {
+          directoryHelpers.setPendingSelection(fileToSelect, dir.directoryId);
+        }
+
         return;
       }
     }

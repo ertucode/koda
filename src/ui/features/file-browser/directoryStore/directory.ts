@@ -60,7 +60,7 @@ export function createDirectoryContext(
     directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
     error: undefined as string | undefined,
     historyStack: new HistoryStack<DirectoryInfo>([directory]),
-    pendingSelection: null as string | null,
+    pendingSelection: null as string | string[] | null,
     selection: {
       indexes: new Set<number>(),
       last: undefined as number | undefined,
@@ -85,7 +85,7 @@ export const directoryStore = createStore({
         historyStack: new HistoryStack<DirectoryInfo>([
           { color: "red", type: "tags" },
         ]),
-        pendingSelection: null as string | null,
+        pendingSelection: null as string | string[] | null,
         // Selection state
         selection: {
           indexes: new Set<number>(),
@@ -171,7 +171,10 @@ export const directoryStore = createStore({
 
     setPendingSelection: (
       context,
-      event: { name: string | null; directoryId: DirectoryId },
+      event: {
+        name: string | string[] | null;
+        directoryId: DirectoryId | undefined;
+      },
     ) =>
       updateDirectory(context, event.directoryId, (d) => ({
         ...d,
@@ -379,7 +382,7 @@ export const directoryStore = createStore({
               directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
               error: undefined as string | undefined,
               historyStack: new HistoryStack<DirectoryInfo>([directory]),
-              pendingSelection: null as string | null,
+              pendingSelection: null as string | string[] | null,
               // Selection state
               selection: {
                 indexes: new Set<number>(),
