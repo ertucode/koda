@@ -1,6 +1,7 @@
 import fs from "fs";
+import path from "path";
 import archiver from "archiver";
-import unzipper from "unzipper";
+import extract from "extract-zip";
 import { PathHelpers } from "../../../common/PathHelpers.js";
 import { Archive } from "./Archive.js";
 import { Result } from "../../../common/Result.js";
@@ -139,19 +140,17 @@ export namespace Zip {
         resolve(GenericError.Message("Destination already exists"));
         return;
       }
+
       const {
         source, // .zip file
         destination, // folder
         progressCallback,
         abortSignal,
       } = opts;
-      console.log(source, destination);
 
       let settled = false;
       let completedSuccessfully = false;
-
-      const totalBytes = fs.statSync(source).size;
-      let processedBytes = 0;
+      let aborted = false;
 
       const cleanupPartialExtract = async () => {
         if (completedSuccessfully) return;
@@ -180,37 +179,12 @@ export namespace Zip {
       };
 
       // -----------------
-      // STREAM SETUP
-      // -----------------
-      const readStream = fs.createReadStream(source);
-
-      readStream.on("data", (chunk) => {
-        processedBytes += chunk.length;
-        if (progressCallback && totalBytes > 0) {
-          progressCallback(processedBytes / totalBytes);
-        }
-      });
-
-      readStream.on("error", finish);
-
-      const extractor = unzipper.Extract({ path: destination });
-
-      extractor.on("close", () => {
-        progressCallback?.(100); // Ensure we reach 100% on completion
-        finish();
-      });
-      extractor.on("error", finish);
-
-      // -----------------
       // CANCELLATION
       // -----------------
       const cancel = () => {
-        const err = new Error("Unarchive cancelled");
-
-        readStream.destroy(err);
-        extractor.destroy(err);
-
-        finish(err);
+        if (settled) return;
+        aborted = true;
+        finish(new Error("Unarchive cancelled"));
       };
 
       if (abortSignal.aborted) {
@@ -219,9 +193,36 @@ export namespace Zip {
       abortSignal.addEventListener("abort", cancel, { once: true });
 
       // -----------------
-      // PIPE
+      // EXTRACT
       // -----------------
-      readStream.pipe(extractor);
+      try {
+        const fullPath = path.resolve(source);
+        const fullOutputDir = path.resolve(destination);
+
+        await extract(fullPath, {
+          dir: fullOutputDir,
+          onEntry: (entry, zipFile) => {
+            // Check if extraction was aborted
+            if (aborted) {
+              throw new Error("Unarchive cancelled");
+            }
+
+            // Track progress based on entries (files) processed
+            if (progressCallback && zipFile.entryCount > 0) {
+              const progress = (zipFile.entriesRead / zipFile.entryCount) * 100;
+              progressCallback(progress);
+            }
+          },
+        });
+
+        // Ensure we reach 100% on completion
+        if (!aborted) {
+          progressCallback?.(100);
+          finish();
+        }
+      } catch (err) {
+        finish(err as Error);
+      }
     });
   }
 }

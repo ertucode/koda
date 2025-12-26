@@ -22,14 +22,12 @@ export const ArchiveDialog = createFormDialog<
         GenericError.Message("No files selected for archiving"),
       );
     }
-    const result = await directoryHelpers.createArchive(
+    return directoryHelpers.createArchive(
       item.filePaths,
       body.archiveName,
       body.archiveType as ArchiveTypes.ArchiveType,
       directoryStore.getSnapshot().context.activeDirectoryId,
     );
-    if ("success" in result) return { noResult: true };
-    return result;
   },
   getConfigs: () => [
     {
@@ -58,4 +56,7 @@ export const ArchiveDialog = createFormDialog<
     buttonLabel: "Create",
     buttonIcon: FileArchiveIcon,
   }),
+  onSuccessBehavior: {
+    noToastOnSuccess: true,
+  },
 });

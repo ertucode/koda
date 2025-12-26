@@ -32,6 +32,7 @@ export type CreateFormDialogOpts<
   onSuccessBehavior?: {
     resetForm?: boolean;
     closeDialog?: boolean;
+    noToastOnSuccess?: boolean;
   };
   getConfigs: (
     hookForm: UseFormReturn<TRequest>,
@@ -112,6 +113,7 @@ export function createFormDialog<
             onClose();
           }
         },
+        noToastOnSuccess: opts.onSuccessBehavior?.noToastOnSuccess,
       });
     }
 
