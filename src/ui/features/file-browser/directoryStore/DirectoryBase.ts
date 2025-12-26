@@ -39,7 +39,7 @@ export type DirectoryContextDirectory = {
   directoryData: GetFilesAndFoldersInDirectoryItem[];
   error: string | undefined;
   historyStack: HistoryStack<DirectoryInfo>;
-  pendingSelection: string | null;
+  pendingSelection: string | string[] | null;
   selection: {
     indexes: Set<number>;
     last: number | undefined;

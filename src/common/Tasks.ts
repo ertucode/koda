@@ -3,12 +3,13 @@ import { GenericResult } from "./GenericError.js";
 
 export type TaskDefinition = Tasks.Base & (Tasks.Archive | Tasks.Unarchive);
 
-export type TaskDefinitionWithoutId = Omit<TaskDefinition, "id">;
+export type TaskCreate = Omit<TaskDefinition, "id" | "createdIso">;
 
 export namespace Tasks {
   export type Base = {
     id: string;
     progress: number;
+    createdIso: string;
   };
 
   export type Archive = {

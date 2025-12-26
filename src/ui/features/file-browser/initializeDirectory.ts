@@ -47,7 +47,7 @@ export const layoutJson = ((): IJsonModel => {
     typeof directoryStore.trigger.initDirectories
   >[0]["directories"] = [
     {
-      fullPath: "~/dev/react-native",
+      fullPath: "~/Downloads",
       type: "path",
       id: Math.random().toString(36).slice(2) as DirectoryId,
     },

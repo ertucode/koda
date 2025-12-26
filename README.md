@@ -6,3 +6,4 @@
 # TODO
 
 - set selection for taskSubscriptions
+- set pending selection work with name? so I don't need to recalculate the files

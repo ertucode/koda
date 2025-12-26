@@ -194,14 +194,13 @@ export const directoryHelpers = {
         name,
       );
       if (result.success) {
-        await loadDirectoryInfo(context.directory, directoryId);
-        // Emit itemCreated event to set pending selection
         const itemName = name.endsWith("/") ? name.slice(0, -1) : name;
         directoryStore.send({
           type: "setPendingSelection",
           name: itemName,
           directoryId,
         });
+        await loadDirectoryInfo(context.directory, directoryId);
       }
       return result;
     } catch (err) {
@@ -229,13 +228,12 @@ export const directoryHelpers = {
           directoryStore.getSnapshot().context,
           directoryId,
         );
-        await loadDirectoryInfo(context.directory, directoryId);
-        // Emit itemRenamed event to set pending selection
         directoryStore.send({
           type: "setPendingSelection",
           name: newName,
           directoryId,
         });
+        await loadDirectoryInfo(context.directory, directoryId);
       }
       return result;
     } catch (err) {
@@ -245,7 +243,10 @@ export const directoryHelpers = {
     }
   },
 
-  setPendingSelection: (name: string | null, directoryId: DirectoryId) => {
+  setPendingSelection: (
+    name: string | string[] | null,
+    directoryId: DirectoryId | undefined,
+  ) => {
     directoryStore.send({ type: "setPendingSelection", name, directoryId });
   },
 
@@ -400,7 +401,6 @@ export const directoryHelpers = {
       context.directory.fullPath,
     );
     if (result.success) {
-      await directoryHelpers.reload(directoryId);
       // Select the first pasted item
       if (result.data?.pastedItems && result.data.pastedItems.length > 0) {
         directoryHelpers.setPendingSelection(
@@ -408,6 +408,7 @@ export const directoryHelpers = {
           directoryId,
         );
       }
+      await directoryHelpers.reload(directoryId);
     } else {
       toast.show(result);
     }
@@ -457,9 +458,6 @@ export const directoryHelpers = {
             }
           });
 
-          // Reload the directory without affecting history
-          await directoryHelpers.reload(directoryId);
-
           // Select the nearest item (prefer top, fallback to bottom)
           const remainingItems = tableData.filter(
             (item) => !deletedNames.has(item.name),
@@ -478,6 +476,8 @@ export const directoryHelpers = {
           } else {
             directoryStore.send({ type: "resetSelection", directoryId });
           }
+          // Reload the directory without affecting history
+          await directoryHelpers.reload(directoryId);
         } catch (error) {
           console.error("Error deleting files:", error);
           toast.show({
