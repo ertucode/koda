@@ -40,8 +40,7 @@ import { toast } from "@/lib/components/toast";
 import { getWindowElectron } from "@/getWindowElectron";
 import { useState, useEffect } from "react";
 import { ApplicationInfo } from "@common/Contracts";
-import { getCategoryFromFilename } from "@common/file-category";
-import { PathHelpers } from "@common/PathHelpers";
+import { ArchiveHelpers } from "@common/ArchiveHelpers";
 
 export const FileTableRowContextMenu = ({
   item,
@@ -227,22 +226,13 @@ export const FileTableRowContextMenu = ({
     ),
   };
 
-  // Unarchive (show for supported archive files)
-  const isArchiveFile =
-    item.type === "file" && getCategoryFromFilename(item.name) === "archive";
+  const unarchiveMetadata =
+    item.type === "file" && ArchiveHelpers.getUnarchiveMetadata(fullPath);
 
-  const unarchiveItem: ContextMenuItem | null = isArchiveFile
+  const unarchiveItem: ContextMenuItem | null = unarchiveMetadata
     ? {
         onClick: () => {
-          const archiveFilePath =
-            item.fullPath ??
-            directoryHelpers.getFullPath(item.name, directoryId);
-
-          dialogActions.open("unarchive", {
-            archiveFilePath,
-            suggestedName: PathHelpers.suggestUnarchiveName(item.name),
-            archiveType: "." + PathHelpers.getExtension(item.name),
-          });
+          dialogActions.open("unarchive", unarchiveMetadata);
           close();
         },
         view: (

@@ -35,7 +35,7 @@ import {
 import { initialDirectoryInfo } from "../defaultPath";
 import { columnPreferencesStore } from "../columnPreferences";
 import { resolveSortFromStores } from "../schemas";
-import { getCategoryFromFilename } from "@common/file-category";
+import { ArchiveHelpers } from "@common/ArchiveHelpers";
 
 export const cd = async (
   newDirectory: DirectoryInfo,
@@ -397,12 +397,9 @@ export const directoryHelpers = {
       }
       cd({ type: "path", fullPath }, true, directoryId);
     } else {
-      if (getCategoryFromFilename(item.name) === "archive") {
-        dialogActions.open("unarchive", {
-          archiveFilePath: fullPath,
-          suggestedName: PathHelpers.suggestUnarchiveName(item.name),
-          archiveType: "." + PathHelpers.getExtension(item.name),
-        });
+      const unarchiveMetadata = ArchiveHelpers.getUnarchiveMetadata(fullPath);
+      if (unarchiveMetadata) {
+        dialogActions.open("unarchive", unarchiveMetadata);
         return;
       }
 
