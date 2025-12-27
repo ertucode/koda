@@ -7,7 +7,9 @@ export namespace ArchiveHelpers {
     if (fullPath.endsWith(".dmg")) return undefined;
     return {
       archiveFilePath: fullPath,
-      suggestedName: PathHelpers.suggestUnarchiveName(fullPath),
+      suggestedName: PathHelpers.getLastPathPart(
+        PathHelpers.suggestUnarchiveName(fullPath),
+      ),
       archiveType: "." + PathHelpers.getExtension(fullPath),
     };
   }
