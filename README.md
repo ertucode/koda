@@ -4,3 +4,11 @@
 - xattr -cr /Applications/Koda.app (To run built)
 
 # TODO
+
+- Show vscode icon for vscode application etc
+
+- A file picker dialog for selecting files
+- Select app mode.
+
+- File encryption
+- auto update opened directories

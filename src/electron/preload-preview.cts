@@ -18,8 +18,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   openFile: (filePath: string) => ipcInvoke("openFile", filePath),
   onDragStart: (req) => ipcInvoke("onDragStart", req),
   captureRect: (rect) => ipcInvoke("captureRect", rect),
-  getHomeDirectory: () => ipcInvoke("getHomeDirectory", undefined),
-  homeDirectory: getArgv("--home-dir=")!, // Not actually set
+  getWindowArgs: () => getArgv("--window-args=")!,
   readFilePreview: (filePath: string, allowBigSize?: boolean) =>
     ipcInvoke("readFilePreview", { filePath, allowBigSize }),
   deleteFiles: (filePaths: string[]) => ipcInvoke("deleteFiles", filePaths),

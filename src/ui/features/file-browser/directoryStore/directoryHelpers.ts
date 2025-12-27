@@ -1,4 +1,4 @@
-import { getWindowElectron } from "@/getWindowElectron";
+import { getWindowElectron, homeDirectory } from "@/getWindowElectron";
 import { toast } from "@/lib/components/toast";
 import { confirmation } from "@/lib/hooks/useConfirmation";
 import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
@@ -283,7 +283,7 @@ export const directoryHelpers = {
     const info: DirectoryInfo = {
       type: "path",
       fullPath: PathHelpers.resolveUpDirectory(
-        getWindowElectron().homeDirectory,
+        homeDirectory,
         directory.fullPath,
       ),
     };
@@ -614,7 +614,7 @@ export const directoryHelpers = {
     const fullPath = getFullPath(item.name, directoryId);
     directoryHelpers.createDirectory({
       fullPath: PathHelpers.resolveUpDirectory(
-        getWindowElectron().homeDirectory,
+        homeDirectory,
         PathHelpers.getParentFolder(fullPath).path,
       ),
     });

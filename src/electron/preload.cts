@@ -9,6 +9,10 @@ import { TaskEvents } from "../common/Tasks";
 import { ArchiveTypes } from "../common/ArchiveTypes";
 
 electron.contextBridge.exposeInMainWorld("electron", {
+  isSelectAppMode: () => getArgv("--mode=") === "select-app",
+  sendSelectAppResult: (appPath: string | null) => {
+    electron.ipcRenderer.send("selectAppWindowResult", appPath);
+  },
   getFilePath: (file: File) => electron.webUtils.getPathForFile(file),
   convertDocxToPdf: (file: File) =>
     ipcInvoke("docxToPdf", electron.webUtils.getPathForFile(file)),
@@ -19,8 +23,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   openFile: (filePath: string) => ipcInvoke("openFile", filePath),
   onDragStart: (req) => ipcInvoke("onDragStart", req),
   captureRect: (rect) => ipcInvoke("captureRect", rect),
-  getHomeDirectory: () => ipcInvoke("getHomeDirectory", undefined),
-  homeDirectory: getArgv("--home-dir=")!,
+  getWindowArgs: () => getArgv("--window-args=")!,
   readFilePreview: (
     filePath: string,
     allowBigSize?: boolean,
@@ -80,6 +83,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
     destination: string,
   ) => ipcInvoke("startUnarchive", { archiveType, source, destination }),
   abortTask: (taskId: string) => ipcInvoke("abortTask", taskId),
+  getApplicationsForFile: (filePath: string) =>
+    ipcInvoke("getApplicationsForFile", filePath),
+  openFileWithApplication: (filePath: string, applicationPath: string) =>
+    ipcInvoke("openFileWithApplication", { filePath, applicationPath }),
+  openSelectAppWindow: (initialPath: string) =>
+    ipcInvoke("openSelectAppWindow", { initialPath }),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

@@ -1,4 +1,4 @@
-import { getWindowElectron } from "@/getWindowElectron";
+import { getWindowElectron, homeDirectory } from "@/getWindowElectron";
 import { useEffect, useRef, useState } from "react";
 
 type FilePreviewProps = {
@@ -74,7 +74,7 @@ export function FilePreview({
       isFile,
       fileSize: fileSize ?? null,
       fileExt: fileExt ?? null,
-      homePath: getWindowElectron().homeDirectory,
+      homePath: homeDirectory,
     });
   }, [filePath, isFile, fileSize, fileExt, isWebviewReady]);
 

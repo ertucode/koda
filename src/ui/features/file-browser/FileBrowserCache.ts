@@ -1,4 +1,4 @@
-import { getWindowElectron } from "@/getWindowElectron";
+import { getWindowElectron, homeDirectory } from "@/getWindowElectron";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { mergeMaybeSlashed } from "@common/merge-maybe-slashed";
 import { PathHelpers } from "@common/PathHelpers";
@@ -13,7 +13,6 @@ export type FileBrowserCacheOperation =
       loaded: GetFilesAndFoldersInDirectoryItem[];
     };
 
-const h = getWindowElectron().homeDirectory;
 export class FileBrowserCache {
   static cache = new Map<string, FileBrowserCacheOperation>();
 
@@ -31,7 +30,7 @@ export class FileBrowserCache {
 
         for (const i of items) {
           i.fullPath = PathHelpers.revertExpandedHome(
-            h,
+            homeDirectory,
             mergeMaybeSlashed(dir, i.name),
           );
         }
