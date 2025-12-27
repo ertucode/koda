@@ -7,7 +7,7 @@ import {
   FileBrowserSettings,
 } from "../settings";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
-import { getWindowElectron } from "@/getWindowElectron";
+import { getWindowElectron, homeDirectory } from "@/getWindowElectron";
 import { TagColor, tagsStore } from "../tags";
 import { PathHelpers } from "@common/PathHelpers";
 import { defaultPath, initialDirectoryInfo } from "../defaultPath";
@@ -455,10 +455,7 @@ export const loadTaggedFiles = async (
     const result = await getWindowElectron().getFileInfoByPaths(filePaths);
 
     const staleItems = filePaths.filter((item) => {
-      const normalized = PathHelpers.expandHome(
-        getWindowElectron().homeDirectory,
-        item,
-      );
+      const normalized = PathHelpers.expandHome(homeDirectory, item);
       return !result.find((i) => i.fullPath === normalized);
     });
     if (staleItems.length > 0) {

@@ -23,6 +23,12 @@ export type ArchiveEntry = {
   comment?: string;
 };
 
+export type ApplicationInfo = {
+  name: string;
+  path: string;
+  isDefault?: boolean;
+};
+
 export type FileCategory =
   | "image"
   | "video"
@@ -63,7 +69,6 @@ export type EventResponseMapping = {
   openFile: Promise<unknown>;
   onDragStart: Promise<unknown>;
   captureRect: Promise<unknown>;
-  getHomeDirectory: string;
   readFilePreview: Promise<
     | {
         content: string;
@@ -95,6 +100,9 @@ export type EventResponseMapping = {
   startArchive: Promise<void>;
   startUnarchive: Promise<void>;
   abortTask: Promise<void>;
+  getApplicationsForFile: Promise<ApplicationInfo[]>;
+  openFileWithApplication: Promise<void>;
+  openSelectAppWindow: Promise<string | null>;
 };
 
 export type StringSearchOptions = {
@@ -165,6 +173,9 @@ export type EventRequestMapping = {
     destination: string;
   };
   abortTask: string;
+  getApplicationsForFile: string;
+  openFileWithApplication: { filePath: string; applicationPath: string };
+  openSelectAppWindow: { initialPath: string };
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -191,8 +202,6 @@ export type WindowElectron = {
     request: EventRequestMapping["onDragStart"],
   ) => Promise<unknown>;
   captureRect: (rect: Rect) => Promise<string>;
-  getHomeDirectory: () => Promise<string>;
-  homeDirectory: string;
   readFilePreview: (
     filePath: string,
     allowBigSize?: boolean,
@@ -266,4 +275,13 @@ export type WindowElectron = {
     destination: string,
   ) => Promise<void>;
   abortTask: (taskId: string) => Promise<void>;
+  getApplicationsForFile: (filePath: string) => Promise<ApplicationInfo[]>;
+  openFileWithApplication: (
+    filePath: string,
+    applicationPath: string,
+  ) => Promise<void>;
+  openSelectAppWindow: (initialPath: string) => Promise<string | null>;
+  isSelectAppMode: () => boolean;
+  sendSelectAppResult: (appPath: string | null) => void;
+  getWindowArgs: () => string;
 };

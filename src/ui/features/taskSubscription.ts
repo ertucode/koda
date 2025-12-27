@@ -1,10 +1,8 @@
-import { getWindowElectron } from "@/getWindowElectron";
+import { getWindowElectron, homeDirectory } from "@/getWindowElectron";
 import { taskStore } from "./taskStore";
 import { directoryStore } from "./file-browser/directoryStore/directory";
 import { directoryHelpers } from "./file-browser/directoryStore/directoryHelpers";
 import { PathHelpers } from "@common/PathHelpers";
-
-const home = getWindowElectron().homeDirectory;
 
 export function subscribeToTasks() {
   getWindowElectron().onTaskEvent((event) => {
@@ -21,10 +19,7 @@ export function subscribeToTasks() {
           elapsed < 1000 ? PathHelpers.getLastPathPart(destination) : undefined;
         return checkAndReloadDirectories(
           PathHelpers.getParentFolder(
-            PathHelpers.expandHome(
-              getWindowElectron().homeDirectory,
-              destination,
-            ),
+            PathHelpers.expandHome(homeDirectory, destination),
           ).path,
           fileToSelect,
         );
@@ -41,7 +36,9 @@ export function subscribeToTasks() {
     for (const dir of Object.values(directories)) {
       if (dir.directory.type === "tags") continue;
 
-      if (PathHelpers.expandHome(home, dir.directory.fullPath) === path) {
+      if (
+        PathHelpers.expandHome(homeDirectory, dir.directory.fullPath) === path
+      ) {
         directoryHelpers.reload(dir.directoryId).then(() => {
           if (fileToSelect) {
             directoryHelpers.setPendingSelection(fileToSelect, dir.directoryId);

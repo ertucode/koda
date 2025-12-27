@@ -1,11 +1,8 @@
-import { getWindowElectron } from "@/getWindowElectron";
+import { homeDirectory } from "@/getWindowElectron";
 import { PathHelpers } from "@common/PathHelpers";
 
 export function PDFThumbnail({ fullPath }: { fullPath: string }) {
-  const expandedPath = PathHelpers.expandHome(
-    getWindowElectron().homeDirectory,
-    fullPath,
-  );
+  const expandedPath = PathHelpers.expandHome(homeDirectory, fullPath);
 
   return (
     <div className="w-full h-full flex items-center justify-center overflow-hidden bg-white">

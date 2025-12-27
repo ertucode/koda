@@ -60,7 +60,8 @@ export function ContextMenu<T>({ children, menu }: ContextMenuProps<T>) {
 
 export type ContextMenuItem = {
   view: React.ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
+  submenu?: (ContextMenuItem | false | null | undefined)[];
 };
 
 export type ContextMenuListProps = {
@@ -69,24 +70,50 @@ export type ContextMenuListProps = {
 
 export function ContextMenuList({ items }: ContextMenuListProps) {
   const menu = useContext(ContextMenuContext);
+  const filteredItems = items.filter((i): i is ContextMenuItem => !!i);
+  
   return (
     <ul className="menu menu-sm bg-base-200 rounded-box w-56">
-      {items
-        .filter((i) => !!i)
-        .map((item, idx) => {
+      {filteredItems.map((item, idx) => {
+        if (item.submenu) {
+          const filteredSubItems = item.submenu.filter(
+            (i): i is ContextMenuItem => !!i,
+          );
           return (
             <li key={idx}>
-              <a
-                onClick={() => {
-                  item.onClick();
-                  menu.close();
-                }}
-              >
-                {item.view}
-              </a>
+              <details>
+                <summary>{item.view}</summary>
+                <ul>
+                  {filteredSubItems.map((subItem, subIdx) => (
+                    <li key={subIdx}>
+                      <a
+                        onClick={() => {
+                          subItem.onClick?.();
+                          menu.close();
+                        }}
+                      >
+                        {subItem.view}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             </li>
           );
-        })}
+        }
+        return (
+          <li key={idx}>
+            <a
+              onClick={() => {
+                item.onClick?.();
+                menu.close();
+              }}
+            >
+              {item.view}
+            </a>
+          </li>
+        );
+      })}
     </ul>
   );
 }

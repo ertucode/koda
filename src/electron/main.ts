@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, screen } from "electron";
+import { app, BrowserWindow, Menu, screen, ipcMain } from "electron";
 import os from "os";
 import { ipcHandle, isDev } from "./util.js";
 import {
@@ -31,6 +31,14 @@ import { xlsxWorkerPool } from "./utils/xlsx-worker-pool.js";
 import { TaskManager } from "./TaskManager.js";
 import { startArchive, startUnarchive } from "./utils/start-archive-task.js";
 import { Archive } from "./utils/archive/Archive.js";
+import {
+  getApplicationsForFile,
+  openFileWithApplication,
+} from "./utils/get-applications-for-file.js";
+import {
+  serializeWindowArguments,
+  WindowArguments,
+} from "../common/WindowArguments.js";
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined;
@@ -41,29 +49,38 @@ app.on("open-file", (event, path) => {
 
   // If app is already ready, create a new window with this path
   if (app.isReady()) {
-    createWindow(path);
+    createWindow({
+      initialPath: path,
+    });
   }
 });
 
-function createWindow(initialPath?: string) {
+type WindowArgsWithoutHome = Omit<WindowArguments, "homeDir">;
+
+const homeDir = os.homedir();
+
+function createWindow(args?: WindowArgsWithoutHome) {
+  const windowArgs: WindowArguments = {
+    ...args,
+    homeDir,
+  };
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
-  const basePaths = [`--home-dir=${os.homedir()}`];
+  const isSelectMode = windowArgs.mode === "select-app";
   const mainWindow = new BrowserWindow({
-    // width: (7 * width) / 8,
-    // height: (2 * height) / 3,
-    width,
-    height,
-    x: 0,
-    y: 0,
+    width: isSelectMode ? 900 : width,
+    height: isSelectMode ? 600 : height,
+    x: isSelectMode ? undefined : 0,
+    y: isSelectMode ? undefined : 0,
     titleBarStyle: "hiddenInset",
     trafficLightPosition: { x: 10, y: 16 },
+    modal: isSelectMode,
     webPreferences: {
       preload: getPreloadPath(),
       webviewTag: true,
-      additionalArguments: initialPath
-        ? [`--initial-path=${initialPath}`, ...basePaths]
-        : basePaths,
+      additionalArguments: [
+        "--window-args=" + serializeWindowArguments(windowArgs),
+      ],
       webSecurity: false,
     },
   });
@@ -73,6 +90,8 @@ function createWindow(initialPath?: string) {
   } else {
     mainWindow.loadFile(getUIPath());
   }
+
+  return mainWindow;
 }
 
 app.on("ready", () => {
@@ -140,7 +159,7 @@ app.on("ready", () => {
     process.argv
       .find((a) => a.startsWith("--initial-path="))
       ?.replace("--initial-path=", "");
-  createWindow(initialPath);
+  createWindow({ initialPath });
 
   ipcHandle("docxToPdf", (filePath: string) =>
     convertDocxToPdf(filePath, undefined, { copyBase64ToClipboard: true }),
@@ -158,10 +177,6 @@ app.on("ready", () => {
 
   ipcHandle("captureRect", async (rect, event) => {
     return captureRect(rect, event);
-  });
-
-  ipcHandle("getHomeDirectory", () => {
-    return "/" + app.getPath("home");
   });
 
   ipcHandle("readFilePreview", ({ filePath, allowBigSize, fullSize }) => {
@@ -205,6 +220,54 @@ app.on("ready", () => {
   ipcHandle("abortTask", async (taskId) => {
     TaskManager.abort(taskId);
   });
+  ipcHandle("getApplicationsForFile", (filePath) =>
+    getApplicationsForFile(filePath),
+  );
+  ipcHandle("openFileWithApplication", ({ filePath, applicationPath }, event) =>
+    openFileWithApplication(
+      filePath,
+      applicationPath,
+      BrowserWindow.fromWebContents(event.sender) ?? undefined,
+    ),
+  );
+
+  // Store pending select-app promises
+  const selectAppPromises = new Map<number, (appPath: string | null) => void>();
+
+  ipcHandle("openSelectAppWindow", ({ initialPath }) => {
+    return new Promise<string | null>((resolve) => {
+      const selectWindow = createWindow({ initialPath, mode: "select-app" });
+      const windowId = selectWindow.id;
+
+      // Store the resolve function
+      selectAppPromises.set(windowId, resolve);
+
+      // Handle window close without selection
+      selectWindow.on("closed", () => {
+        const resolver = selectAppPromises.get(windowId);
+        if (resolver) {
+          resolver(null);
+          selectAppPromises.delete(windowId);
+        }
+      });
+    });
+  });
+
+  // Handle app selection from the select window
+  ipcMain.on(
+    "selectAppWindowResult",
+    (event: Electron.IpcMainEvent, appPath: string | null) => {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      if (window) {
+        const resolver = selectAppPromises.get(window.id);
+        if (resolver) {
+          resolver(appPath);
+          selectAppPromises.delete(window.id);
+          window.close();
+        }
+      }
+    },
+  );
 
   TaskManager.addListener((e) => {
     const windows = BrowserWindow.getAllWindows();

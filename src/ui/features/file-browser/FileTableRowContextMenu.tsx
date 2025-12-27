@@ -22,6 +22,7 @@ import {
   FileArchiveIcon,
   FolderInputIcon,
   HardDriveIcon,
+  ExternalLinkIcon,
 } from "lucide-react";
 import { setDefaultPath } from "./defaultPath";
 import { dialogActions } from "./dialogStore";
@@ -36,6 +37,9 @@ import {
 } from "./tags";
 import { useDirectoryContext } from "./DirectoryContext";
 import { toast } from "@/lib/components/toast";
+import { getWindowElectron } from "@/getWindowElectron";
+import { useState, useEffect } from "react";
+import { ApplicationInfo } from "@common/Contracts";
 
 export const FileTableRowContextMenu = ({
   item,
@@ -290,6 +294,49 @@ export const FileTableRowContextMenu = ({
         }
       : null;
 
+  // Open with Application menu item (only for files)
+  const [applications, setApplications] = useState<ApplicationInfo[]>([]);
+  
+  useEffect(() => {
+    if (item.type === "file") {
+      getWindowElectron()
+        .getApplicationsForFile(fullPath)
+        .then(setApplications)
+        .catch(() => setApplications([]));
+    }
+  }, [item.type, fullPath]);
+
+  const openWithApplicationItem: ContextMenuItem | null =
+    item.type === "file" && applications.length > 0
+      ? {
+          view: (
+            <TextWithIcon icon={ExternalLinkIcon}>Open With</TextWithIcon>
+          ),
+          submenu: applications.map((app) => ({
+            onClick: async () => {
+              try {
+                await getWindowElectron().openFileWithApplication(
+                  fullPath,
+                  app.path,
+                );
+              } catch (err: any) {
+                toast.show({
+                  severity: "error",
+                  message: `Failed to open file: ${err?.message || "Unknown error"}`,
+                });
+              }
+              close();
+            },
+            view: (
+              <span>
+                {app.name}
+                {app.isDefault ? " (Default)" : ""}
+              </span>
+            ),
+          })),
+        }
+      : null;
+
   if (item.type === "dir") {
     const openDirectoryInNewTab: ContextMenuItem = {
       onClick: () => {
@@ -344,6 +391,7 @@ export const FileTableRowContextMenu = ({
   return (
     <ContextMenuList
       items={[
+        openWithApplicationItem,
         favoriteItem,
         lastUsedTagItem,
         assignTagsItem,
