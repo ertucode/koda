@@ -60,6 +60,7 @@ export type GetFilesAndFoldersInDirectoryItem = (
   size: number | undefined | null;
   name: string;
   fullPath?: string;
+  permissions?: string;
 };
 
 export type EventResponseMapping = {

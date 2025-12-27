@@ -12,6 +12,26 @@ export function formatSize(bytes: number | null): string {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
 }
 
+/**
+ * Format file permissions as a Unix-style string (e.g., "rwxr-xr-x")
+ */
+export function formatPermissions(mode: number): string {
+  const perms = mode & 0o777;
+  const owner = (perms >> 6) & 7;
+  const group = (perms >> 3) & 7;
+  const others = perms & 7;
+
+  const format = (n: number) => {
+    return (
+      (n & 4 ? 'r' : '-') +
+      (n & 2 ? 'w' : '-') +
+      (n & 1 ? 'x' : '-')
+    );
+  };
+
+  return format(owner) + format(group) + format(others);
+}
+
 async function safeStat(filePath: string) {
   try {
     return await fs.stat(filePath);
@@ -45,6 +65,7 @@ export async function getFilesAndFoldersInDirectory(
           size: stat?.size,
           modifiedTimestamp: stat?.mtime.getTime(),
           modifiedAt: stat?.mtime.toLocaleString("tr-TR", dateOptions),
+          permissions: stat?.mode !== undefined ? formatPermissions(stat.mode) : undefined,
         };
         return item;
       }
@@ -60,6 +81,7 @@ export async function getFilesAndFoldersInDirectory(
         size: null,
         modifiedTimestamp: stat?.mtime.getTime(),
         modifiedAt: stat?.mtime.toLocaleString("tr-TR", dateOptions),
+        permissions: stat?.mode !== undefined ? formatPermissions(stat.mode) : undefined,
       };
     }),
   );
@@ -98,6 +120,7 @@ export async function getFileInfoByPaths(
           modifiedTimestamp: null,
           modifiedAt: null,
           fullPath,
+          permissions: undefined,
         };
       }
 
@@ -112,6 +135,7 @@ export async function getFileInfoByPaths(
           modifiedTimestamp: stat.mtime.getTime(),
           modifiedAt: stat.mtime.toLocaleString("tr-TR", dateOptions),
           fullPath,
+          permissions: formatPermissions(stat.mode),
         };
       }
 
@@ -126,6 +150,7 @@ export async function getFileInfoByPaths(
         modifiedTimestamp: stat.mtime.getTime(),
         modifiedAt: stat.mtime.toLocaleString("tr-TR", dateOptions),
         fullPath,
+        permissions: formatPermissions(stat.mode),
       };
     }),
   );
