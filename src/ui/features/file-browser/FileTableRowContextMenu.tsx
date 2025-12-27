@@ -40,6 +40,11 @@ import { toast } from "@/lib/components/toast";
 import { getWindowElectron } from "@/getWindowElectron";
 import { useState, useEffect } from "react";
 import { ApplicationInfo } from "@common/Contracts";
+import {
+  EXTENSION_CATEGORY_MAP,
+  getCategoryFromFilename,
+} from "@common/file-category";
+import { PathHelpers } from "@common/PathHelpers";
 
 export const FileTableRowContextMenu = ({
   item,
@@ -226,35 +231,26 @@ export const FileTableRowContextMenu = ({
   };
 
   // Unarchive (show for supported archive files)
-  const archiveExtensions = [
-    ".zip", ".7z", ".tar", ".tar.gz", ".tgz", 
-    ".tar.bz2", ".tbz2", ".tar.xz", ".txz", 
-    ".gz", ".bz2"
-  ];
-  const isArchiveFile = item.type === "file" && 
-    archiveExtensions.some(ext => item.name.toLowerCase().endsWith(ext));
-  
+  const isArchiveFile =
+    item.type === "file" && getCategoryFromFilename(item.name) === "archive";
+
   const unarchiveItem: ContextMenuItem | null = isArchiveFile
     ? {
         onClick: () => {
           const archiveFilePath =
             item.fullPath ??
             directoryHelpers.getFullPath(item.name, directoryId);
-          
-          // Find the matching extension and remove it from the name
-          const matchedExt = archiveExtensions.find(ext => 
-            item.name.toLowerCase().endsWith(ext)
-          ) || "";
-          const suggestedName = item.name.slice(0, -matchedExt.length);
-          
-          dialogActions.open("unarchive", { 
-            archiveFilePath, 
-            suggestedName,
-            archiveType: matchedExt
+
+          dialogActions.open("unarchive", {
+            archiveFilePath,
+            suggestedName: PathHelpers.suggestUnarchiveName(item.name),
+            archiveType: "." + PathHelpers.getExtension(item.name),
           });
           close();
         },
-        view: <TextWithIcon icon={FolderInputIcon}>Extract Archive</TextWithIcon>,
+        view: (
+          <TextWithIcon icon={FolderInputIcon}>Extract Archive</TextWithIcon>
+        ),
       }
     : null;
 
@@ -296,7 +292,7 @@ export const FileTableRowContextMenu = ({
 
   // Open with Application menu item (only for files)
   const [applications, setApplications] = useState<ApplicationInfo[]>([]);
-  
+
   useEffect(() => {
     if (item.type === "file") {
       getWindowElectron()
@@ -307,11 +303,9 @@ export const FileTableRowContextMenu = ({
   }, [item.type, fullPath]);
 
   const openWithApplicationItem: ContextMenuItem | null =
-    item.type === "file" && applications.length > 0
+    item.type === "file"
       ? {
-          view: (
-            <TextWithIcon icon={ExternalLinkIcon}>Open With</TextWithIcon>
-          ),
+          view: <TextWithIcon icon={ExternalLinkIcon}>Open With</TextWithIcon>,
           submenu: applications.map((app) => ({
             onClick: async () => {
               try {

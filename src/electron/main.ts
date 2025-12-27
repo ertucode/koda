@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, screen, ipcMain } from "electron";
 import os from "os";
 import { ipcHandle, isDev } from "./util.js";
+import fs from "fs";
 import {
   getPreloadPath,
   getPreviewPreloadPath,
@@ -223,19 +224,26 @@ app.on("ready", () => {
   ipcHandle("getApplicationsForFile", (filePath) =>
     getApplicationsForFile(filePath),
   );
-  ipcHandle("openFileWithApplication", ({ filePath, applicationPath }, event) =>
-    openFileWithApplication(
-      filePath,
-      applicationPath,
-      BrowserWindow.fromWebContents(event.sender) ?? undefined,
-    ),
+  ipcHandle(
+    "openFileWithApplication",
+    async ({ filePath, applicationPath }) => {
+      if (applicationPath === "__choose__") {
+        const res = await openSelectAppWindow("/Applications");
+        if (!res) return;
+        return openFileWithApplication(filePath, res);
+      }
+      return openFileWithApplication(filePath, applicationPath);
+    },
   );
 
   // Store pending select-app promises
-  const selectAppPromises = new Map<number, (appPath: string | null) => void>();
+  const selectAppPromises = new Map<
+    number,
+    (appPath: string | null | undefined) => void
+  >();
 
-  ipcHandle("openSelectAppWindow", ({ initialPath }) => {
-    return new Promise<string | null>((resolve) => {
+  function openSelectAppWindow(initialPath: string) {
+    return new Promise<string | null | undefined>((resolve) => {
       const selectWindow = createWindow({ initialPath, mode: "select-app" });
       const windowId = selectWindow.id;
 
@@ -251,16 +259,33 @@ app.on("ready", () => {
         }
       });
     });
-  });
+  }
+
+  ipcHandle("openSelectAppWindow", ({ initialPath }) =>
+    openSelectAppWindow(initialPath),
+  );
 
   // Handle app selection from the select window
   ipcMain.on(
     "selectAppWindowResult",
-    (event: Electron.IpcMainEvent, appPath: string | null) => {
+    (event: Electron.IpcMainEvent, appPath: string | null | undefined) => {
       const window = BrowserWindow.fromWebContents(event.sender);
       if (window) {
         const resolver = selectAppPromises.get(window.id);
         if (resolver) {
+          if (
+            appPath &&
+            appPath.endsWith(".app") &&
+            appPath.startsWith("/Applications")
+          ) {
+            const actualFolder = `${appPath}/Contents/MacOS`;
+            if (!fs.existsSync(actualFolder)) {
+              throw new Error(`App at ${appPath} does not exist`);
+            }
+
+            const itemFromFolder = fs.readdirSync(actualFolder)[0];
+            appPath = `${appPath}/Contents/MacOS/${itemFromFolder}`;
+          }
           resolver(appPath);
           selectAppPromises.delete(window.id);
           window.close();

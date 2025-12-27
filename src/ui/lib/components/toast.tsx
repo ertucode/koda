@@ -69,7 +69,7 @@ class ToastManager {
 export const toast = new ToastManager();
 
 const getLocationClasses = (location: ToastLocation = "top-right") => {
-  const baseClasses = "toast";
+  const baseClasses = "toast z-1000000";
   switch (location) {
     case "top-left":
       return `${baseClasses} toast-start toast-top`;

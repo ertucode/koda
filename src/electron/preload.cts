@@ -10,7 +10,7 @@ import { ArchiveTypes } from "../common/ArchiveTypes";
 
 electron.contextBridge.exposeInMainWorld("electron", {
   isSelectAppMode: () => getArgv("--mode=") === "select-app",
-  sendSelectAppResult: (appPath: string | null) => {
+  sendSelectAppResult: (appPath: string | null | undefined) => {
     electron.ipcRenderer.send("selectAppWindowResult", appPath);
   },
   getFilePath: (file: File) => electron.webUtils.getPathForFile(file),

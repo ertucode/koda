@@ -1,4 +1,8 @@
-import { getWindowElectron, homeDirectory } from "@/getWindowElectron";
+import {
+  getWindowElectron,
+  homeDirectory,
+  windowArgs,
+} from "@/getWindowElectron";
 import { toast } from "@/lib/components/toast";
 import { confirmation } from "@/lib/hooks/useConfirmation";
 import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
@@ -31,6 +35,7 @@ import {
 import { initialDirectoryInfo } from "../defaultPath";
 import { columnPreferencesStore } from "../columnPreferences";
 import { resolveSortFromStores } from "../schemas";
+import { getCategoryFromFilename } from "@common/file-category";
 
 export const cd = async (
   newDirectory: DirectoryInfo,
@@ -314,40 +319,21 @@ export const directoryHelpers = {
     item: GetFilesAndFoldersInDirectoryItem,
     directoryId: DirectoryId,
   ) => {
+    const fullPath = item.fullPath || getFullPath(item.name, directoryId);
     if (item.type === "dir") {
-      // If we have a fullPath (from tags view), use it directly
-      if (item.fullPath) {
-        cd({ type: "path", fullPath: item.fullPath }, true, directoryId);
-      } else {
-        changeDirectory(item.name, directoryId);
+      if (windowArgs.isSelectAppMode) {
+        if (item.name.endsWith(".app")) {
+          getWindowElectron().sendSelectAppResult(fullPath);
+          return;
+        }
       }
+      cd({ type: "path", fullPath }, true, directoryId);
     } else {
-      const fullPath = item.fullPath || getFullPath(item.name, directoryId);
-
-      // Check if it's an archive file - if so, open the unarchive dialog instead
-      const archiveExtensions = [
-        ".zip",
-        ".7z",
-        ".tar",
-        ".tar.gz",
-        ".tgz",
-        ".tar.bz2",
-        ".tbz2",
-        ".tar.xz",
-        ".txz",
-        ".gz",
-        ".bz2",
-      ];
-      const matchedExt = archiveExtensions.find((ext) =>
-        item.name.toLowerCase().endsWith(ext),
-      );
-
-      if (matchedExt) {
-        const suggestedName = item.name.slice(0, -matchedExt.length);
+      if (getCategoryFromFilename(item.name) === "archive") {
         dialogActions.open("unarchive", {
           archiveFilePath: fullPath,
-          suggestedName,
-          archiveType: matchedExt,
+          suggestedName: PathHelpers.suggestUnarchiveName(item.name),
+          archiveType: "." + PathHelpers.getExtension(item.name),
         });
         return;
       }

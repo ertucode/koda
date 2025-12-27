@@ -22,6 +22,20 @@ export const useSyncDirectoryStoreAndLayout = ({
 
     const directoryId = LayoutHelpers.getActiveDirectoryId();
     if (!directoryId) return;
+
+    const directoryIds = LayoutHelpers.getDirectoryIds();
+    const directoryIdsInStore =
+      directoryStore.getSnapshot().context.directoryOrder;
+    if (directoryIds.length !== directoryIdsInStore.length) {
+      const direcoryIdToRemove = directoryIdsInStore.find(
+        (id) => !directoryIds.includes(id),
+      );
+      if (direcoryIdToRemove) {
+        directoryStore.trigger.removeDirectory({
+          directoryId: direcoryIdToRemove,
+        });
+      }
+    }
     directoryStore.trigger.setActiveDirectoryId({ directoryId });
   }, []);
 

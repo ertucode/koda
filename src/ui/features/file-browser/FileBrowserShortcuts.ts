@@ -292,6 +292,12 @@ export function FileBrowserShortcuts() {
 
         key: { key: "w", metaKey: true },
         handler: (e) => {
+          if (
+            directoryStore.getSnapshot().context.directoryOrder.length === 1
+          ) {
+            // Close the window
+            return;
+          }
           e?.preventDefault();
           const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory();
           if (!activeTabSet) return;

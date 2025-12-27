@@ -102,7 +102,7 @@ export type EventResponseMapping = {
   abortTask: Promise<void>;
   getApplicationsForFile: Promise<ApplicationInfo[]>;
   openFileWithApplication: Promise<void>;
-  openSelectAppWindow: Promise<string | null>;
+  openSelectAppWindow: Promise<string | null | undefined>;
 };
 
 export type StringSearchOptions = {
@@ -280,8 +280,10 @@ export type WindowElectron = {
     filePath: string,
     applicationPath: string,
   ) => Promise<void>;
-  openSelectAppWindow: (initialPath: string) => Promise<string | null>;
+  openSelectAppWindow: (
+    initialPath: string,
+  ) => Promise<string | null | undefined>;
   isSelectAppMode: () => boolean;
-  sendSelectAppResult: (appPath: string | null) => void;
+  sendSelectAppResult: (appPath: string | null | undefined) => void;
   getWindowArgs: () => string;
 };

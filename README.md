@@ -12,3 +12,4 @@
 
 - File encryption
 - auto update opened directories
+- unarchive as file if only one file
