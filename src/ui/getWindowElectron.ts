@@ -5,8 +5,13 @@ export function getWindowElectron() {
   return (window as any).electron as WindowElectron;
 }
 
-export const windowArgs = deserializeWindowArguments(
+export const args = deserializeWindowArguments(
   getWindowElectron().getWindowArgs(),
 );
+
+export const windowArgs = {
+  ...args,
+  isSelectAppMode: args.mode === "select-app",
+};
 
 export const homeDirectory = windowArgs.homeDir;

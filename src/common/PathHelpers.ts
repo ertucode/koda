@@ -72,4 +72,17 @@ export namespace PathHelpers {
     if (filePath.endsWith(extension)) return filePath;
     return filePath + extension;
   }
+
+  export function suggestUnarchiveName(filePath: string) {
+    const matchedExt = PathHelpers.getExtension(filePath).replace(/^\./, "");
+    return filePath.slice(0, -matchedExt.length - 1);
+  }
+
+  export function getExtension(filePath: string) {
+    const lastDot = filePath.lastIndexOf(".");
+    if (lastDot === -1 || lastDot === filePath.length - 1) {
+      return "";
+    }
+    return filePath.slice(lastDot + 1);
+  }
 }

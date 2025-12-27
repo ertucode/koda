@@ -3,77 +3,53 @@ import { defaultPath } from "./defaultPath";
 import { directoryStore } from "./directoryStore/directory";
 import { DirectoryId } from "./directoryStore/DirectoryBase";
 import { layoutStore, selectDefaultLayout } from "./layoutStore";
+import { windowArgs } from "@/getWindowElectron";
 
-export const layoutJson = ((): IJsonModel => {
-  // First, check if there's an applied layout in localStorage (from CustomLayoutsDialog)
-  const appliedLayoutStr = localStorage.getItem("mygui-flexlayout-model");
-  if (appliedLayoutStr) {
-    try {
-      const appliedLayout = JSON.parse(appliedLayoutStr);
-      if (appliedLayout.layout && appliedLayout.directories) {
-        directoryStore.trigger.initDirectories({
-          directories: appliedLayout.directories,
-          activeDirectoryId:
-            appliedLayout.activeDirectoryId || appliedLayout.directories[0]?.id,
-        });
-        // Clear the applied layout after loading it once
-        localStorage.removeItem("mygui-flexlayout-model");
-        return appliedLayout.layout;
-      }
-    } catch (error) {
-      console.error("Failed to load applied layout:", error);
-      // Clear corrupted data
-      localStorage.removeItem("mygui-flexlayout-model");
-    }
-  }
+const isSelectAppMode = windowArgs.isSelectAppMode;
 
-  // Otherwise, use the default layout from layoutStore
-  const layoutStoreState = layoutStore.get();
-  const defaultLayout = selectDefaultLayout(layoutStoreState);
-  const layoutToUse = defaultLayout || layoutStoreState.context.layouts[0];
-
-  // If we have a saved layout with directories, use it
-  if (layoutToUse) {
-    directoryStore.trigger.initDirectories({
-      directories: layoutToUse.directories,
-      activeDirectoryId: layoutToUse.activeDirectoryId,
-    });
-
-    return layoutToUse.layoutJson;
-  }
-
-  // Otherwise, create default directories and layout
-  const directoriesToInit: Parameters<
-    typeof directoryStore.trigger.initDirectories
-  >[0]["directories"] = [
-    {
-      fullPath: "~/Downloads",
-      type: "path",
-      id: Math.random().toString(36).slice(2) as DirectoryId,
-    },
-    {
-      fullPath: defaultPath,
-      type: "path",
-      id: Math.random().toString(36).slice(2) as DirectoryId,
-    },
-  ];
+type InitDirectories = Parameters<
+  typeof directoryStore.trigger.initDirectories
+>[0]["directories"];
+function init(
+  directories: InitDirectories,
+  activeDirectoryId: string,
+  layoutJson: IJsonModel,
+) {
   directoryStore.trigger.initDirectories({
-    directories: directoriesToInit,
-    activeDirectoryId: directoriesToInit[0].id,
+    directories: directories,
+    activeDirectoryId: activeDirectoryId,
   });
 
-  const directories = directoryStore.getSnapshot().context.directoryOrder;
+  return layoutJson;
+}
 
-  // Create directory tabs
-  const directoryTabs = directories.map((dirId, index) => ({
+function initFromPaths(paths: string[]) {
+  const directoriesToInit: Parameters<
+    typeof directoryStore.trigger.initDirectories
+  >[0]["directories"] = paths.map((p) => {
+    return {
+      fullPath: p,
+      type: "path",
+      id: Math.random().toString(36).slice(2) as DirectoryId,
+    };
+  });
+
+  return init(
+    directoriesToInit,
+    directoriesToInit[0].id,
+    createDefaultLayout(directoriesToInit),
+  );
+}
+
+function createDefaultLayout(directories: InitDirectories) {
+  const directoryTabs = directories.map((dir, index) => ({
     type: "tab" as const,
     name: `Directory ${index + 1}`,
     component: "directory",
-    config: { directoryId: dirId },
+    config: { directoryId: dir.id },
     enableClose: true,
   }));
 
-  // Build the complete layout
   return {
     global: {
       tabEnableClose: true,
@@ -183,6 +159,49 @@ export const layoutJson = ((): IJsonModel => {
       ],
     },
   };
+}
+
+export const layoutJson = ((): IJsonModel => {
+  if (isSelectAppMode && windowArgs.initialPath) {
+    return initFromPaths([windowArgs.initialPath]);
+  }
+  // First, check if there's an applied layout in localStorage (from CustomLayoutsDialog)
+  const appliedLayoutStr = localStorage.getItem("mygui-flexlayout-model");
+  if (appliedLayoutStr) {
+    try {
+      const appliedLayout = JSON.parse(appliedLayoutStr);
+      if (appliedLayout.layout && appliedLayout.directories) {
+        directoryStore.trigger.initDirectories({
+          directories: appliedLayout.directories,
+          activeDirectoryId:
+            appliedLayout.activeDirectoryId || appliedLayout.directories[0]?.id,
+        });
+        // Clear the applied layout after loading it once
+        localStorage.removeItem("mygui-flexlayout-model");
+        return appliedLayout.layout;
+      }
+    } catch (error) {
+      console.error("Failed to load applied layout:", error);
+      // Clear corrupted data
+      localStorage.removeItem("mygui-flexlayout-model");
+    }
+  }
+
+  // Otherwise, use the default layout from layoutStore
+  const layoutStoreState = layoutStore.get();
+  const defaultLayout = selectDefaultLayout(layoutStoreState);
+  const layoutToUse = defaultLayout || layoutStoreState.context.layouts[0];
+
+  // If we have a saved layout with directories, use it
+  if (layoutToUse) {
+    return init(
+      layoutToUse.directories,
+      layoutToUse.activeDirectoryId,
+      layoutToUse.layoutJson,
+    );
+  }
+
+  return initFromPaths(["~/Downloads", defaultPath]);
 })();
 
 export const layoutModel = Model.fromJson(layoutJson);

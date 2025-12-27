@@ -72,7 +72,7 @@ async function getMacApplications(
     if (apps.length === 0) {
       const ext = filePath.split(".").pop()?.toLowerCase();
       const commonApps = getCommonMacApps(ext);
-      
+
       // Check which of these apps actually exist
       for (const app of commonApps) {
         try {
@@ -130,24 +130,51 @@ function getCommonMacApps(ext?: string): ApplicationInfo[] {
     ].includes(ext)
   ) {
     apps.push(
-      { name: "Visual Studio Code", path: "/Applications/Visual Studio Code.app", isDefault: false },
-      { name: "Sublime Text", path: "/Applications/Sublime Text.app", isDefault: false },
-      { name: "TextEdit", path: "/System/Applications/TextEdit.app", isDefault: false },
+      {
+        name: "Visual Studio Code",
+        path: "/Applications/Visual Studio Code.app",
+        isDefault: false,
+      },
+      {
+        name: "Sublime Text",
+        path: "/Applications/Sublime Text.app",
+        isDefault: false,
+      },
+      {
+        name: "TextEdit",
+        path: "/System/Applications/TextEdit.app",
+        isDefault: false,
+      },
     );
   }
 
   // Images
-  if (ext && ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext)) {
+  if (
+    ext &&
+    ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext)
+  ) {
     apps.push(
-      { name: "Preview", path: "/System/Applications/Preview.app", isDefault: false },
-      { name: "Photoshop", path: "/Applications/Adobe Photoshop 2024/Adobe Photoshop 2024.app", isDefault: false },
+      {
+        name: "Preview",
+        path: "/System/Applications/Preview.app",
+        isDefault: false,
+      },
+      {
+        name: "Photoshop",
+        path: "/Applications/Adobe Photoshop 2024/Adobe Photoshop 2024.app",
+        isDefault: false,
+      },
     );
   }
 
   // Videos
   if (ext && ["mp4", "mov", "avi", "mkv", "webm"].includes(ext)) {
     apps.push(
-      { name: "QuickTime Player", path: "/System/Applications/QuickTime Player.app", isDefault: false },
+      {
+        name: "QuickTime Player",
+        path: "/System/Applications/QuickTime Player.app",
+        isDefault: false,
+      },
       { name: "VLC", path: "/Applications/VLC.app", isDefault: false },
     );
   }
@@ -155,8 +182,16 @@ function getCommonMacApps(ext?: string): ApplicationInfo[] {
   // PDFs
   if (ext === "pdf") {
     apps.push(
-      { name: "Preview", path: "/System/Applications/Preview.app", isDefault: false },
-      { name: "Adobe Acrobat", path: "/Applications/Adobe Acrobat DC/Adobe Acrobat.app", isDefault: false },
+      {
+        name: "Preview",
+        path: "/System/Applications/Preview.app",
+        isDefault: false,
+      },
+      {
+        name: "Adobe Acrobat",
+        path: "/Applications/Adobe Acrobat DC/Adobe Acrobat.app",
+        isDefault: false,
+      },
     );
   }
 
@@ -246,7 +281,8 @@ async function getWindowsApplications(
         const match = line.match(/"([^"]+)"/);
         if (match) {
           const appPath = match[1];
-          const name = appPath.split("\\").pop()?.replace(".exe", "") || appPath;
+          const name =
+            appPath.split("\\").pop()?.replace(".exe", "") || appPath;
           apps.push({
             name,
             path: appPath,
@@ -278,63 +314,9 @@ async function getWindowsApplications(
 export async function openFileWithApplication(
   filePath: string,
   applicationPath: string,
-  browserWindow?: Electron.BrowserWindow,
 ): Promise<void> {
   const expandedPath = expandHome(filePath);
   const p = platform();
-
-  if (applicationPath === "__choose__") {
-    // Show a file picker dialog to let user choose an application
-    if (!browserWindow) {
-      throw new Error("BrowserWindow required for application picker");
-    }
-
-    const { dialog } = await import("electron");
-    
-    let filters: Electron.FileFilter[] = [];
-    let properties: Array<
-      | "openFile"
-      | "openDirectory"
-      | "multiSelections"
-      | "showHiddenFiles"
-      | "createDirectory"
-      | "promptToCreate"
-      | "noResolveAliases"
-      | "treatPackageAsDirectory"
-      | "dontAddToRecent"
-    > = ["openFile"];
-
-    if (p === "darwin") {
-      // On macOS, applications are directories with .app extension
-      filters = [{ name: "Applications", extensions: ["app"] }];
-      properties.push("treatPackageAsDirectory");
-    } else if (p === "win32") {
-      filters = [{ name: "Programs", extensions: ["exe"] }];
-    } else {
-      // Linux - allow all files since executables don't have extensions
-      filters = [{ name: "All Files", extensions: ["*"] }];
-    }
-
-    const result = await dialog.showOpenDialog(browserWindow, {
-      title: "Choose Application",
-      properties,
-      filters,
-      defaultPath:
-        p === "darwin"
-          ? "/Applications"
-          : p === "win32"
-            ? "C:\\Program Files"
-            : "/usr/bin",
-    });
-
-    if (result.canceled || result.filePaths.length === 0) {
-      return; // User cancelled
-    }
-
-    const selectedApp = result.filePaths[0];
-    // Recursively call with the selected application
-    return openFileWithApplication(filePath, selectedApp, browserWindow);
-  }
 
   let cmd: string;
   if (p === "darwin") {
