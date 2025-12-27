@@ -144,6 +144,12 @@ export function createColumns(
         </span>
       ),
     },
+    {
+      accessorKey: "permissions",
+      header: "Permissions",
+      size: 140,
+      cell: (row) => row.permissions,
+    },
   ];
 }
 
