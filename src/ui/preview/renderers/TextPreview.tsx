@@ -4,9 +4,7 @@ import { getWindowElectron } from "@/getWindowElectron";
 import { PreviewHelpers } from "../PreviewHelpers";
 
 export function TextPreview({
-  data: {
-    preview: { filePath },
-  },
+  data: { fullPath },
   allowBigSize,
   error,
   setError,
@@ -21,7 +19,7 @@ export function TextPreview({
     setError(null);
 
     getWindowElectron()
-      .readFilePreview(filePath, allowBigSize)
+      .readFilePreview(fullPath, allowBigSize)
       .then((result) => {
         if ("error" in result) {
           setError(result.error);
@@ -41,7 +39,7 @@ export function TextPreview({
       .finally(() => {
         setLoading(false);
       });
-  }, [filePath, allowBigSize]);
+  }, [fullPath, allowBigSize]);
 
   const handleCopy = async () => {
     if (content) {

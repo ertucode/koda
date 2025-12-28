@@ -3,12 +3,10 @@ import { AlertCircleIcon } from "lucide-react";
 import { PreviewHelpers } from "../PreviewHelpers";
 
 export function VideoPreview({
-  data: {
-    preview: { filePath },
-  },
+  data: { fullPath },
 }: PreviewHelpers.PreviewRendererProps) {
   const [error, setError] = useState<string | null>(null);
-  const src = `file://${filePath}`;
+  const src = `file://${fullPath}`;
 
   return (
     <div className="h-full flex flex-col min-h-0 overflow-hidden">
