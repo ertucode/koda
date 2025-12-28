@@ -3,7 +3,8 @@ import { PathHelpers } from "./PathHelpers.js";
 
 export namespace ArchiveHelpers {
   export function getUnarchiveMetadata(fullPath: string) {
-    if (!getCategoryFromFilename(fullPath)) return undefined;
+    const category = getCategoryFromFilename(fullPath);
+    if (category !== "archive") return undefined;
     if (fullPath.endsWith(".dmg")) return undefined;
     return {
       archiveFilePath: fullPath,
