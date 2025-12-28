@@ -27,7 +27,6 @@ export function PreviewApp() {
   // Listen for messages from parent window
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      return;
       if (event.data?.type === "preview-file") {
         const data = event.data.payload as PreviewHelpers.MessageData;
         const contentType = getContentType(data);

@@ -1,3 +1,4 @@
+import { RefObject } from "react";
 import {
   SequenceShortcut,
   ShortcutDefinition,
@@ -161,12 +162,29 @@ export function handleKeydown(
 
   // 3️⃣ Fallback to single shortcuts
   for (const k of keys) {
-    const handler = single.get(k)?.handler;
-    if (handler) {
-      handler(e);
+    const def = single.get(k);
+    if (def && checkEnabledIn(def.enabledIn, e)) {
+      def.handler(e);
       return;
     }
   }
+}
+
+function checkEnabledIn(
+  enabledIn:
+    | RefObject<HTMLElement | null>
+    | ((e: KeyboardEvent) => boolean)
+    | undefined,
+  e: KeyboardEvent,
+): boolean {
+  if (e.target instanceof HTMLInputElement) {
+    if (!enabledIn) return false;
+    if (typeof enabledIn === "function") {
+      return enabledIn(e);
+    }
+    return enabledIn.current === e.target;
+  }
+  return true;
 }
 
 function resetState() {
