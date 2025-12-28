@@ -29,8 +29,6 @@ export function FileBrowserShortcuts() {
     (s) => s.context.activeDirectoryId,
   );
 
-  const selection = useSelector(directoryStore, selectSelection(directoryId));
-
   const dataCount = directoryDerivedStores
     .get(directoryId)!
     .useFilteredDirectoryData().length;
@@ -44,23 +42,6 @@ export function FileBrowserShortcuts() {
     directoryStore,
     (s) => s.context.directoriesById[directoryId]?.viewMode ?? "list",
   );
-
-  // Create a selection object compatible with the old API
-  const s = {
-    state: selection,
-    setState: (update: any) => {
-      const newState =
-        typeof update === "function" ? update(selection) : update;
-      directoryStore.send({
-        type: "setSelection",
-        indexes: newState.indexes,
-        lastSelected: newState.lastSelected,
-      } as any);
-    },
-    select: directorySelection.select,
-    reset: directorySelection.resetSelection,
-    isSelected: directorySelection.isSelected,
-  };
 
   useShortcuts(
     [
@@ -131,7 +112,10 @@ export function FileBrowserShortcuts() {
       {
         key: " ",
         handler: (_) => {
-          if (s.state.last == null) {
+          if (
+            selectSelection(directoryId)(directoryStore.getSnapshot()).last ==
+            null
+          ) {
             directorySelection.selectManually(0, directoryId);
           }
         },
@@ -146,10 +130,11 @@ export function FileBrowserShortcuts() {
       {
         key: { key: "Backspace", metaKey: true },
         handler: () => {
+          const s = selectSelection(directoryId)(directoryStore.getSnapshot());
           // Command+Delete on macOS
-          if (s.state.indexes.size === 0) return;
+          if (s.indexes.size === 0) return;
           const data = getData(directoryId);
-          const itemsToDelete = [...s.state.indexes].map((i) => data[i]);
+          const itemsToDelete = [...s.indexes].map((i) => data[i]);
           directoryHelpers.handleDelete(itemsToDelete, data, directoryId);
         },
         enabledIn: () => true,
@@ -177,10 +162,9 @@ export function FileBrowserShortcuts() {
         handler: (e) => {
           e?.preventDefault();
           const data = getData(directoryId);
+          const s = selectSelection(directoryId)(directoryStore.getSnapshot());
           const itemsToRename =
-            s.state.indexes.size < 1
-              ? data
-              : [...s.state.indexes].map((i) => data[i]);
+            s.indexes.size < 1 ? data : [...s.indexes].map((i) => data[i]);
           dialogActions.open("batchRename", itemsToRename);
         },
         enabledIn: () => true,
@@ -191,13 +175,14 @@ export function FileBrowserShortcuts() {
         handler: (e) => {
           // Check if user is selecting text
           const selection = window.getSelection();
+          const s = selectSelection(directoryId)(directoryStore.getSnapshot());
           if (selection && selection.toString().length > 0) {
             return; // Allow default text copy
           }
 
           e?.preventDefault();
-          if (s.state.indexes.size === 0) return;
-          const itemsToCopy = [...s.state.indexes].map(
+          if (s.indexes.size === 0) return;
+          const itemsToCopy = [...s.indexes].map(
             (i) => getData(directoryId)[i],
           );
           directoryHelpers.handleCopy(itemsToCopy, false, directoryId);
@@ -215,10 +200,9 @@ export function FileBrowserShortcuts() {
           }
 
           e?.preventDefault();
-          if (s.state.indexes.size === 0) return;
-          const itemsToCut = [...s.state.indexes].map(
-            (i) => getData(directoryId)[i],
-          );
+          const s = selectSelection(directoryId)(directoryStore.getSnapshot());
+          if (s.indexes.size === 0) return;
+          const itemsToCut = [...s.indexes].map((i) => getData(directoryId)[i]);
           directoryHelpers.handleCopy(itemsToCut, true, directoryId);
         },
         enabledIn: () => true,
