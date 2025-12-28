@@ -28,7 +28,7 @@ export function PreviewApp() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "preview-file") {
-        const data = event.data.payload;
+        const data = event.data.payload as PreviewHelpers.MessageData;
         const contentType = getContentType(data);
 
         const ext = data.fileExt || "";
@@ -50,6 +50,10 @@ export function PreviewApp() {
         });
         setAllowBigSize(false);
         setError(null);
+      }
+
+      if (event.data?.type === "preview-anyway") {
+        setAllowBigSize(true);
       }
     };
 

@@ -1,4 +1,6 @@
 import { getWindowElectron, homeDirectory } from "@/getWindowElectron";
+import { useShortcuts } from "@/lib/hooks/useShortcuts";
+import { PreviewHelpers } from "@/preview/PreviewHelpers";
 import { useEffect, useRef, useState } from "react";
 
 type FilePreviewProps = {
@@ -65,12 +67,21 @@ export function FilePreview({
     };
   }, [preloadPath]); // Re-run when preloadPath changes (webview mounts)
 
-  // Send file data to webview when it changes or webview becomes ready
-  useEffect(() => {
+  function sendMessage<T extends PreviewHelpers.Messages["type"]>(
+    message: T,
+    data: Extract<PreviewHelpers.Messages, { type: T }>["data"],
+  ) {
     const webview = webviewRef.current;
     if (!webview || !isWebviewReady) return;
 
-    webview.send("preview-file", {
+    webview.send(message, data);
+  }
+
+  // Send file data to webview when it changes or webview becomes ready
+  useEffect(() => {
+    if (!filePath) return;
+
+    sendMessage("preview-file", {
       filePath,
       isFile,
       fileSize: fileSize ?? null,
@@ -78,6 +89,16 @@ export function FilePreview({
       homePath: homeDirectory,
     });
   }, [filePath, isFile, fileSize, fileExt, isWebviewReady]);
+
+  useShortcuts([
+    {
+      key: " ",
+      label: "Preview anyway",
+      handler: () => {
+        sendMessage("preview-anyway", undefined);
+      },
+    },
+  ]);
 
   // Don't render webview until we have the preload path
   if (!preloadPath) {
