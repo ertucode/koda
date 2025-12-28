@@ -337,5 +337,6 @@ export const FileBrowserShortcuts = {
   },
   deinit: () => {
     GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, false);
+    subscription?.();
   },
 };
