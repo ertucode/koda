@@ -7,6 +7,9 @@
 
 - unarchive as file if only one file
 
+- compile shortcuts
+- global shortcuts (key: string, shortcuts: [], enabled: true)
+
 # AMBITIOUS TODO
 
 - Plugin system ( run arbitrary script with the file path as an argument)

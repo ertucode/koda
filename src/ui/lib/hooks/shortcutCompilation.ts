@@ -1,4 +1,8 @@
-import { ShortcutDefinition, ShortcutWithHandler } from "./useShortcuts";
+import {
+  SequenceShortcut,
+  ShortcutDefinition,
+  ShortcutWithHandler,
+} from "./useShortcuts";
 
 /*
  *{
@@ -10,8 +14,8 @@ import { ShortcutDefinition, ShortcutWithHandler } from "./useShortcuts";
       key: string;
     }
  *
- * 5 booleans + _ + key|keyCode string 
- * TFFFT_e
+ * 5 booleans + key|keyCode string 
+ * TFFFTe
  * */
 export type CompiledShortcut = $Branded<
   ShortcutDefinition,
@@ -22,7 +26,7 @@ export type CompiledShortcutSequence = CompiledShortcut[];
 
 function compileShortcut(shortcut: ShortcutDefinition): CompiledShortcut {
   if (typeof shortcut === "string") {
-    return ("FFFFF_" + shortcut) as CompiledShortcut;
+    return ("FFFFF" + shortcut) as CompiledShortcut;
   }
 
   return [
@@ -33,6 +37,12 @@ function compileShortcut(shortcut: ShortcutDefinition): CompiledShortcut {
     shortcut.altKey ? "T" : "F",
     shortcut.key,
   ].join("") as CompiledShortcut;
+}
+
+function compileSequence(
+  sequence: ShortcutDefinition[],
+): CompiledShortcutSequence {
+  return sequence.map(compileShortcut);
 }
 
 function compileEvent(e: KeyboardEvent): [CompiledShortcut, CompiledShortcut] {
@@ -58,18 +68,27 @@ function compileEvent(e: KeyboardEvent): [CompiledShortcut, CompiledShortcut] {
 
 export function compileShortcuts(
   shortcut: ShortcutWithHandler[],
-): Map<CompiledShortcut, Handler> {
-  const shortcuts = new Map<CompiledShortcut, Handler>();
+): CompiledShortcuts {
+  const shortcuts = new Map<CompiledShortcut, ShortcutWithHandler>();
   for (const s of shortcut) {
     if (Array.isArray(s.key)) {
       for (const k of s.key) {
-        shortcuts.set(compileShortcut(k), s.handler);
+        shortcuts.set(compileShortcut(k), s);
       }
     } else {
-      shortcuts.set(compileShortcut(s.key), s.handler);
+      shortcuts.set(compileShortcut(s.key), s);
     }
   }
   return shortcuts;
+}
+
+export function compileSequences(
+  sequences: SequenceShortcut[],
+): CompiledSequences {
+  return sequences.map((s) => ({
+    seq: compileSequence(s.sequence),
+    def: s,
+  }));
 }
 
 type SequenceState = {
@@ -88,12 +107,14 @@ let state: SequenceState = {
   handler: () => {},
 };
 
+export type CompiledSequences = {
+  seq: CompiledShortcutSequence;
+  def: SequenceShortcut;
+}[];
+export type CompiledShortcuts = Map<CompiledShortcut, ShortcutWithHandler>;
 export function handleKeydown(
-  single: Map<CompiledShortcut, Handler>,
-  sequences: {
-    seq: CompiledShortcutSequence;
-    handler: Handler;
-  }[],
+  single: CompiledShortcuts,
+  sequences: CompiledSequences,
   e: KeyboardEvent,
 ) {
   const keys = compileEvent(e);
@@ -130,7 +151,7 @@ export function handleKeydown(
         active: true,
         index: 1,
         sequence: s.seq,
-        handler: s.handler,
+        handler: s.def.handler,
         startedAt: now,
       };
 
@@ -140,7 +161,7 @@ export function handleKeydown(
 
   // 3️⃣ Fallback to single shortcuts
   for (const k of keys) {
-    const handler = single.get(k);
+    const handler = single.get(k)?.handler;
     if (handler) {
       handler(e);
       return;

@@ -26,7 +26,6 @@ export type ShortcutWithHandler = {
 export type SequenceShortcut = {
   sequence: string[];
   handler: (e: KeyboardEvent | undefined) => void;
-  timeout?: number;
   enabledIn?: RefObject<HTMLElement | null> | ((e: KeyboardEvent) => boolean);
   label: string; // Required label for the command palette
 };
@@ -41,6 +40,10 @@ export type UseShortcutsOptions = {
 export type ShortcutInput = $Maybe<DefinedShortcutInput> | boolean;
 
 export type DefinedShortcutInput = ShortcutWithHandler | SequenceShortcut;
+
+export type DefinedShortInputWithoutSequence =
+  | $Maybe<ShortcutWithHandler>
+  | boolean;
 
 export function isSequenceShortcut(
   shortcut: ShortcutWithHandler | SequenceShortcut,
@@ -209,7 +212,7 @@ export function handleKeyDownWithShortcuts(
   // Check if we should reset the buffer (timeout exceeded)
   if (sequenceShortcuts.length > 0) {
     const minTimeout = Math.min(
-      ...sequenceShortcuts.map((s) => s.timeout ?? defaultTimeout),
+      ...sequenceShortcuts.map((_) => defaultTimeout),
     );
     if (now - sequenceBuffer.lastTime > minTimeout) {
       sequenceBuffer.keys = [];
@@ -231,7 +234,7 @@ export function handleKeyDownWithShortcuts(
     for (const shortcut of sequenceShortcuts) {
       if (!checkEnabledIn(shortcut.enabledIn, e)) continue;
 
-      const timeout = shortcut.timeout ?? defaultTimeout;
+      const timeout = defaultTimeout;
       if (now - sequenceBuffer.lastTime > timeout) continue;
 
       if (sequenceBuffer.keys.length < shortcut.sequence.length) continue;
