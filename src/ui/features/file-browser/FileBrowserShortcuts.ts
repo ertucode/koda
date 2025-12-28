@@ -12,6 +12,8 @@ import { DirectoryId } from "./directoryStore/DirectoryBase";
 import { directoryDerivedStores } from "./directoryStore/directorySubscriptions";
 import { directorySelection } from "./directoryStore/directorySelection";
 import { GlobalShortcuts } from "@/lib/hooks/globalShortcuts";
+import { subscribeToStores } from "@/lib/functions/storeHelpers";
+import { confirmation } from "@/lib/components/confirmation";
 
 function getData() {
   return directoryDerivedStores
@@ -331,9 +333,14 @@ export const FileBrowserShortcuts = {
       sequences: directorySelection.getSelectionSequenceShortcuts(),
     });
 
-    subscription = dialogStore.subscribe((state) => {
-      GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, !state.context.openDialog);
-    }).unsubscribe;
+    subscription = subscribeToStores(
+      [dialogStore, confirmation],
+      ([dialog, confirmation]) => [!dialog.openDialog, confirmation.isOpen],
+      ([dialog, confirmation]) => {
+        const enabled = !dialog.openDialog && !confirmation.isOpen;
+        GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, enabled);
+      },
+    );
   },
   deinit: () => {
     GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, false);
