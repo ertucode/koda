@@ -28,6 +28,7 @@ export namespace PreviewHelpers {
     isFile: boolean;
     fileSize: number | null;
     fileExt: string | null;
+    homePath: string;
   };
 
   export type DerivedData = {
@@ -47,4 +48,14 @@ export namespace PreviewHelpers {
     setLoading: (loading: boolean) => void;
     loading: boolean;
   };
+
+  export type Messages =
+    | {
+        type: "preview-file";
+        data: MessageData;
+      }
+    | {
+        type: "preview-anyway";
+        data: void;
+      };
 }
