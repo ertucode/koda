@@ -161,7 +161,7 @@ export const directorySelection = {
     };
 
     // Throttle delay for selection shortcuts
-    const THROTTLE_DELAY = 5;
+    const THROTTLE_DELAY = 2;
 
     return [
       {
@@ -186,7 +186,12 @@ export const directorySelection = {
         label: "Select all items",
       },
       {
-        key: ["ArrowUp", "k", "K"],
+        key: [
+          "ArrowUp",
+          "k",
+          { shiftKey: true, key: "KeyK", isCode: true },
+          { shiftKey: true, key: "ArrowUp" },
+        ],
         handler: throttle((e) => {
           const state = getActiveDirectory(
             directoryStore.getSnapshot().context,
@@ -208,56 +213,50 @@ export const directorySelection = {
             (!("key" in e) || (e.key !== "G" && e.key !== "g"));
           const isGridJump = state.viewMode === "grid" && offset > 1;
 
-          if (state.selection.indexes.has(targetIndex)) {
-            const newSet = new Set(state.selection.indexes);
-            newSet.delete(lastSelected);
+          let finalTarget = targetIndex < 0 ? count - 1 : targetIndex;
+
+          if (isShiftEvent && isGridJump && state.selection.last != null) {
+            // In grid mode with shift, select items in a visual column pattern
+            const indexes = new Set(state.selection.indexes);
+            const current = state.selection.last;
+
+            // Move up by cols each time
+            let pos = current;
+            while (pos > finalTarget && pos >= 0) {
+              indexes.add(pos);
+              pos -= cols;
+            }
+            if (pos >= 0) indexes.add(pos);
+
             directoryStore.send({
               type: "setSelection",
-              indexes: newSet,
-              last: targetIndex,
+              indexes,
+              last: finalTarget,
               directoryId: state.directoryId,
             });
+          } else if (isShiftEvent) {
+            // Normal shift behavior for list mode
+            directorySelection.select(finalTarget, e, state.directoryId);
           } else {
-            let finalTarget = targetIndex < 0 ? count - 1 : targetIndex;
-
-            if (isShiftEvent && isGridJump && state.selection.last != null) {
-              // In grid mode with shift, select items in a visual column pattern
-              const indexes = new Set(state.selection.indexes);
-              const current = state.selection.last;
-
-              // Move up by cols each time
-              let pos = current;
-              while (pos > finalTarget && pos >= 0) {
-                indexes.add(pos);
-                pos -= cols;
-              }
-              if (pos >= 0) indexes.add(pos);
-
-              directoryStore.send({
-                type: "setSelection",
-                indexes,
-                last: finalTarget,
-                directoryId: state.directoryId,
-              });
-            } else if (isShiftEvent) {
-              // Normal shift behavior for list mode
-              directorySelection.select(finalTarget, e, state.directoryId);
-            } else {
-              // No shift - just move selection
-              directoryStore.send({
-                type: "setSelection",
-                indexes: new Set([finalTarget]),
-                last: finalTarget,
-                directoryId: state.directoryId,
-              });
-            }
+            // No shift - just move selection
+            directoryStore.send({
+              type: "setSelection",
+              indexes: new Set([finalTarget]),
+              last: finalTarget,
+              directoryId: state.directoryId,
+            });
           }
           e?.preventDefault();
         }, THROTTLE_DELAY),
         label: "Select previous item",
       },
       {
-        key: ["ArrowDown", "j", "J"],
+        key: [
+          "ArrowDown",
+          "j",
+          { shiftKey: true, key: "KeyJ", isCode: true },
+          { shiftKey: true, key: "ArrowDown" },
+        ],
         handler: throttle((e) => {
           const state = getActiveDirectory(
             directoryStore.getSnapshot().context,
@@ -279,49 +278,38 @@ export const directorySelection = {
             (!("key" in e) || (e.key !== "G" && e.key !== "g"));
           const isGridJump = state.viewMode === "grid" && offset > 1;
 
-          if (state.selection.indexes.has(targetIndex)) {
-            const newSet = new Set(state.selection.indexes);
-            newSet.delete(lastSelected);
+          let finalTarget = targetIndex >= count ? 0 : targetIndex;
+
+          if (isShiftEvent && isGridJump && state.selection.last != null) {
+            // In grid mode with shift, select items in a visual column pattern
+            const indexes = new Set(state.selection.indexes);
+            const current = state.selection.last;
+
+            // Move down by cols each time
+            let pos = current;
+            while (pos < finalTarget && pos < count) {
+              indexes.add(pos);
+              pos += cols;
+            }
+            if (pos < count) indexes.add(pos);
+
             directoryStore.send({
               type: "setSelection",
-              indexes: newSet,
-              last: targetIndex,
+              indexes,
+              last: finalTarget,
               directoryId: state.directoryId,
             });
+          } else if (isShiftEvent) {
+            // Normal shift behavior for list mode
+            directorySelection.select(finalTarget, e, state.directoryId);
           } else {
-            let finalTarget = targetIndex >= count ? 0 : targetIndex;
-
-            if (isShiftEvent && isGridJump && state.selection.last != null) {
-              // In grid mode with shift, select items in a visual column pattern
-              const indexes = new Set(state.selection.indexes);
-              const current = state.selection.last;
-
-              // Move down by cols each time
-              let pos = current;
-              while (pos < finalTarget && pos < count) {
-                indexes.add(pos);
-                pos += cols;
-              }
-              if (pos < count) indexes.add(pos);
-
-              directoryStore.send({
-                type: "setSelection",
-                indexes,
-                last: finalTarget,
-                directoryId: state.directoryId,
-              });
-            } else if (isShiftEvent) {
-              // Normal shift behavior for list mode
-              directorySelection.select(finalTarget, e, state.directoryId);
-            } else {
-              // No shift - just move selection
-              directoryStore.send({
-                type: "setSelection",
-                indexes: new Set([finalTarget]),
-                last: finalTarget,
-                directoryId: state.directoryId,
-              });
-            }
+            // No shift - just move selection
+            directoryStore.send({
+              type: "setSelection",
+              indexes: new Set([finalTarget]),
+              last: finalTarget,
+              directoryId: state.directoryId,
+            });
           }
           e?.preventDefault();
         }, THROTTLE_DELAY),
@@ -346,20 +334,9 @@ export const directorySelection = {
             const finalTarget = targetIndex < 0 ? count - 1 : targetIndex;
 
             const isShiftEvent = e && e.shiftKey;
-            if (isShiftEvent && state.selection.last != null) {
-              // Add/remove from selection
-              const indexes = new Set(state.selection.indexes);
-              if (indexes.has(finalTarget)) {
-                indexes.delete(state.selection.last);
-              } else {
-                indexes.add(finalTarget);
-              }
-              directoryStore.send({
-                type: "setSelection",
-                indexes,
-                last: finalTarget,
-                directoryId: state.directoryId,
-              });
+            if (isShiftEvent) {
+              // Use the select function for proper range selection
+              directorySelection.select(finalTarget, e, state.directoryId);
             } else {
               // Just move selection
               directoryStore.send({
@@ -396,20 +373,9 @@ export const directorySelection = {
             const finalTarget = targetIndex >= count ? 0 : targetIndex;
 
             const isShiftEvent = e && e.shiftKey;
-            if (isShiftEvent && state.selection.last != null) {
-              // Add/remove from selection
-              const indexes = new Set(state.selection.indexes);
-              if (indexes.has(finalTarget)) {
-                indexes.delete(state.selection.last);
-              } else {
-                indexes.add(finalTarget);
-              }
-              directoryStore.send({
-                type: "setSelection",
-                indexes,
-                last: finalTarget,
-                directoryId: state.directoryId,
-              });
+            if (isShiftEvent) {
+              // Use the select function for proper range selection
+              directorySelection.select(finalTarget, e, state.directoryId);
             } else {
               // Just move selection
               directoryStore.send({

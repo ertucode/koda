@@ -7,7 +7,6 @@
 
 - find and replace
 - unarchive as file if only one file
-- fix shift arrow select
 - exclude paths not working in search string
 
 # AMBITIOUS TODO
