@@ -41,43 +41,35 @@ export const FinderDialog = forwardRef<
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const handleTabSwitch = () => {
-    setActiveTab((prev) => {
-      const idx = tabs.findIndex((t) => t.id === prev);
-      const nextIdx = idx === tabs.length - 1 ? 0 : idx + 1;
-      return tabs[nextIdx].id;
-    });
-  };
-
-  const goPrevTab = () => {
-    setActiveTab((prev) => {
-      const idx = tabs.findIndex((t) => t.id === prev);
-      const nextIdx = idx === 0 ? tabs.length - 1 : idx - 1;
-      return tabs[nextIdx].id;
-    });
-  };
-
   // Handle keyboard shortcuts
   useShortcuts(
     [
       {
-        key: "Tab",
-        notKey: { key: "Tab", shiftKey: true },
+        key: { key: "1", metaKey: true },
         handler: (e) => {
           e?.preventDefault();
-          handleTabSwitch();
+          setActiveTab("files");
         },
         enabledIn: () => true,
-        label: "Next finder tab",
+        label: "Switch to Find File tab",
       },
       {
-        key: { key: "Tab", shiftKey: true },
+        key: { key: "2", metaKey: true },
         handler: (e) => {
           e?.preventDefault();
-          goPrevTab();
+          setActiveTab("folders");
         },
         enabledIn: () => true,
-        label: "Previous finder tab",
+        label: "Switch to Find Folder tab",
+      },
+      {
+        key: { key: "3", metaKey: true },
+        handler: (e) => {
+          e?.preventDefault();
+          setActiveTab("strings");
+        },
+        enabledIn: () => true,
+        label: "Switch to Search in Files tab",
       },
       {
         key: "Escape",
@@ -133,9 +125,19 @@ export const FinderDialog = forwardRef<
             </button>
           ))}
           <div className="flex-1" />
-          <div className="flex items-center px-4 text-xs text-base-content/50">
-            <kbd className="kbd kbd-sm">Tab</kbd>
-            <span className="ml-1">to switch</span>
+          <div className="flex items-center gap-3 px-4 text-xs text-base-content/50">
+            <div className="flex items-center gap-1">
+              <kbd className="kbd kbd-sm">⌘1</kbd>
+              <span>Files</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <kbd className="kbd kbd-sm">⌘2</kbd>
+              <span>Folders</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <kbd className="kbd kbd-sm">⌘3</kbd>
+              <span>Search</span>
+            </div>
           </div>
         </div>
 
