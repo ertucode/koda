@@ -88,8 +88,8 @@ function getTaskStatus(task: TaskDefinition): "running" | "success" | "error" {
 function formatPath(filePath: string, maxLength = 35): string {
   if (filePath.length <= maxLength) return filePath;
 
-  const filename = PathHelpers.getLastPathPart(filePath);
-  const parentInfo = PathHelpers.getParentFolder(filePath);
+  const filename = PathHelpers.name(filePath);
+  const parentInfo = PathHelpers.parent(filePath);
 
   if (filename.length > maxLength - 3) {
     return "..." + filename.slice(-(maxLength - 3));
@@ -109,7 +109,7 @@ function formatPath(filePath: string, maxLength = 35): string {
 
 function TaskMetadata({ task }: { task: TaskDefinition }) {
   const handleNavigateToPath = (fullPath: string) => {
-    const parentPath = PathHelpers.getParentFolder(fullPath).path;
+    const parentPath = PathHelpers.parent(fullPath).path;
     directoryHelpers.cdFull(parentPath, undefined);
   };
 
@@ -302,7 +302,7 @@ function TaskItem({
 
   return (
     <>
-      <div 
+      <div
         className="p-3 bg-base-200 rounded-lg border border-base-300 hover:border-primary/30 transition-colors group"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -330,7 +330,9 @@ function TaskItem({
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 justify-between">
-              <div className="font-medium text-sm text-base-content">{label}</div>
+              <div className="font-medium text-sm text-base-content">
+                {label}
+              </div>
               <div className="flex items-center gap-1.5 relative">
                 {hasInfo && (
                   <button
@@ -342,46 +344,46 @@ function TaskItem({
                   </button>
                 )}
                 <div className="flex-shrink-0">
-                {status === "running" && (
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex flex-col items-end">
-                      <span className="text-xs font-semibold text-primary">
-                        {Math.round(task.progress)}%
-                      </span>
-                      {estimatedTimeRemaining && (
-                        <span className="text-[10px] text-base-content/60">
-                          {formatTimeRemaining(estimatedTimeRemaining)} left
+                  {status === "running" && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs font-semibold text-primary">
+                          {Math.round(task.progress)}%
                         </span>
-                      )}
-                    </div>
-                    <div className="flex items-center">
-                      <Loader2Icon className="h-4 w-4 text-primary animate-spin" />
-                      <div className="absolute right-0 flex items-center size-4">
-                        {status === "running" && (
-                          <button
-                            onClick={handleCancel}
-                            className="btn btn-xs size-4 btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Cancel task"
-                          >
-                            <XOctagon className="h-4 w-4" />
-                          </button>
-                        )}
-                        {status !== "running" && (
-                          <button
-                            onClick={onDismiss}
-                            className="btn btn-xs size-4 btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Dismiss"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
+                        {estimatedTimeRemaining && (
+                          <span className="text-[10px] text-base-content/60">
+                            {formatTimeRemaining(estimatedTimeRemaining)} left
+                          </span>
                         )}
                       </div>
+                      <div className="flex items-center">
+                        <Loader2Icon className="h-4 w-4 text-primary animate-spin" />
+                        <div className="absolute right-0 flex items-center size-4">
+                          {status === "running" && (
+                            <button
+                              onClick={handleCancel}
+                              className="btn btn-xs size-4 btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Cancel task"
+                            >
+                              <XOctagon className="h-4 w-4" />
+                            </button>
+                          )}
+                          {status !== "running" && (
+                            <button
+                              onClick={onDismiss}
+                              className="btn btn-xs size-4 btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Dismiss"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
-                {status === "success" && (
-                  <CheckCircle2 className="h-4 w-4 text-success" />
-                )}
+                  )}
+                  {status === "success" && (
+                    <CheckCircle2 className="h-4 w-4 text-success" />
+                  )}
                   {status === "error" && (
                     <XCircle className="h-4 w-4 text-error" />
                   )}
@@ -391,20 +393,20 @@ function TaskItem({
 
             <TaskMetadata task={task} />
 
-          {status === "running" && (
-            <div className="w-full bg-base-300 rounded-full h-1.5 mt-2.5 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-primary to-primary/70 h-1.5 rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${task.progress}%` }}
-              />
-            </div>
-          )}
+            {status === "running" && (
+              <div className="w-full bg-base-300 rounded-full h-1.5 mt-2.5 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-primary to-primary/70 h-1.5 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${task.progress}%` }}
+                />
+              </div>
+            )}
 
-          {status === "error" && task.result && !task.result.success && (
-            <div className="mt-2 p-2 bg-error/10 border border-error/20 rounded text-xs text-error">
-              {errorResponseToMessage(task.result.error)}
-            </div>
-          )}
+            {status === "error" && task.result && !task.result.success && (
+              <div className="mt-2 p-2 bg-error/10 border border-error/20 rounded text-xs text-error">
+                {errorResponseToMessage(task.result.error)}
+              </div>
+            )}
 
             {status === "success" && (
               <div className="mt-2 text-xs text-success font-medium">

@@ -7,7 +7,7 @@ export function subscribeToGenericEvents() {
     if (e.type === "reload-path") {
       directoryHelpers.checkAndReloadDirectories(
         e.path,
-        e.fileToSelect && PathHelpers.getLastPathPart(e.fileToSelect),
+        e.fileToSelect && PathHelpers.name(e.fileToSelect),
       );
     } else {
       const _exhaustiveCheck: never = e?.type;

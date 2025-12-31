@@ -124,7 +124,7 @@ export function AudioPreview({
     return `${Math.round(bitrate / 1000)} kbps`;
   };
 
-  const fileName = PathHelpers.getLastPathPart(fullPath);
+  const fileName = PathHelpers.name(fullPath);
   const fileExt = preview.fileExt?.toUpperCase().replace(".", "") || "AUDIO";
 
   // Use title from metadata or fall back to filename

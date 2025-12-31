@@ -1,5 +1,5 @@
 export namespace PathHelpers {
-  export function getLastPathPart(path: string) {
+  export function name(path: string) {
     const parts = path.split("/").filter(Boolean);
     return parts[parts.length - 1] ?? "/";
   }
@@ -13,7 +13,7 @@ export namespace PathHelpers {
    * Get the parent folder path and name from a full path
    * e.g., "/Users/john/Documents/file.txt" -> { path: "/Users/john/Documents", name: "Documents" }
    */
-  export function getParentFolder(fullPath: string): {
+  export function parent(fullPath: string): {
     path: string;
     name: string;
   } {

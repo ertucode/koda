@@ -165,9 +165,7 @@ function DirectoryNameColumn({
   const fullPath = row.fullPath ?? ctx.getFullPath(row.name);
   const tags = ctx.fileTags[fullPath];
   // Show folder name when fullPath is available (tags view)
-  const parentFolder = row.fullPath
-    ? PathHelpers.getParentFolder(row.fullPath)
-    : null;
+  const parentFolder = row.fullPath ? PathHelpers.parent(row.fullPath) : null;
 
   const [renaming, setRenaming] = useState(false);
 

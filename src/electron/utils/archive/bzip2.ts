@@ -13,7 +13,9 @@ export namespace Bzip2 {
     return new Promise<Archive.ArchiveResult>((resolve) => {
       const { source, destination, progressCallback, abortSignal } = opts;
 
-      const bz2Path = destination.endsWith(".bz2") ? destination : destination + ".bz2";
+      const bz2Path = destination.endsWith(".bz2")
+        ? destination
+        : destination + ".bz2";
 
       let settled = false;
       let completedSuccessfully = false;
@@ -45,7 +47,11 @@ export namespace Bzip2 {
 
       // BZIP2 can only compress single files
       if (source.length !== 1) {
-        return finish(new Error("BZIP2 can only compress a single file. Use TAR.BZ2 for multiple files or directories."));
+        return finish(
+          new Error(
+            "BZIP2 can only compress a single file. Use TAR.BZ2 for multiple files or directories.",
+          ),
+        );
       }
 
       const sourceFile = source[0];
@@ -53,7 +59,11 @@ export namespace Bzip2 {
       try {
         const stats = fs.statSync(sourceFile);
         if (stats.isDirectory()) {
-          return finish(new Error("BZIP2 can only compress single files, not directories. Use TAR.BZ2 for directories."));
+          return finish(
+            new Error(
+              "BZIP2 can only compress single files, not directories. Use TAR.BZ2 for directories.",
+            ),
+          );
         }
       } catch (err) {
         return finish(err as Error);
@@ -87,7 +97,7 @@ export namespace Bzip2 {
 
       // Create output stream
       const outputStream = fs.createWriteStream(bz2Path);
-      
+
       outputStream.on("error", (err) => {
         bzip2Process.kill("SIGTERM");
         finish(err);
@@ -134,7 +144,9 @@ export namespace Bzip2 {
           outputStream.end();
         } else {
           outputStream.destroy();
-          finish(new Error(`bzip2 process exited with code ${code}: ${errorOutput}`));
+          finish(
+            new Error(`bzip2 process exited with code ${code}: ${errorOutput}`),
+          );
         }
       });
 
@@ -186,7 +198,7 @@ export namespace Bzip2 {
       // ENSURE PARENT DIRECTORY EXISTS
       // -----------------
       try {
-        const parentDir = PathHelpers.getParentFolder(destination).path;
+        const parentDir = PathHelpers.parent(destination).path;
         fs.mkdirSync(parentDir, { recursive: true });
       } catch (err) {
         return finish(err as Error);
@@ -220,7 +232,7 @@ export namespace Bzip2 {
 
       // Create output stream
       const outputStream = fs.createWriteStream(destination);
-      
+
       outputStream.on("error", (err) => {
         bunzip2Process.kill("SIGTERM");
         finish(err);
@@ -267,7 +279,11 @@ export namespace Bzip2 {
           outputStream.end();
         } else {
           outputStream.destroy();
-          finish(new Error(`bunzip2 process exited with code ${code}: ${errorOutput}`));
+          finish(
+            new Error(
+              `bunzip2 process exited with code ${code}: ${errorOutput}`,
+            ),
+          );
         }
       });
 
