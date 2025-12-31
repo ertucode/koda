@@ -6,6 +6,9 @@
 # TODO
 
 - unarchive as file if only one file
+- extract'tan sonra reload olmadı sanki.
+- oil.nvim style directory editing
+- for archives, navgate to it on double click. show unarchive button on the name part
 
 # AMBITIOUS TODO
 

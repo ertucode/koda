@@ -72,7 +72,7 @@ export const RunCommandDialog = ({
             if (p.initialValue) {
               // Replace placeholders with file information
               values[p.name] = replacePlaceholders(p.initialValue, {
-                name: PathHelpers.getLastPathPart(item.fullPath),
+                name: PathHelpers.name(item.fullPath),
                 fullPath: PathHelpers.revertExpandedHome(
                   windowArgs.homeDir,
                   item.fullPath,

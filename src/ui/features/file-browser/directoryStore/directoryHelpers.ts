@@ -528,9 +528,7 @@ export const directoryHelpers = {
     setTimeout(() => {
       if (!directoryData) return;
       if (beforeNavigation.type !== "path") return;
-      const beforeNavigationName = PathHelpers.getLastPathPart(
-        beforeNavigation.fullPath,
-      );
+      const beforeNavigationName = PathHelpers.name(beforeNavigation.fullPath);
       const idx = directoryData.findIndex(
         (i) => i.name === beforeNavigationName,
       );
@@ -642,7 +640,7 @@ export const directoryHelpers = {
     directoryHelpers.createDirectory({
       fullPath: PathHelpers.resolveUpDirectory(
         homeDirectory,
-        PathHelpers.getParentFolder(fullPath).path,
+        PathHelpers.parent(fullPath).path,
       ),
     });
   },

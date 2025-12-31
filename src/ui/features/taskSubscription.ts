@@ -15,11 +15,10 @@ export function subscribeToTasks() {
         const start = new Date(task.createdIso);
         const elapsed = new Date().getTime() - start.getTime();
         const fileToSelect =
-          elapsed < 1000 ? PathHelpers.getLastPathPart(destination) : undefined;
+          elapsed < 1000 ? PathHelpers.name(destination) : undefined;
         return directoryHelpers.checkAndReloadDirectories(
-          PathHelpers.getParentFolder(
-            PathHelpers.expandHome(homeDirectory, destination),
-          ).path,
+          PathHelpers.parent(PathHelpers.expandHome(homeDirectory, destination))
+            .path,
           fileToSelect,
         );
       }

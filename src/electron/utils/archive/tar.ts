@@ -121,13 +121,20 @@ function readContentsWithTar(
   });
 }
 
-function archiveWithTar(
-  opts: TarOptions,
-): Promise<Archive.ArchiveResult> {
+function archiveWithTar(opts: TarOptions): Promise<Archive.ArchiveResult> {
   return new Promise<Archive.ArchiveResult>((resolve) => {
-    const { source, destination, progressCallback, abortSignal, compressionType, extension } = opts;
+    const {
+      source,
+      destination,
+      progressCallback,
+      abortSignal,
+      compressionType,
+      extension,
+    } = opts;
 
-    const tarPath = destination.endsWith(extension) ? destination : destination + extension;
+    const tarPath = destination.endsWith(extension)
+      ? destination
+      : destination + extension;
 
     let settled = false;
     let completedSuccessfully = false;
@@ -177,7 +184,7 @@ function archiveWithTar(
     // BUILD COMMAND
     // -----------------
     const compressionFlag = getCompressionFlag(compressionType);
-    
+
     // Build tar command: tar -c[z|j|J]f output.tar[.gz|.bz2|.xz] -C parent source1 source2 ...
     const args = [`-c${compressionFlag}f`, tarPath];
 
@@ -187,12 +194,12 @@ function archiveWithTar(
       // Add all source files/directories
       for (const sourcePath of source) {
         const stats = fs.statSync(sourcePath);
-        
+
         if (stats.isDirectory()) {
           // For directories, change to parent and archive the dir name
-          const parentDir = PathHelpers.getParentFolder(sourcePath).path;
-          const dirName = PathHelpers.getLastPathPart(sourcePath);
-          
+          const parentDir = PathHelpers.parent(sourcePath).path;
+          const dirName = PathHelpers.name(sourcePath);
+
           // Set working directory from first item (all items should be in same dir ideally)
           if (!workingDir) {
             workingDir = parentDir;
@@ -201,9 +208,9 @@ function archiveWithTar(
           args.push(dirName);
         } else {
           // For files, change to parent and archive the file name
-          const parentDir = PathHelpers.getParentFolder(sourcePath).path;
-          const fileName = PathHelpers.getLastPathPart(sourcePath);
-          
+          const parentDir = PathHelpers.parent(sourcePath).path;
+          const fileName = PathHelpers.name(sourcePath);
+
           // Set working directory from first item (all items should be in same dir ideally)
           if (!workingDir) {
             workingDir = parentDir;
@@ -287,7 +294,9 @@ function archiveWithTar(
       if (code === 0) {
         finish();
       } else {
-        finish(new Error(`tar process exited with code ${code}: ${errorOutput}`));
+        finish(
+          new Error(`tar process exited with code ${code}: ${errorOutput}`),
+        );
       }
     });
 
@@ -301,7 +310,13 @@ function unarchiveWithTar(
   opts: UntarOptions,
 ): Promise<Archive.UnarchiveResult> {
   return new Promise<Archive.UnarchiveResult>((resolve) => {
-    const { source, destination, progressCallback, abortSignal, compressionType } = opts;
+    const {
+      source,
+      destination,
+      progressCallback,
+      abortSignal,
+      compressionType,
+    } = opts;
 
     let settled = false;
     let completedSuccessfully = false;
@@ -361,7 +376,7 @@ function unarchiveWithTar(
     // BUILD COMMAND
     // -----------------
     const compressionFlag = getCompressionFlag(compressionType);
-    
+
     // Build tar command: tar -x[z|j|J]f archive.tar[.gz|.bz2|.xz] -C destination
     const args = [`-x${compressionFlag}f`, source, "-C", destination];
 
@@ -410,7 +425,9 @@ function unarchiveWithTar(
       if (code === 0) {
         finish();
       } else {
-        finish(new Error(`tar process exited with code ${code}: ${errorOutput}`));
+        finish(
+          new Error(`tar process exited with code ${code}: ${errorOutput}`),
+        );
       }
     });
 
@@ -422,99 +439,169 @@ function unarchiveWithTar(
 
 // Export namespaces for each format
 export namespace Tar {
-  export function archive(opts: Archive.ArchiveOpts): Promise<Archive.ArchiveResult> {
-    return archiveWithTar({ ...opts, compressionType: "none", extension: ".tar" });
+  export function archive(
+    opts: Archive.ArchiveOpts,
+  ): Promise<Archive.ArchiveResult> {
+    return archiveWithTar({
+      ...opts,
+      compressionType: "none",
+      extension: ".tar",
+    });
   }
 
-  export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
+  export function unarchive(
+    opts: Archive.UnarchiveOpts,
+  ): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "none" });
   }
 
-  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+  export function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
     return readContentsWithTar(archivePath, "none");
   }
 }
 
 export namespace TarGz {
-  export function archive(opts: Archive.ArchiveOpts): Promise<Archive.ArchiveResult> {
-    return archiveWithTar({ ...opts, compressionType: "gzip", extension: ".tar.gz" });
+  export function archive(
+    opts: Archive.ArchiveOpts,
+  ): Promise<Archive.ArchiveResult> {
+    return archiveWithTar({
+      ...opts,
+      compressionType: "gzip",
+      extension: ".tar.gz",
+    });
   }
 
-  export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
+  export function unarchive(
+    opts: Archive.UnarchiveOpts,
+  ): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "gzip" });
   }
 
-  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+  export function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
     return readContentsWithTar(archivePath, "gzip");
   }
 }
 
 export namespace Tgz {
-  export function archive(opts: Archive.ArchiveOpts): Promise<Archive.ArchiveResult> {
-    return archiveWithTar({ ...opts, compressionType: "gzip", extension: ".tgz" });
+  export function archive(
+    opts: Archive.ArchiveOpts,
+  ): Promise<Archive.ArchiveResult> {
+    return archiveWithTar({
+      ...opts,
+      compressionType: "gzip",
+      extension: ".tgz",
+    });
   }
 
-  export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
+  export function unarchive(
+    opts: Archive.UnarchiveOpts,
+  ): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "gzip" });
   }
 
-  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+  export function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
     return readContentsWithTar(archivePath, "gzip");
   }
 }
 
 export namespace TarBz2 {
-  export function archive(opts: Archive.ArchiveOpts): Promise<Archive.ArchiveResult> {
-    return archiveWithTar({ ...opts, compressionType: "bzip2", extension: ".tar.bz2" });
+  export function archive(
+    opts: Archive.ArchiveOpts,
+  ): Promise<Archive.ArchiveResult> {
+    return archiveWithTar({
+      ...opts,
+      compressionType: "bzip2",
+      extension: ".tar.bz2",
+    });
   }
 
-  export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
+  export function unarchive(
+    opts: Archive.UnarchiveOpts,
+  ): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "bzip2" });
   }
 
-  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+  export function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
     return readContentsWithTar(archivePath, "bzip2");
   }
 }
 
 export namespace Tbz2 {
-  export function archive(opts: Archive.ArchiveOpts): Promise<Archive.ArchiveResult> {
-    return archiveWithTar({ ...opts, compressionType: "bzip2", extension: ".tbz2" });
+  export function archive(
+    opts: Archive.ArchiveOpts,
+  ): Promise<Archive.ArchiveResult> {
+    return archiveWithTar({
+      ...opts,
+      compressionType: "bzip2",
+      extension: ".tbz2",
+    });
   }
 
-  export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
+  export function unarchive(
+    opts: Archive.UnarchiveOpts,
+  ): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "bzip2" });
   }
 
-  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+  export function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
     return readContentsWithTar(archivePath, "bzip2");
   }
 }
 
 export namespace TarXz {
-  export function archive(opts: Archive.ArchiveOpts): Promise<Archive.ArchiveResult> {
-    return archiveWithTar({ ...opts, compressionType: "xz", extension: ".tar.xz" });
+  export function archive(
+    opts: Archive.ArchiveOpts,
+  ): Promise<Archive.ArchiveResult> {
+    return archiveWithTar({
+      ...opts,
+      compressionType: "xz",
+      extension: ".tar.xz",
+    });
   }
 
-  export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
+  export function unarchive(
+    opts: Archive.UnarchiveOpts,
+  ): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "xz" });
   }
 
-  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+  export function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
     return readContentsWithTar(archivePath, "xz");
   }
 }
 
 export namespace Txz {
-  export function archive(opts: Archive.ArchiveOpts): Promise<Archive.ArchiveResult> {
-    return archiveWithTar({ ...opts, compressionType: "xz", extension: ".txz" });
+  export function archive(
+    opts: Archive.ArchiveOpts,
+  ): Promise<Archive.ArchiveResult> {
+    return archiveWithTar({
+      ...opts,
+      compressionType: "xz",
+      extension: ".txz",
+    });
   }
 
-  export function unarchive(opts: Archive.UnarchiveOpts): Promise<Archive.UnarchiveResult> {
+  export function unarchive(
+    opts: Archive.UnarchiveOpts,
+  ): Promise<Archive.UnarchiveResult> {
     return unarchiveWithTar({ ...opts, compressionType: "xz" });
   }
 
-  export function readContents(archivePath: string): Promise<ArchiveTypes.ReadContentsResult> {
+  export function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
     return readContentsWithTar(archivePath, "xz");
   }
 }

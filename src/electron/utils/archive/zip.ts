@@ -117,13 +117,10 @@ export namespace Zip {
             fs.existsSync(sourcePath) &&
             fs.statSync(sourcePath).isDirectory()
           ) {
-            archive.directory(
-              sourcePath,
-              PathHelpers.getLastPathPart(sourcePath),
-            );
+            archive.directory(sourcePath, PathHelpers.name(sourcePath));
           } else {
             archive.file(sourcePath, {
-              name: PathHelpers.getLastPathPart(sourcePath),
+              name: PathHelpers.name(sourcePath),
             });
           }
         }

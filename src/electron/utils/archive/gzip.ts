@@ -198,7 +198,7 @@ export namespace Gzip {
       // ENSURE PARENT DIRECTORY EXISTS
       // -----------------
       try {
-        const parentDir = PathHelpers.getParentFolder(destination).path;
+        const parentDir = PathHelpers.parent(destination).path;
         fs.mkdirSync(parentDir, { recursive: true });
       } catch (err) {
         return finish(err as Error);

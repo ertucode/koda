@@ -94,7 +94,7 @@ export function replacePlaceholders(
   result = result.replace(/\[F\]/g, itemPath);
 
   // [D] - Directory path (full path without the item name)
-  const directoryPath = PathHelpers.getParentFolder(itemPath).path;
+  const directoryPath = PathHelpers.parent(itemPath).path;
   result = result.replace(/\[D\]/g, directoryPath);
 
   // Restore escaped brackets

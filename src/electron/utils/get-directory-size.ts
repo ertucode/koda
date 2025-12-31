@@ -72,9 +72,9 @@ export async function getDirectorySizes(
 export async function getSizeForPath(fullPath: string): Promise<number> {
   const s = await fs.stat(fullPath);
   if (s.isDirectory()) {
-    const itemName = PathHelpers.getLastPathPart(fullPath);
+    const itemName = PathHelpers.name(fullPath);
     const sizes = await getDirectorySizes(
-      PathHelpers.getParentFolder(fullPath).path,
+      PathHelpers.parent(fullPath).path,
       itemName,
     );
     return sizes[itemName] || 0;
