@@ -5,6 +5,7 @@ import { clipboardHelpers } from "./clipboardHelpers";
 import { getWindowElectron } from "@/getWindowElectron";
 import { toast } from "@/lib/components/toast";
 import { DirectoryId } from "./directoryStore/DirectoryBase";
+import { useSelector } from "@xstate/store/react";
 
 // Store context for drag and drop state
 type FileDragDropContext = {
@@ -40,7 +41,11 @@ export const fileDragDropStore = createStore({
     }),
     startDragToSelect: (
       context,
-      event: { startIdx: number; directoryId: DirectoryId; withMetaKey: boolean },
+      event: {
+        startIdx: number;
+        directoryId: DirectoryId;
+        withMetaKey: boolean;
+      },
     ) => ({
       ...context,
       isDragToSelect: true,
@@ -95,7 +100,11 @@ const handleGlobalMouseUp = () => {
 // Handler functions
 export const fileDragDropHandlers = {
   // Start drag-to-select mode
-  startDragToSelect: (startIdx: number, directoryId: DirectoryId, withMetaKey: boolean = false) => {
+  startDragToSelect: (
+    startIdx: number,
+    directoryId: DirectoryId,
+    withMetaKey: boolean = false,
+  ) => {
     fileDragDropStore.send({
       type: "startDragToSelect",
       startIdx,
@@ -324,3 +333,17 @@ export const fileDragDropHandlers = {
     }
   },
 };
+
+export function useDragOverThisRow(
+  item: GetFilesAndFoldersInDirectoryItem,
+  index: number,
+  directoryId: DirectoryId,
+) {
+  return useSelector(
+    fileDragDropStore,
+    (s) =>
+      s.context.dragOverDirectoryId === directoryId &&
+      s.context.dragOverRowIdx === index &&
+      item.type === "dir",
+  );
+}

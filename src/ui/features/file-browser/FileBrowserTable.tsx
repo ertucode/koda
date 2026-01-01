@@ -17,6 +17,7 @@ import {
   selectDirectory,
   selectViewMode,
   selectError,
+  useRowIsSelected,
 } from "@/features/file-browser/directoryStore/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
@@ -24,7 +25,7 @@ import { useDirectoryContext } from "@/features/file-browser/DirectoryContext";
 import { createColumns } from "./config/columns";
 import { tagsStore, selectFileTags } from "./tags";
 import { useDebounce } from "@/lib/hooks/useDebounce";
-import { fileDragDropStore } from "./fileDragDrop";
+import { fileDragDropStore, useDragOverThisRow } from "./fileDragDrop";
 import { DirectoryId } from "./directoryStore/DirectoryBase";
 import { directoryDerivedStores } from "./directoryStore/directorySubscriptions";
 import { FileGridView } from "./components/fileGridView/FileGridView";
@@ -298,19 +299,8 @@ const TableRow = memo(function TableRow({
   item,
   onContextMenu,
 }: TableRowProps) {
-  // Subscribe only to this row's selection state - not the entire selection Set
-  const isSelected = useSelector(directoryStore, (state) =>
-    state.context.directoriesById[directoryId].selection.indexes.has(index),
-  );
-
-  // Subscribe only to drag state for this row
-  const isDragOverThisRow = useSelector(
-    fileDragDropStore,
-    (s) =>
-      s.context.dragOverDirectoryId === directoryId &&
-      s.context.dragOverRowIdx === index &&
-      item.type === "dir",
-  );
+  const isSelected = useRowIsSelected(index, directoryId);
+  const isDragOverThisRow = useDragOverThisRow(item, index, directoryId);
 
   return (
     <tr

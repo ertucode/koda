@@ -28,6 +28,7 @@ import {
   DirectoryLocalSort,
 } from "./DirectoryBase";
 import { errorResponseToMessage, GenericError } from "@common/GenericError";
+import { useSelector } from "@xstate/store/react";
 
 function updateDirectory(
   context: DirectoryContext,
@@ -583,3 +584,12 @@ export const selectError =
   (directoryId: DirectoryId | undefined) =>
   (state: StoreSnapshot<DirectoryContext>) =>
     getActiveDirectory(state.context, directoryId).error;
+
+export function useRowIsSelected(
+  index: number,
+  directoryId: DirectoryId | undefined,
+) {
+  return useSelector(directoryStore, (s) =>
+    s.context.directoriesById[directoryId!].selection.indexes.has(index),
+  );
+}

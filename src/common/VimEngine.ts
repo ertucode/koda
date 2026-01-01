@@ -1,5 +1,6 @@
 import { GetFilesAndFoldersInDirectoryItem } from "./Contracts.js";
 import { GenericError } from "./GenericError.js";
+import { HistoryStack } from "./history-stack.js";
 
 export namespace VimEngine {
   export type CursorPosition = {
@@ -12,147 +13,290 @@ export namespace VimEngine {
     cursor: CursorPosition;
     registry: string[];
   };
-  export type Manipulation =
+
+  export type BufferItem =
     | {
-        type: "copy";
-        line: number;
+        type: "str";
+        str: string;
       }
     | {
-        type: "delete_and_copy";
-        line: number;
-      }
-    | {
-        type: "delete";
-        line: number;
-      }
-    | {
-        type: "paste";
-        content: string[];
-        line: number;
-      }
-    | {
-        type: "undo";
+        type: "real";
+        item: GetFilesAndFoldersInDirectoryItem;
+        str: string;
       };
-  export type Mode = "normal" | "insert";
-  export type CommandResult =
-    | {
-        manipulations: Manipulation[];
-        mode: Mode;
-        cursor: CursorPosition;
-      }
-    | GenericError
-    | typeof NOOP;
-  export const NOOP = Symbol("NOOP");
 
   export type Buffer = {
     fullPath: string;
-    items: GetFilesAndFoldersInDirectoryItem[];
+    items: BufferItem[];
+    historyStack: HistoryStack<HistoryItem>;
   };
 
-  // yy - p - P - u - ciw - C
+  export type State = {
+    buffers: Record<string, Buffer>;
+    currentBuffer: Buffer;
+    cursor: CursorPosition;
+    registry: BufferItem[];
+    mode: Mode;
+    count: number;
+  };
 
-  // TODO: I don't like this architecture. We should just contain every functionality in here
-  export function cc(opts: CommandOpts): CommandResult {
-    const manipulations: Manipulation[] = [];
-    for (let i = opts.cursor.line; i < opts.count + opts.cursor.line; i++) {
-      manipulations.push({
-        type: "delete",
-        line: i,
-      });
+  export type HistoryItem = {
+    reversions: Reversion[];
+  };
+  type Reversion =
+    | {
+        type: "cursor";
+        cursor: CursorPosition;
+      }
+    | {
+        type: "add";
+        items: BufferItem[];
+        index: number;
+      }
+    | {
+        type: "remove";
+        count: number;
+        index: number;
+      };
+  export type Mode = "normal" | "insert";
+
+  // cc - dd - yy - p - P - u - ciw - C
+
+  export function cc(state: State): State {
+    const idxs: number[] = [];
+    for (
+      let i = state.cursor.line;
+      i < getEffectiveCount(state) + state.cursor.line;
+      i++
+    ) {
+      idxs.push(i);
     }
+    const currentItems = [...state.currentBuffer.items];
+    const deletedItems = currentItems.splice(
+      state.cursor.line,
+      getEffectiveCount(state),
+    );
+    const currentBuffer: Buffer = {
+      fullPath: state.currentBuffer.fullPath,
+      items: currentItems,
+      historyStack: state.currentBuffer.historyStack.withNew({
+        reversions: [
+          {
+            type: "add",
+            items: deletedItems,
+            index: state.cursor.line,
+          },
+          {
+            type: "cursor",
+            cursor: state.cursor,
+          },
+        ],
+      }),
+    };
+
     return {
-      manipulations,
+      buffers: {
+        ...state.buffers,
+        [state.currentBuffer.fullPath]: currentBuffer,
+      },
+      count: 0,
       mode: "insert",
+      currentBuffer,
       cursor: {
-        line: opts.cursor.line + opts.count - 1,
+        line: state.cursor.line,
         column: 0,
       },
+      registry: idxs.map((i) => state.currentBuffer.items[i]),
     };
   }
 
-  export function dd(opts: CommandOpts): CommandResult {
-    const manipulations: Manipulation[] = [];
-    for (let i = opts.cursor.line; i < opts.count + opts.cursor.line; i++) {
-      manipulations.push({
-        type: "delete_and_copy",
-        line: i,
-      });
+  export function dd(state: State): State {
+    const idxs: number[] = [];
+    for (
+      let i = state.cursor.line;
+      i < getEffectiveCount(state) + state.cursor.line;
+      i++
+    ) {
+      idxs.push(i);
+    }
+    const currentItems = [...state.currentBuffer.items];
+    const deletedItems = currentItems.splice(
+      state.cursor.line,
+      getEffectiveCount(state),
+    );
+    const currentBuffer: Buffer = {
+      fullPath: state.currentBuffer.fullPath,
+      items: currentItems,
+      historyStack: state.currentBuffer.historyStack.withNew({
+        reversions: [
+          {
+            type: "add",
+            items: deletedItems,
+            index: state.cursor.line,
+          },
+          {
+            type: "cursor",
+            cursor: state.cursor,
+          },
+        ],
+      }),
+    };
+    return {
+      buffers: {
+        ...state.buffers,
+        [state.currentBuffer.fullPath]: currentBuffer,
+      },
+      count: 0,
+      mode: "normal",
+      currentBuffer,
+      cursor: {
+        line: state.cursor.line,
+        column: Math.max(
+          state.cursor.column,
+          currentItems[state.cursor.line].str.length,
+        ),
+      },
+      registry: idxs.map((i) => state.currentBuffer.items[i]),
+    };
+  }
+
+  export function yy(state: State): State {
+    const idxs: number[] = [];
+    for (
+      let i = state.cursor.line;
+      i < getEffectiveCount(state) + state.cursor.line;
+      i++
+    ) {
+      idxs.push(i);
     }
     return {
-      manipulations,
-      mode: "normal",
-      cursor: {
-        line: opts.cursor.line + opts.count,
-        column: opts.cursor.column,
-      },
+      ...state,
+      registry: idxs.map((i) => state.currentBuffer.items[i]),
     };
   }
 
-  export function yy(opts: CommandOpts): CommandResult {
-    const manipulations: Manipulation[] = [];
-    for (let i = opts.cursor.line; i < opts.count + opts.cursor.line; i++) {
-      manipulations.push({
-        type: "copy",
-        line: i,
-      });
+  export function p(state: State): State {
+    if (state.count) GenericError.Message("p not supported with count");
+
+    const currentItems = [...state.currentBuffer.items];
+    state.currentBuffer.items.splice(state.cursor.line, 0, ...state.registry);
+    const currentBuffer: Buffer = {
+      fullPath: state.currentBuffer.fullPath,
+      items: currentItems,
+      historyStack: state.currentBuffer.historyStack.withNew({
+        reversions: [
+          {
+            type: "remove",
+            count: state.registry.length,
+            index: state.cursor.line,
+          },
+          {
+            type: "cursor",
+            cursor: state.cursor,
+          },
+        ],
+      }),
+    };
+    return {
+      buffers: {
+        ...state.buffers,
+        [state.currentBuffer.fullPath]: currentBuffer,
+      },
+      count: 0,
+      mode: "normal",
+      currentBuffer,
+      cursor: {
+        line: state.cursor.line + 1,
+        column: 0,
+      },
+      registry: [],
+    };
+  }
+
+  export function P(state: State): State {
+    if (state.count) GenericError.Message("P not supported with count");
+
+    const currentItems = [...state.currentBuffer.items];
+    state.currentBuffer.items.splice(state.cursor.line, 0, ...state.registry);
+    const currentBuffer: Buffer = {
+      fullPath: state.currentBuffer.fullPath,
+      items: currentItems,
+      historyStack: state.currentBuffer.historyStack.withNew({
+        reversions: [
+          {
+            type: "remove",
+            count: state.registry.length,
+            index: state.cursor.line,
+          },
+          {
+            type: "cursor",
+            cursor: state.cursor,
+          },
+        ],
+      }),
+    };
+    return {
+      buffers: {
+        ...state.buffers,
+        [state.currentBuffer.fullPath]: currentBuffer,
+      },
+      count: 0,
+      mode: "normal",
+      currentBuffer,
+      cursor: {
+        line: state.cursor.line + 1,
+        column: 0,
+      },
+      registry: [],
+    };
+  }
+
+  export function applyUndo(state: State): State {
+    const historyItem = state.currentBuffer.historyStack.goPrevSafe();
+    if (!historyItem || !historyItem.reversions.length) return state;
+
+    const currentItems = [...state.currentBuffer.items];
+    let cursor = state.cursor;
+
+    for (const reversion of historyItem.reversions) {
+      if (reversion.type === "cursor") {
+        cursor = reversion.cursor;
+      } else if (reversion.type === "add") {
+        currentItems.splice(reversion.index, 0, ...reversion.items);
+      } else if (reversion.type === "remove") {
+        currentItems.splice(reversion.index, reversion.count);
+      }
     }
-    return {
-      manipulations,
-      mode: "normal",
-      cursor: opts.cursor,
-    };
-  }
-
-  export function p(opts: CommandOpts): CommandResult {
-    if (opts.count) GenericError.Message("p not supported with count");
-    if (!opts.registry.length) return NOOP;
 
     return {
-      manipulations: [
-        {
-          type: "paste",
-          line: opts.cursor.line + 1,
-          content: opts.registry,
-        },
-      ],
-      mode: "normal",
-      cursor: {
-        column: 0,
-        line: opts.cursor.line + 1,
+      ...state,
+      cursor,
+      currentBuffer: {
+        ...state.currentBuffer,
+        items: currentItems,
       },
     };
   }
 
-  export function P(opts: CommandOpts): CommandResult {
-    if (opts.count) GenericError.Message("P not supported with count");
-    if (!opts.registry.length) return NOOP;
+  export function u(state: State): State {
+    let currentState = state;
 
+    for (let i = 0; i < getEffectiveCount(state); i++) {
+      currentState = applyUndo(currentState);
+    }
+
+    return currentState;
+  }
+
+  export function addToCount(state: State, count: number): State {
     return {
-      manipulations: [
-        {
-          type: "paste",
-          line: opts.cursor.line - 1,
-          content: opts.registry,
-        },
-      ],
-      mode: "normal",
-      cursor: {
-        column: 0,
-        line: opts.cursor.line,
-      },
+      ...state,
+      count: state.count === 0 ? count : 10 * state.count + count,
     };
   }
 
-  export function u(opts: CommandOpts): CommandResult {
-    return {
-      manipulations: [
-        {
-          type: "undo",
-        },
-      ],
-      mode: "normal",
-      cursor: opts.cursor,
-    };
+  function getEffectiveCount(state: State): number {
+    return state.count || 1;
   }
 }
 
@@ -170,81 +314,3 @@ export namespace VimEngine {
 // 12
 // 13
 // 14
-// 15
-// 16
-// 17
-// 18
-// 19
-// 20
-// 21
-// 22
-// 23
-// 24
-// 25
-// 26
-// 27
-// 28
-// 29
-// 30
-// 31
-// 32
-// 33
-// 34
-// 35
-// 36
-// 37
-// 38
-// 39
-// 40
-// 41
-// 42
-// 43
-// 44
-// 45
-// 46
-// 47
-// 48
-// 49
-// 50
-// 51
-// 52
-// 53
-// 54
-// 55
-// 56
-// 57
-// 58
-// 59
-// 60
-// 61
-// 62
-// 63
-// 64
-// 65
-// 66
-// 67
-// 68
-// 69
-// 70
-// 71
-// 72
-// 73
-// 74
-// 75
-// 76
-// 77
-// 78
-// 79
-// 80
-// 81
-// 82
-// 83
-// 84
-// 85
-// 86
-// 87
-// 88
-// 89
-// 90
-// 91
-// 92

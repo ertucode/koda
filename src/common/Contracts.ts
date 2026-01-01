@@ -78,7 +78,6 @@ export type GetFilesAndFoldersInDirectoryItem = (
   name: string;
   fullPath?: string;
   permissions?: string;
-  moved?: boolean;
 };
 
 export type PasteConflictInfo = {
