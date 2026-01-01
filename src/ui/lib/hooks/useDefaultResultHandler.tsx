@@ -6,19 +6,20 @@ export type ResultHandlerResult = GenericResult<unknown> | { noResult: true };
 export type ResultHandlerAdditional = {
   success?: () => void;
   error?: () => void;
+  noToastOnSuccess?: boolean;
+  nonError?: () => void;
 };
 export function useDefaultResultHandler() {
   return useMemo(() => {
     return {
       onResult: (
         result: ResultHandlerResult,
-        additional?: {
-          success?: () => void;
-          error?: () => void;
-          noToastOnSuccess?: boolean;
-        },
+        additional?: ResultHandlerAdditional,
       ) => {
-        if ("noResult" in result) return;
+        if ("noResult" in result) {
+          additional?.nonError?.();
+          return;
+        }
         if (result.success) {
           additional?.success?.();
           if (!additional?.noToastOnSuccess) {

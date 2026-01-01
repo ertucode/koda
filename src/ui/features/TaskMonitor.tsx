@@ -10,13 +10,13 @@ import {
   FolderArchive,
   FileIcon,
   FolderIcon,
-  X,
   XOctagon,
   Copy,
   Move,
   DeleteIcon,
   FileXCornerIcon,
   Info,
+  TerminalIcon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { clsx } from "@/lib/functions/clsx";
@@ -25,6 +25,7 @@ import { PathHelpers } from "@common/PathHelpers";
 import { directoryHelpers } from "./file-browser/directoryStore/directory";
 import { getWindowElectron } from "@/getWindowElectron";
 import { Dialog } from "@/lib/components/dialog";
+import { Typescript } from "@common/Typescript";
 
 function getTaskTypeLabel(task: TaskDefinition): string {
   switch (task.type) {
@@ -36,8 +37,10 @@ function getTaskTypeLabel(task: TaskDefinition): string {
       return task.metadata.isCut ? "Moving files" : "Copying files";
     case "delete":
       return "File Deletion";
+    case "run-command":
+      return "Run Command";
     default:
-      return "Processing task";
+      return Typescript.assertUnreachable(task);
   }
 }
 
@@ -73,8 +76,10 @@ function getTaskIcon(task: TaskDefinition) {
       return task.metadata.isCut ? Move : Copy;
     case "delete":
       return DeleteIcon;
+    case "run-command":
+      return TerminalIcon;
     default:
-      return FileIcon;
+      return Typescript.assertUnreachable(task);
   }
 }
 
@@ -246,7 +251,11 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
     );
   }
 
-  return null;
+  if (task.type === "run-command") {
+    return "TODO";
+  }
+
+  Typescript.assertUnreachable(task);
 }
 
 function TaskItem({
@@ -359,34 +368,34 @@ function TaskItem({
                       <div className="flex items-center">
                         <Loader2Icon className="h-4 w-4 text-primary animate-spin" />
                         <div className="absolute right-0 flex items-center size-4">
-                          {status === "running" && (
-                            <button
-                              onClick={handleCancel}
-                              className="btn btn-xs size-4 btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Cancel task"
-                            >
-                              <XOctagon className="h-4 w-4" />
-                            </button>
-                          )}
-                          {status !== "running" && (
-                            <button
-                              onClick={onDismiss}
-                              className="btn btn-xs size-4 btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Dismiss"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          )}
+                          <button
+                            onClick={handleCancel}
+                            className="btn btn-xs size-4 btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Cancel task"
+                          >
+                            <XOctagon className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                     </div>
                   )}
-                  {status === "success" && (
-                    <CheckCircle2 className="h-4 w-4 text-success" />
-                  )}
-                  {status === "error" && (
-                    <XCircle className="h-4 w-4 text-error" />
-                  )}
+                  <div className="flex items-center">
+                    {status === "success" && (
+                      <CheckCircle2 className="h-4 w-4 text-success" />
+                    )}
+                    {status === "error" && (
+                      <XCircle className="h-4 w-4 text-error" />
+                    )}
+                    <div className="absolute right-0 flex items-center size-4">
+                      <button
+                        onClick={onDismiss}
+                        className="btn btn-xs size-4 btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Dismiss"
+                      >
+                        <XOctagon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

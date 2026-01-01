@@ -1,6 +1,7 @@
-import { GenericError } from "./GenericError";
+import { GetFilesAndFoldersInDirectoryItem } from "./Contracts.js";
+import { GenericError } from "./GenericError.js";
 
-export namespace VimHelpers {
+export namespace VimEngine {
   export type CursorPosition = {
     line: number;
     column: number;
@@ -42,6 +43,11 @@ export namespace VimHelpers {
     | GenericError
     | typeof NOOP;
   export const NOOP = Symbol("NOOP");
+
+  export type Buffer = {
+    fullPath: string;
+    items: GetFilesAndFoldersInDirectoryItem[];
+  };
 
   // yy - p - P - u - ciw - C
 

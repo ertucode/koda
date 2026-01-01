@@ -6,7 +6,7 @@ import {
   LabeledFormFieldNonInputProps,
 } from "./LabeledFormField";
 import { clsx } from "@/lib/functions/clsx";
-import { PathInput } from "./PathInput";
+import { PathInput, PathInputProps } from "./PathInput";
 
 export type FormFieldConfig<TKey extends string = string> = {
   label: React.ReactNode;
@@ -78,17 +78,12 @@ function Inside({
 
   if (config.type === "path") {
     const className = clsx("input w-full", config.props?.className);
-    console.log(
-      config.field,
-      contextValue?.register?.(config.field),
-      config.props,
-    );
     return (
       <PathInput
-        id={config.field}
-        name={config.field}
-        {...contextValue?.register?.(config.field)}
         {...config.props}
+        name={config.field}
+        id={config.field}
+        control={getControl(contextValue)}
         className={className}
       />
     );
@@ -96,6 +91,16 @@ function Inside({
 
   // @ts-expect-error
   return `Unknown type: ${config.type}`;
+}
+
+function getControl(value: FormFieldFromConfigContextValue | undefined) {
+  if (value == undefined)
+    throw new Error("FormFieldFromConfigContext not found in getControl");
+  if (value.control == undefined)
+    throw new Error(
+      "FormFieldFromConfigContext.control not found in getControl",
+    );
+  return value.control;
 }
 
 export type FormFieldErrors = Partial<
@@ -171,6 +176,6 @@ namespace FormFieldFromConfigProps {
 
   export type PathInput = {
     type: "path";
-    props?: React.ComponentProps<"input">;
+    props?: PathInputProps<any>;
   };
 }
