@@ -15,6 +15,7 @@ import { toast } from "@/lib/components/toast";
 import { directoryHelpers as dh } from "./directoryHelpers";
 import { FileBrowserCache } from "../FileBrowserCache";
 import { directoryLoadingHelpers } from "./directoryLoadingStore";
+import { DirectoryDataFromSettings } from "../utils/DirectoryDataFromSettings";
 import {
   setupSubscriptions,
   unsubscribeDirectorySubscriptions,
@@ -28,6 +29,8 @@ import {
   DirectoryLocalSort,
 } from "./DirectoryBase";
 import { errorResponseToMessage, GenericError } from "@common/GenericError";
+import { resolveSortFromStores } from "../schemas";
+import { columnPreferencesStore } from "../columnPreferences";
 import { useSelector } from "@xstate/store/react";
 import { VimEngine } from "@common/VimEngine";
 
@@ -165,6 +168,8 @@ export const directoryStore = createStore({
       updateDirectory(context, event.directoryId, (d) => {
         // Check if the buffer is dirty (has history)
         // We assume that if there is history, the user has manipulated the buffer
+
+
         const isDirty = d.vimState.currentBuffer.historyStack.hasPrev;
 
         if (isDirty) {
@@ -175,7 +180,17 @@ export const directoryStore = createStore({
           };
         }
 
-        const bufferItems: VimEngine.BufferItem[] = event.data.map((item) => ({
+        const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
+        const columnPrefs = columnPreferencesStore.getSnapshot().context;
+        const sort = resolveSortFromStores(d, columnPrefs);
+
+        const processedData = DirectoryDataFromSettings.getDirectoryData(
+          event.data,
+          settings,
+          sort,
+        );
+
+        const bufferItems: VimEngine.BufferItem[] = processedData.map((item) => ({
           type: "real",
           item,
           str: item.name,
@@ -194,6 +209,7 @@ export const directoryStore = createStore({
               historyStack: new HistoryStack([]),
             },
           },
+          vimBufferSettings: settings,
         };
       }),
     setError: (

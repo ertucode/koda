@@ -4,6 +4,7 @@ import { TagColor } from "../tags";
 import { SortState } from "../schemas";
 import { GenericError } from "@common/GenericError";
 import { VimEngine } from "@common/VimEngine";
+import { FileBrowserSettings } from "../settings";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -50,6 +51,7 @@ export type DirectoryContextDirectory = {
   viewMode: "list" | "grid";
   localSort: DirectoryLocalSort | undefined;
   vimState: VimEngine.State;
+  vimBufferSettings?: FileBrowserSettings;
 };
 
 export type DirectoryContext = {

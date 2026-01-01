@@ -33,6 +33,7 @@ import {
 } from "./DirectoryBase";
 import { initialDirectoryInfo } from "../defaultPath";
 import { columnPreferencesStore } from "../columnPreferences";
+
 import { resolveSortFromStores } from "../schemas";
 import { ArchiveHelpers } from "@common/ArchiveHelpers";
 import { VimEngine } from "@common/VimEngine";
@@ -354,6 +355,7 @@ export const directoryHelpers = {
       directoryStore.getSnapshot().context,
       directoryId,
     );
+    if (!context || !context.directory) return;
     return loadDirectoryInfo(context.directory, context.directoryId);
   },
 
@@ -524,7 +526,26 @@ export const directoryHelpers = {
       directoryId,
     );
     const originalData = context.directoryData;
+    // Use the settings that were active when the buffer was generated
+    const settings =
+      context.vimBufferSettings ||
+      selectSettingsFromStore(fileBrowserSettingsStore.get());
+    
+    console.log("SaveVimChanges - Context Settings:", context.vimBufferSettings);
+    console.log("SaveVimChanges - Active Settings:", settings);
+
+    // We don't care about sort order for diffing, just filtering
+    const originalItemsFiltered = DirectoryDataFromSettings.getDirectoryData(
+      context.directoryData,
+      settings,
+      { by: "name", order: "asc" }, // Dummy sort
+    );
+
     const bufferItems = context.vimState.currentBuffer.items;
+    const originalItems = originalItemsFiltered;
+
+    console.log("SaveVimChanges - OriginalFiltered Count:", originalItemsFiltered.length);
+    console.log("SaveVimChanges - Buffer Items Count:", bufferItems.length);
 
     // 1. Identify Deletions
     // Map of fullPath -> originalItem
@@ -535,7 +556,7 @@ export const directoryHelpers = {
       }
     });
 
-    const deletions = originalData.filter(
+    const deletions = originalItems.filter(
       (i) => i.fullPath && !bufferRealItemPaths.has(i.fullPath),
     );
 
