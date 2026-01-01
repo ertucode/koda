@@ -78,10 +78,12 @@ export function setupSubscriptions(directoryId: DirectoryId) {
     [directoryStore, columnPreferencesStore],
     ([d, columnPrefs]) => {
       const dir = d.directoriesById[directoryId];
+      if (!dir) return [""];
       return [JSON.stringify(resolveSortFromStores(dir, columnPrefs))];
     },
     ([d, columnPrefs]) => {
       const dir = d.directoriesById[directoryId];
+      if (!dir) return { by: undefined, order: undefined };
       const sort = resolveSortFromStores(dir, columnPrefs);
       return sort;
     },
@@ -145,6 +147,23 @@ export function setupSubscriptions(directoryId: DirectoryId) {
           }
           directoryHelpers.setPendingSelection(null, directoryId);
         }
+      },
+    ),
+  );
+
+  subscriptions.push(
+    subscribeToStores(
+      [fileBrowserSettingsStore, columnPreferencesStore, directoryStore],
+      ([settings, columnPrefs, d]) => {
+        const dir = d.directoriesById[directoryId];
+        if (!dir) return ["", ""];
+        return [
+          JSON.stringify(settings.settings),
+          JSON.stringify(resolveSortFromStores(dir, columnPrefs)),
+        ];
+      },
+      () => {
+        directoryHelpers.reload(directoryId);
       },
     ),
   );
