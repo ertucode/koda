@@ -14,6 +14,7 @@ import { Dialog } from "@/lib/components/dialog";
 import { DialogForItem } from "@/lib/hooks/useDialogForItem";
 import { Button } from "@/lib/components/button";
 import { useDialogStoreDialog } from "@/features/file-browser/dialogStore";
+import { clsx } from "@/lib/functions/clsx";
 
 export type CreateFormDialogOpts<
   TItem,
@@ -27,6 +28,9 @@ export type CreateFormDialogOpts<
     resetForm?: boolean;
     closeDialog?: boolean;
     noToastOnSuccess?: boolean;
+  };
+  onNonErrorBehavior?: {
+    closeDialog?: boolean;
   };
   getConfigs: (
     hookForm: UseFormReturn<TRequest>,
@@ -49,6 +53,7 @@ export type CreateFormDialogOpts<
     item: TItem | undefined;
   }>;
   dialogContentStyle?: React.CSSProperties;
+  dialogClassName?: string;
   asyncInitialData?: (item: TItem | undefined) => Promise<TRequest | undefined>;
 };
 
@@ -112,6 +117,11 @@ export function FormDialogForm<TItem, TForm extends Record<string, any>>(
           onClose();
         }
       },
+      nonError: () => {
+        if (opts.onNonErrorBehavior?.closeDialog) {
+          onClose();
+        }
+      },
       noToastOnSuccess: opts.onSuccessBehavior?.noToastOnSuccess,
     });
   }
@@ -172,7 +182,7 @@ export function FormDialogForm<TItem, TForm extends Record<string, any>>(
           onClose={onClose}
           style={opts.dialogContentStyle}
           title={text.title}
-          className="max-w-100 w-100"
+          className={clsx("max-w-100 w-100", opts.dialogClassName)}
           footer={
             <>
               {opts.extraButtons?.(formId)}

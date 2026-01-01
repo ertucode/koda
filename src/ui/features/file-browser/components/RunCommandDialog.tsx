@@ -30,6 +30,8 @@ export const RunCommandDialog = ({
 
   return (
     <FormDialogForm
+      onNonErrorBehavior={{ closeDialog: true }}
+      dialogClassName="max-w-screen w-200"
       dialog={dialog}
       schema={z.record(z.string(), z.string())}
       action={(body, item) =>
@@ -53,7 +55,7 @@ export const RunCommandDialog = ({
             return {
               field: p.name,
               label,
-              type: "input",
+              type: "path",
             };
           }
           return {

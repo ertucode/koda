@@ -5,6 +5,7 @@ import { dialogStore } from "./dialogStore";
 import { PathHelpers } from "@common/PathHelpers";
 import { GenericError } from "@common/GenericError";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
+import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
 
 export namespace CommandHelpers {
   export async function runCommand(
@@ -41,13 +42,14 @@ export namespace CommandHelpers {
     command: CommandMetadata,
     fullPath: string,
     parameters: Record<string, string>,
-  ) {
+  ): Promise<ResultHandlerResult> {
     try {
-      return await getWindowElectron().runCommand({
+      getWindowElectron().runCommand({
         name: command.name,
         filePath: fullPath,
         parameters,
       });
+      return { noResult: true };
     } catch (err: any) {
       toast.show({
         severity: "error",
