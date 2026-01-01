@@ -1,1 +1,21 @@
-I want to introduce oil.nvim like directory manipulations to this application. I have already setup @VimEngine.ts . Let's update the array item to be VimEngine.BufferItem for @directory.ts. the Name column should be used for the string state of VimEngine.BufferItem. And have the VimEngine.State should be part of the per directory state. User should be able to do the commands. The directory loading should work like this: If the specific directory was loaded and manipulated by user using vim commands, we should not reload from disk and keep the changes. If r is pressed to force reload, and there are vim changes we should prompt the user. @FileBrowserShortcuts.ts @confirmation.tsx . We should show vim state in the @BottomToolbar.tsx . We should not make a separate table for viewing vim state. Just update the columns. While in insert mode the Name column for the specific line should show an input field. We should not update the global state for every input, we should update when the user is finished updating. The selection should work nicely with state. @directorySelection.ts . When user changes the global @settings.ts the directory should reflect that immediately while keeping added string lines, and deleted line state.
+- Highlighted matches, do not filter the directory(ESC remembers last match, and n, N moves between matches?)
+- Initialize per directory data when manipulation command is called
+- Sync selection.last with cursor column
+- Do we have separate vim view?
+  - Yes
+    - We just define one columns
+    - We could define specific column on str mode
+    - Supporting this kind of workflow could be useful later on
+    - It's slightly less performant
+  - No
+    - I dont know how to do without duplicating columns
+- On insert mode, we just show an input on a specific column
+- Let's not use ciw, C for now.
+- Aggregated save data:
+  - Just diff the state with the initial state.
+- Do not allow settings, sorting to change while there is modifications
+  - Show a warning with current changes and allow to cancel
+
+# Optional
+
+- Have a way to show the undo history in the ui with buttons for undoing

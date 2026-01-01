@@ -12,6 +12,7 @@ export namespace VimEngine {
     | {
         type: 'str'
         str: string
+        id: number
       }
     | {
         type: 'real'
@@ -66,10 +67,7 @@ export namespace VimEngine {
   export function cc({ state, fullPath }: CommandOpts): CommandResult {
     const buffer = state.buffers[fullPath]
     const currentItems = [...buffer.items]
-    const deletedItems = currentItems.splice(buffer.cursor.line, getEffectiveCount(state), {
-      type: 'str',
-      str: '',
-    })
+    const deletedItems = currentItems.splice(buffer.cursor.line, getEffectiveCount(state), createStrBufferItem(''))
     const currentBuffer: Buffer = {
       fullPath,
       items: currentItems,
@@ -113,7 +111,7 @@ export namespace VimEngine {
     const currentItems = [...buffer.items]
     const deletedItems = currentItems.splice(buffer.cursor.line, getEffectiveCount(state))
     if (currentItems.length === 0) {
-      currentItems.push({ type: 'str', str: '' })
+      currentItems.push(createStrBufferItem(''))
     }
     const line = Math.min(buffer.cursor.line, currentItems.length - 1)
     const currentBuffer: Buffer = {
@@ -348,6 +346,23 @@ export namespace VimEngine {
       mode: 'normal',
       count: 0,
       registry: [],
+    }
+  }
+
+  export function defaultBuffer(fullPath: string, items: GetFilesAndFoldersInDirectoryItem[]): Buffer {
+    return {
+      fullPath,
+      items: items.map(i => ({ type: 'real', item: i, str: i.name })),
+      historyStack: new HistoryStack<HistoryItem>([]),
+      cursor: { line: 0, column: 0 },
+    }
+  }
+
+  export function createStrBufferItem(str: string): BufferItem {
+    return {
+      type: 'str',
+      str,
+      id: Math.random(),
     }
   }
 }
