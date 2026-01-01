@@ -24,6 +24,11 @@ export class HistoryStack<T> {
     this.index = this.items.length - 1;
   }
 
+  withNew(item: T) {
+    this.goNew(item);
+    return this;
+  }
+
   goPrev(): T {
     if (!this.hasPrev) {
       throw new Error("No previous item");
@@ -32,9 +37,25 @@ export class HistoryStack<T> {
     return this.items[this.index];
   }
 
+  goPrevSafe(): T | undefined {
+    if (!this.hasPrev) {
+      return undefined;
+    }
+    this.index--;
+    return this.items[this.index];
+  }
+
   goNext(): T {
     if (!this.hasNext) {
       throw new Error("No next item");
+    }
+    this.index++;
+    return this.items[this.index];
+  }
+
+  goNextSafe(): T | undefined {
+    if (!this.hasNext) {
+      return undefined;
     }
     this.index++;
     return this.items[this.index];
