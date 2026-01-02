@@ -23,6 +23,8 @@ import {
   getActiveDirectory,
   directoryInfoEquals,
   DirectoryContextDirectory,
+  NotModifiedDirectoryItem,
+  mapToDirectoryItems,
 } from './DirectoryBase'
 import { initialDirectoryInfo } from '../defaultPath'
 import { columnPreferencesStore } from '../columnPreferences'
@@ -140,13 +142,13 @@ function formatBytes(bytes: number): string {
  * Ignores size differences for directories as they may not be loaded yet
  */
 function areDirectoryContentsEqual(
-  oldData: GetFilesAndFoldersInDirectoryItem[],
+  oldData: NotModifiedDirectoryItem[],
   newData: GetFilesAndFoldersInDirectoryItem[]
 ): boolean {
   if (oldData.length !== newData.length) return false
 
   // Create maps for faster lookup
-  const oldMap = new Map(oldData.map(item => [item.fullPath ?? item.name, item]))
+  const oldMap = new Map(oldData.map(item => [item.item.fullPath ?? item.item.name, item]))
 
   for (const newItem of newData) {
     const key = newItem.fullPath ?? newItem.name
@@ -154,21 +156,9 @@ function areDirectoryContentsEqual(
 
     if (!oldItem) return false
 
-    // Check if the essential properties are the same
-    if (
-      oldItem.type !== newItem.type ||
-      oldItem.name !== newItem.name ||
-      oldItem.modifiedTimestamp !== newItem.modifiedTimestamp
-    ) {
+    if (oldItem.item.modifiedTimestamp !== newItem.modifiedTimestamp) {
       return false
     }
-
-    // For files, also check the size
-    if (newItem.type === 'file' && oldItem.size !== newItem.size) {
-      return false
-    }
-
-    // For directories, we skip size comparison as it may not be loaded yet
   }
 
   return true
@@ -280,8 +270,11 @@ export const directoryHelpers = {
   },
 
   reloadIfChanged: async (directoryId: DirectoryId) => {
-    const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
+    const snapshot = directoryStore.getSnapshot().context
+    const context = getActiveDirectory(snapshot, directoryId)
     if (context.directory.type === 'tags') return
+    if (snapshot.vim.buffers[directoryId]) return
+
     const currentData = context.directoryData
 
     try {
@@ -294,13 +287,13 @@ export const directoryHelpers = {
       }
 
       const newData = result.data
-      const hasChanged = !areDirectoryContentsEqual(currentData, newData)
+      const hasChanged = !areDirectoryContentsEqual(currentData as NotModifiedDirectoryItem[], newData)
 
       if (hasChanged) {
         // Only update if the contents have actually changed
         directoryStore.send({
           type: 'setDirectoryData',
-          data: newData,
+          data: mapToDirectoryItems(newData),
           directoryId,
         })
       }
@@ -580,11 +573,12 @@ export const directoryHelpers = {
 
       // Update the directory data with the new sizes
       const updatedData = context.directoryData.map(item => {
-        if (item.type === 'dir' && sizes[item.name] !== undefined) {
+        if (item.type === 'str') return item
+        if (item.item.type === 'dir' && sizes[item.item.name] !== undefined) {
           return {
             ...item,
-            size: sizes[item.name],
-            sizeStr: formatBytes(sizes[item.name]),
+            size: sizes[item.item.name],
+            sizeStr: formatBytes(sizes[item.item.name]),
           }
         }
         return item
@@ -622,11 +616,20 @@ export const directoryHelpers = {
       ? { type: 'path', fullPath: opts.fullPath }
       : initialDirectoryInfo
 
+    const snapshot = directoryStore.getSnapshot().context
+    if (snapshot.vim.buffers[directory.fullPath]) {
+      directoryStore.trigger.createLoadedDirectory({
+        fullPath: directory.fullPath,
+        directoryData: snapshot.vim.buffers[directory.fullPath].items,
+        tabId: opts.tabId,
+      })
+    }
+
     FileBrowserCache.load(directory.fullPath).then(result => {
       if (result.success) {
         directoryStore.trigger.createLoadedDirectory({
           fullPath: directory.fullPath,
-          directoryData: result.data,
+          directoryData: mapToDirectoryItems(result.data),
           tabId: opts.tabId,
         })
       } else {

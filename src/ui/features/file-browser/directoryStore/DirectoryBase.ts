@@ -1,9 +1,9 @@
-import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
 import { HistoryStack } from '@common/history-stack'
 import { TagColor } from '../tags'
 import { SortState } from '../schemas'
 import { GenericError } from '@common/GenericError'
 import { VimEngine } from '@common/VimEngine'
+import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
 
 export type DirectoryInfo = { type: 'path'; fullPath: string } | { type: 'tags'; color: TagColor }
 export type DirectoryType = DirectoryInfo['type']
@@ -19,7 +19,13 @@ export function getActiveDirectory(context: DirectoryContext, directoryId: Direc
   return context.directoriesById[dirId]
 }
 
+export function mapToDirectoryItems(items: GetFilesAndFoldersInDirectoryItem[]): DirectoryItem[] {
+  return items.map(i => ({ type: 'real', item: i, str: i.name }))
+}
+
 export type DirectoryId = $Branded<string, 'DirectoryId'>
+export type DirectoryItem = VimEngine.BufferItem
+export type NotModifiedDirectoryItem = Extract<DirectoryItem, { type: 'real' }>
 
 export type DirectoryLocalSort = {
   actual: SortState
@@ -30,7 +36,7 @@ export type DirectoryContextDirectory = {
   directoryId: DirectoryId
   directory: DirectoryInfo
   loading: boolean
-  directoryData: GetFilesAndFoldersInDirectoryItem[]
+  directoryData: DirectoryItem[]
   error: GenericError | undefined
   historyStack: HistoryStack<DirectoryInfo>
   pendingSelection: string | string[] | null

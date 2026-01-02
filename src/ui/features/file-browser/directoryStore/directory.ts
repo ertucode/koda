@@ -2,7 +2,6 @@ import { createStore, StoreSnapshot } from '@xstate/store'
 import { HistoryStack } from '@common/history-stack'
 import { errorToString } from '@common/errorToString'
 import { fileBrowserSettingsStore, selectSettings as selectSettingsFromStore, FileBrowserSettings } from '../settings'
-import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
 import { getWindowElectron, homeDirectory } from '@/getWindowElectron'
 import { TagColor, tagsStore } from '../tags'
 import { PathHelpers } from '@common/PathHelpers'
@@ -19,6 +18,7 @@ import {
   getActiveDirectory,
   DirectoryInfo,
   DirectoryLocalSort,
+  DirectoryItem,
 } from './DirectoryBase'
 import { errorResponseToMessage, GenericError } from '@common/GenericError'
 import { useSelector } from '@xstate/store/react'
@@ -50,7 +50,7 @@ export function createDirectoryContext(directoryId: DirectoryId, directory: Dire
     directoryId,
     directory,
     loading: false,
-    directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+    directoryData: [] as DirectoryItem[],
     error: undefined as GenericError | undefined,
     historyStack: new HistoryStack<DirectoryInfo>([directory]),
     pendingSelection: null as string | string[] | null,
@@ -73,7 +73,7 @@ export const directoryStore = createStore({
         directoryId: dummyDirectoryId,
         directory: { color: 'red', type: 'tags' },
         loading: false,
-        directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+        directoryData: [] as DirectoryItem[],
         error: undefined as string | undefined,
         historyStack: new HistoryStack<DirectoryInfo>([{ color: 'red', type: 'tags' }]),
         pendingSelection: null as string | string[] | null,
@@ -111,7 +111,7 @@ export const directoryStore = createStore({
     setDirectoryData: (
       context,
       event: {
-        data: GetFilesAndFoldersInDirectoryItem[]
+        data: DirectoryItem[]
         directoryId: DirectoryId
       }
     ) =>
@@ -293,7 +293,7 @@ export const directoryStore = createStore({
       event: {
         tabId?: string
         fullPath: string
-        directoryData: GetFilesAndFoldersInDirectoryItem[]
+        directoryData: DirectoryItem[]
       },
       enqueue
     ) => {
@@ -379,7 +379,7 @@ export const directoryStore = createStore({
               directoryId,
               directory: directory,
               loading: false,
-              directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+              directoryData: [] as DirectoryItem[],
               error: undefined as GenericError | undefined,
               historyStack: new HistoryStack<DirectoryInfo>([directory]),
               pendingSelection: null as string | string[] | null,
@@ -414,6 +414,7 @@ export const directoryStore = createStore({
 })
 
 export const loadDirectoryPath = async (dir: string, _directoryId: DirectoryId | undefined) => {
+  // TODO: check snapshot first
   const directoryId = _directoryId ?? getActiveDirectory(directoryStore.getSnapshot().context, _directoryId).directoryId
   directoryLoadingHelpers.startLoading(directoryId)
   try {
@@ -434,7 +435,7 @@ export const loadDirectoryPath = async (dir: string, _directoryId: DirectoryId |
 
     directoryStore.send({
       type: 'setDirectoryData',
-      data: result.data,
+      data: result.data.map(i => ({ type: 'real', item: i, str: i.name })),
       directoryId,
     })
     return result.data
@@ -475,7 +476,7 @@ export const loadTaggedFiles = async (color: TagColor, _directoryId: DirectoryId
     }
     directoryStore.send({
       type: 'setDirectoryData',
-      data: result,
+      data: result.map(i => ({ type: 'real', item: i, str: i.name })),
       directoryId,
     })
     return result
