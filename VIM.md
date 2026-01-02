@@ -13,9 +13,9 @@
     - It's slightly less performant
   - No
     - I dont know how to do without duplicating columns
+- Implement keybindings
 - Initialize per directory data when manipulation command is called
 - On insert mode, we just show an input on a specific column
-- Implement keybindings
 - Fuzzy: Highlighted matches, do not filter the directory(ESC remembers last match, and n, N moves between matches?)
 - Aggregated save data:
   - Just diff the state with the initial state.

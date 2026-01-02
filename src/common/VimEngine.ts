@@ -350,10 +350,10 @@ export namespace VimEngine {
     }
   }
 
-  export function defaultBuffer(fullPath: string, items: GetFilesAndFoldersInDirectoryItem[]): Buffer {
+  export function defaultBuffer(fullPath: string, items: BufferItem[]): Buffer {
     return {
       fullPath,
-      items: items.map(i => ({ type: 'real', item: i, str: i.name })),
+      items,
       historyStack: new HistoryStack<HistoryItem>([]),
       cursor: { line: 0, column: 0 },
     }
