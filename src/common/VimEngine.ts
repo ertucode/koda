@@ -261,6 +261,7 @@ export namespace VimEngine {
         [fullPath]: {
           ...buffer,
           items: currentItems,
+          cursor,
         },
       },
       count: 0,
