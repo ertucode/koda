@@ -1,29 +1,32 @@
-import React, { useRef, ComponentProps, useEffect } from "react";
-import { Layout } from "flexlayout-react";
-import { BottomToolbar } from "../file-browser/components/BottomToolbar";
-import { CustomTitleBar } from "../file-browser/components/CustomTitleBar";
-import { FileBrowserShortcuts } from "../file-browser/FileBrowserShortcuts";
-import { useDialogStoreRenderer } from "../file-browser/dialogStore";
-import { layoutModel } from "../file-browser/initializeDirectory";
-import { layoutFactory } from "./layoutFactory";
-import { onRenderTab } from "./onRenderTab";
-import { onRenderTabSet } from "./onRenderTabSetFn";
-import { useSyncDirectoryStoreAndLayout } from "./useSyncDirectoryStoreAndLayout";
-import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";
-import { SettingsShortcuts } from "../file-browser/SettingsShortcuts";
+import React, { useRef, ComponentProps, useEffect } from 'react'
+import { Layout } from 'flexlayout-react'
+import { BottomToolbar } from '../file-browser/components/BottomToolbar'
+import { CustomTitleBar } from '../file-browser/components/CustomTitleBar'
+import { FileBrowserShortcuts } from '../file-browser/FileBrowserShortcuts'
+import { useDialogStoreRenderer } from '../file-browser/dialogStore'
+import { layoutModel } from '../file-browser/initializeDirectory'
+import { layoutFactory } from './layoutFactory'
+import { onRenderTab } from './onRenderTab'
+import { onRenderTabSet } from './onRenderTabSetFn'
+import { useSyncDirectoryStoreAndLayout } from './useSyncDirectoryStoreAndLayout'
+import { LayoutHelpers } from '../file-browser/utils/LayoutHelpers'
+import { SettingsShortcuts } from '../file-browser/SettingsShortcuts'
+import { VimShortcuts } from '../file-browser/vim/VimShortcuts'
 
 export const FlexLayoutManager: React.FC = () => {
-  const layoutRef = useRef<Layout>(null);
-  const dialogs = useDialogStoreRenderer();
+  const layoutRef = useRef<Layout>(null)
+  const dialogs = useDialogStoreRenderer()
 
   useEffect(() => {
-    FileBrowserShortcuts.init();
+    FileBrowserShortcuts.init()
+    VimShortcuts.init()
     return () => {
-      FileBrowserShortcuts.deinit();
-    };
-  });
+      FileBrowserShortcuts.deinit()
+      VimShortcuts.deinit()
+    }
+  })
 
-  const { handleModelChange } = useSyncDirectoryStoreAndLayout({ layoutRef });
+  const { handleModelChange } = useSyncDirectoryStoreAndLayout({ layoutRef })
 
   return (
     <div className="flex flex-col items-stretch h-full overflow-hidden">
@@ -43,20 +46,14 @@ export const FlexLayoutManager: React.FC = () => {
       </div>
       <BottomToolbar />
     </div>
-  );
-};
+  )
+}
 
-type LayoutActionFn = Exclude<
-  ComponentProps<typeof Layout>["onAction"],
-  undefined
->;
-const layoutActionFn: LayoutActionFn = (action) => {
-  const directories = LayoutHelpers.getDirectoryIds();
-  if (
-    action.type === "FlexLayout_SetActiveTabset" &&
-    directories.length === 1
-  ) {
-    return undefined;
+type LayoutActionFn = Exclude<ComponentProps<typeof Layout>['onAction'], undefined>
+const layoutActionFn: LayoutActionFn = action => {
+  const directories = LayoutHelpers.getDirectoryIds()
+  if (action.type === 'FlexLayout_SetActiveTabset' && directories.length === 1) {
+    return undefined
   }
-  return action;
-};
+  return action
+}

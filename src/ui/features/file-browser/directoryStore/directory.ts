@@ -71,6 +71,26 @@ export function createDirectoryContext(directoryId: DirectoryId, directory: Dire
   }
 }
 
+function updateVimCursor(state: VimEngine.State, fullPath: string, line: number) {
+  return {
+    ...state,
+    buffers: {
+      ...state.buffers,
+      [fullPath]: {
+        ...state.buffers[fullPath],
+        cursor: {
+          ...state.buffers[fullPath].cursor,
+          line,
+        },
+      },
+    },
+  }
+}
+
+function getVimCursorFullPath(d: DirectoryContextDirectory, context: DirectoryContext): string | false {
+  return d.directory.type === 'path' && context.vim.buffers[d.directory.fullPath] && d.directory.fullPath
+}
+
 const dummyDirectoryId = 'dummmyy' as DirectoryId // kimse dokunmadan initialize edilmeli zaten
 
 export const directoryStore = createStore({
@@ -193,11 +213,10 @@ export const directoryStore = createStore({
         pendingSelection: event.name,
       })),
 
-    setSelection: (context, event: { indexes: Set<number>; last?: number; directoryId: DirectoryId }) =>
-      updateDirectory(context, event.directoryId, d => {
-        if (d.directory.type === 'path' && context.vim.buffers[d.directory.fullPath]) {
-          context.vim.buffers[d.directory.fullPath].cursor.line = event.last || 0
-        }
+    setSelection: (context, event: { indexes: Set<number>; last?: number; directoryId: DirectoryId }) => {
+      let cursorLineFullPath: undefined | string | false = undefined
+      const updatedContext = updateDirectory(context, event.directoryId, d => {
+        cursorLineFullPath = getVimCursorFullPath(d, context)
         return {
           ...d,
           selection: {
@@ -205,8 +224,11 @@ export const directoryStore = createStore({
             last: event.last,
           },
         }
-      }),
-
+      })
+      if (!cursorLineFullPath) return updatedContext
+      updatedContext.vim = updateVimCursor(updatedContext.vim, cursorLineFullPath, event.last ?? 0)
+      return updatedContext
+    },
     selectManually: (
       context,
       event: {
@@ -215,13 +237,12 @@ export const directoryStore = createStore({
         dontTouchWhenSelected?: boolean
       }
     ) => {
-      return updateDirectory(
+      let cursorLineFullPath: undefined | string | false = undefined
+      const updatedContext = updateDirectory(
         context,
         event.directoryId,
         d => {
-          if (d.directory.type === 'path' && context.vim.buffers[d.directory.fullPath]) {
-            context.vim.buffers[d.directory.fullPath].cursor.line = event.index
-          }
+          cursorLineFullPath = getVimCursorFullPath(d, context)
           return {
             ...d,
             selection: {
@@ -232,6 +253,9 @@ export const directoryStore = createStore({
         },
         d => !d.selection.indexes.has(event.index)
       )
+      if (!cursorLineFullPath) return updatedContext
+      updatedContext.vim = updateVimCursor(updatedContext.vim, cursorLineFullPath, event.index)
+      return updatedContext
     },
     // Fuzzy finder events
     setFuzzyQuery: (context, event: { query: string; directoryId: DirectoryId }) =>
@@ -417,6 +441,24 @@ export const directoryStore = createStore({
         loadDirectoryInfo(directory, directoryId)
       }
       return result
+    },
+    updateVimState: (
+      context,
+      event: { state: VimEngine.State; selection?: { index: number; directoryId: DirectoryId } }
+    ) => {
+      const updated = event.selection
+        ? updateDirectory(context, event.selection.directoryId, d => {
+            return {
+              ...d,
+              selection: {
+                indexes: new Set([event.selection!.index]),
+                last: event.selection!.index,
+              },
+            }
+          })
+        : { ...context }
+      updated.vim = event.state
+      return updated
     },
   },
 })
