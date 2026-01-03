@@ -2,6 +2,7 @@ import { getWindowElectron, homeDirectory } from '@/getWindowElectron'
 import { taskStore } from './taskStore'
 import { directoryHelpers } from './file-browser/directoryStore/directoryHelpers'
 import { PathHelpers } from '@common/PathHelpers'
+import { directoryStore } from './file-browser/directoryStore/directory'
 
 export function subscribeToTasks() {
   getWindowElectron().onTaskEvent(event => {
@@ -26,6 +27,34 @@ export function subscribeToTasks() {
         // TODO: handle fileToSelect after deletion, maybe the the actual promise can stay for 1 second
         // then we can go from there. Otherwise, we dont set file to select
         return directoryHelpers.checkAndReloadDirectories(PathHelpers.parent(fullPath).path, undefined)
+      }
+    } else if (task.type === 'vim-changes') {
+      // Clear VIM buffers for affected directories
+      const affectedDirectories = task.metadata.affectedDirectories
+      const currentVimState = directoryStore.getSnapshot().context.vim
+      
+      // Create a new VIM state with affected buffers removed
+      const newBuffers = { ...currentVimState.buffers }
+      for (const dir of affectedDirectories) {
+        const expandedDir = PathHelpers.expandHome(homeDirectory, dir)
+        delete newBuffers[expandedDir]
+      }
+      
+      // Update the VIM state
+      directoryStore.send({
+        type: 'updateVimState',
+        state: {
+          ...currentVimState,
+          buffers: newBuffers,
+        },
+      })
+      
+      // Reload all affected directories
+      for (const dir of affectedDirectories) {
+        directoryHelpers.checkAndReloadDirectories(
+          PathHelpers.expandHome(homeDirectory, dir),
+          undefined
+        )
       }
     }
   })

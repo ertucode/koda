@@ -17,6 +17,7 @@ import {
   FileXCornerIcon,
   Info,
   TerminalIcon,
+  Edit3Icon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { clsx } from "@/lib/functions/clsx";
@@ -39,6 +40,8 @@ function getTaskTypeLabel(task: TaskDefinition): string {
       return "File Deletion";
     case "run-command":
       return "Run Command";
+    case "vim-changes":
+      return "Applying VIM Changes";
     default:
       return Typescript.assertUnreachable(task);
   }
@@ -78,6 +81,8 @@ function getTaskIcon(task: TaskDefinition) {
       return DeleteIcon;
     case "run-command":
       return TerminalIcon;
+    case "vim-changes":
+      return Edit3Icon;
     default:
       return Typescript.assertUnreachable(task);
   }
@@ -253,6 +258,20 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
 
   if (task.type === "run-command") {
     return "TODO";
+  }
+
+  if (task.type === "vim-changes") {
+    const { changeCount } = task.metadata;
+    const label = changeCount === 1 ? "1 change" : `${changeCount} changes`;
+
+    return (
+      <div className="mt-2 space-y-1.5 text-xs">
+        <div className="flex items-center gap-1.5 text-base-content/70">
+          <Edit3Icon className="h-3 w-3 flex-shrink-0" />
+          <span className="font-medium">{label}</span>
+        </div>
+      </div>
+    );
   }
 
   Typescript.assertUnreachable(task);
