@@ -1,6 +1,7 @@
 import { GetFilesAndFoldersInDirectoryItem } from './Contracts.js'
 import { GenericError } from './GenericError.js'
 import { HistoryStack } from './history-stack.js'
+import { Typescript } from './Typescript.js'
 
 export namespace VimEngine {
   export type CursorPosition = {
@@ -60,6 +61,11 @@ export namespace VimEngine {
         type: 'remove'
         count: number
         index: number
+      }
+    | {
+        type: 'update-content'
+        index: number
+        str: string
       }
   export const Mode = {
     N: 'normal',
@@ -261,6 +267,13 @@ export namespace VimEngine {
         currentItems.splice(reversion.index, 0, ...reversion.items)
       } else if (reversion.type === 'remove') {
         currentItems.splice(reversion.index, reversion.count)
+      } else if (reversion.type === 'update-content') {
+        currentItems[reversion.index] = {
+          ...currentItems[reversion.index],
+          str: reversion.str,
+        }
+      } else {
+        Typescript.assertUnreachable(reversion)
       }
     }
 
@@ -294,6 +307,41 @@ export namespace VimEngine {
   export function esc(opts: CommandOpts): CommandResult {
     return {
       ...opts.state,
+      mode: 'normal',
+    }
+  }
+
+  export function updateItemStr({ state, fullPath }: CommandOpts, str: string): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const currentItems = [...buffer.items]
+    const prevStr = currentItems[buffer.cursor.line].str
+    currentItems[buffer.cursor.line] = {
+      ...currentItems[buffer.cursor.line],
+      str,
+    }
+    buffer.historyStack.goNew({
+      reversions: [
+        {
+          type: 'update-content',
+          index: buffer.cursor.line,
+          str: prevStr,
+        },
+        {
+          type: 'cursor',
+          cursor: buffer.cursor,
+        },
+      ],
+    })
+    return {
+      ...state,
+      buffers: {
+        ...state.buffers,
+        [fullPath]: {
+          ...buffer,
+          items: currentItems,
+        },
+      },
+      count: 0,
       mode: 'normal',
     }
   }

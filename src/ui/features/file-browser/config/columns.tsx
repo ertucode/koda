@@ -92,7 +92,7 @@ export function createColumns(ctx: ColumnsContext): ColumnDef<DerivedDirectoryIt
       sortKey: 'name',
       header: 'Name',
       cell: (row, { index: idx }) => {
-        if (ctx.isInsert(idx)) return <VimInsertItem row={row} index={idx} />
+        if (ctx.isInsert(idx)) return <VimInsertItem row={row} />
 
         if (row.type === 'real') return <DirectoryNameCell item={row} ctx={ctx} idx={idx} />
         return <VimModeName ctx={ctx} row={row} index={idx} />
@@ -180,17 +180,16 @@ function VimModeName({ ctx, row, index }: { ctx: ColumnsContext; row: StrDirecto
 
   if (!isInsert) return row.str
 
-  return <VimInsertItem row={row} index={index} />
+  return <VimInsertItem row={row} />
 }
 
-function VimInsertItem({ row, index }: { row: DerivedDirectoryItem; index: number }) {
+function VimInsertItem({ row }: { row: DerivedDirectoryItem }) {
   const [value, setValue] = useState(row.str)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const onEscapeOrBlur = (e: React.FocusEvent | React.KeyboardEvent, isEnter: boolean) => {
     e.preventDefault()
     directoryStore.trigger.updateItemStr({
-      index,
       str: value,
       isEnter,
     })
