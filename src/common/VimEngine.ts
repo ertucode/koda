@@ -298,6 +298,54 @@ export namespace VimEngine {
     }
   }
 
+  export function enterInInsert({ state, fullPath }: CommandOpts): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const currentItems = [...buffer.items]
+    currentItems.splice(buffer.cursor.line + 1, 0, createStrBufferItem(''))
+    const currentBuffer: Buffer = {
+      fullPath: buffer.fullPath,
+      items: currentItems,
+      originalItems: buffer.originalItems,
+      historyStack: buffer.historyStack.withNew({
+        reversions: [
+          {
+            type: 'remove',
+            count: 1,
+            index: buffer.cursor.line + 1,
+          },
+          {
+            type: 'cursor',
+            cursor: buffer.cursor,
+          },
+        ],
+      }),
+      cursor: {
+        line: buffer.cursor.line + 1,
+        column: 0,
+      },
+    }
+    return {
+      buffers: {
+        ...state.buffers,
+        [buffer.fullPath]: currentBuffer,
+      },
+      count: 0,
+      mode: 'insert',
+      registry: state.registry,
+    }
+  }
+
+  export function o({ state, fullPath }: CommandOpts): CommandResult {
+    return enterInInsert({ state, fullPath })
+  }
+
+  export function i(opts: CommandOpts): CommandResult {
+    return {
+      ...opts.state,
+      mode: 'insert',
+    }
+  }
+
   export type Changes = {
     changes: Change[]
   }
@@ -320,14 +368,14 @@ export namespace VimEngine {
       }
   export function aggregateChanges(state: State): Changes {
     const changes: Change[] = []
-    
+
     // First pass: collect all items across all buffers
     type ItemLocation = {
       directory: string
       item: GetFilesAndFoldersInDirectoryItem
       newName: string
     }
-    
+
     const originalLocations = new Map<string, ItemLocation>() // id -> original location
     const currentLocations = new Map<string, ItemLocation>() // id -> current location
     const addedItems: Array<{ directory: string; name: string }> = []
@@ -511,18 +559,3 @@ export namespace VimEngine {
 // function removeWord(text: string, start: number, end: number): string {
 //   return text.slice(0, start) + text.slice(end + 1)
 // }
-
-//  1
-//  2
-//  3
-//  4
-//  5
-//  6
-//  7
-//  8
-//  9
-// 10
-// 11
-// 12
-// 13
-// 14

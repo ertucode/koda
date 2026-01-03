@@ -5,6 +5,7 @@ import { VimEngine } from '@common/VimEngine'
 import { FileIcon, FolderIcon, PlusIcon, TrashIcon, Edit3Icon, ArrowRightIcon } from 'lucide-react'
 import { useDialogStoreDialog } from '../dialogStore'
 import { DialogForItem } from '@/lib/hooks/useDialogForItem'
+import { getWindowElectron } from '@/getWindowElectron'
 
 type ChangeWithId = VimEngine.Change & { id: string }
 
@@ -117,15 +118,25 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
     }
   }
 
-  const handleApply = () => {
+  const handleApply = async () => {
     const selectedChanges = changesWithIds
       .filter(c => selectedIds.has(c.id))
       .map(({ id, ...change }) => change)
     
-    console.log('Applying changes:', selectedChanges)
-    // TODO: Implement the actual file operations here
+    const result = await getWindowElectron().applyVimChanges(selectedChanges)
     
-    onClose()
+    if (result.success) {
+      onClose()
+    } else {
+      // Error handling - could show a toast or alert
+      console.error('Failed to apply changes:', result.error)
+      const errorMsg = result.error.type === 'message' 
+        ? result.error.message 
+        : result.error.type === 'http'
+        ? result.error.message
+        : 'Unknown error occurred'
+      alert(`Failed to apply changes: ${errorMsg}`)
+    }
   }
 
   const getChangeIcon = (displayType: DirectoryChange['displayType']) => {
@@ -163,10 +174,15 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
     switch (displayType) {
       case 'add':
         if (change.type !== 'add') return null
+        const isDirectory = change.name.endsWith('/')
         return (
           <div className="flex items-center gap-2">
             <span className="font-semibold w-20 text-right">Add:</span>
-            <FileIcon className="h-4 w-4" />
+            {isDirectory ? (
+              <FolderIcon className="h-4 w-4" />
+            ) : (
+              <FileIcon className="h-4 w-4" />
+            )}
             <span className="font-mono">{change.name}</span>
           </div>
         )

@@ -88,6 +88,16 @@ export const VimShortcuts = {
           },
           label: '[VIM] Save',
         },
+        {
+          key: 'o',
+          handler: createHandler(VimEngine.o),
+          label: '[VIM] Open line',
+        },
+        {
+          key: 'i',
+          handler: createHandler(VimEngine.i),
+          label: '[VIM] Insert line',
+        },
       ],
       sequences: [
         {

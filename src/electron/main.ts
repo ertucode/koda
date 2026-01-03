@@ -48,6 +48,7 @@ import {
 import { runCommand } from "./utils/run-command.js";
 import { getServerConfig } from "./server-config.js";
 import { getAudioMetadata } from "./utils/get-audio-metadata.js";
+import { applyVimChanges } from "./utils/apply-vim-changes.js";
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined;
@@ -263,6 +264,7 @@ app.on("ready", () => {
   });
 
   ipcHandle("runCommand", runCommand);
+  ipcHandle("applyVimChanges", applyVimChanges);
 
   // Store pending select-app promises
   const selectAppPromises = new Map<

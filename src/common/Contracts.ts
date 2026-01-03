@@ -2,6 +2,7 @@ import { type GenericResult } from './GenericError.js'
 import { TaskEvents } from './Tasks.js'
 import { type ArchiveTypes } from './ArchiveTypes.js'
 import { GenericEvent } from './GenericEvent.js'
+import { VimEngine } from './VimEngine.js'
 
 export type ContextLine = {
   lineNumber: number
@@ -127,6 +128,7 @@ export type EventResponseMapping = {
     | { error: 'FILE_TOO_LARGE' }
   >
   deleteFiles: Promise<GenericResult<void>>
+  applyVimChanges: Promise<GenericResult<void>>
   createFileOrFolder: Promise<GenericResult<{ path: string }>>
   renameFileOrFolder: Promise<GenericResult<{ newPath: string }>>
   batchRenameFiles: Promise<GenericResult<{ renamedPaths: Array<{ oldPath: string; newPath: string }> }>>
@@ -221,6 +223,7 @@ export type EventRequestMapping = {
     fullSize?: boolean
   }
   deleteFiles: string[]
+  applyVimChanges: VimEngine.Change[]
   createFileOrFolder: {
     parentDir: string
     name: string
@@ -303,6 +306,7 @@ export type WindowElectron = {
     | { error: 'FILE_TOO_LARGE' }
   >
   deleteFiles: (filePaths: string[]) => Promise<GenericResult<void>>
+  applyVimChanges: (changes: VimEngine.Change[]) => Promise<GenericResult<void>>
   createFileOrFolder: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
   renameFileOrFolder: (fullPath: string, newName: string) => Promise<GenericResult<{ newPath: string }>>
   batchRenameFiles: (

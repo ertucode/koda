@@ -10,7 +10,6 @@ import { CategoryHelpers } from '../CategoryHelpers'
 import { perDirectoryDataHelpers } from '../directoryStore/perDirectoryData'
 import { getWindowElectron } from '@/getWindowElectron'
 import { useSelector } from '@xstate/store/react'
-import { toast } from '@/lib/components/toast'
 import { FileQuestionIcon } from 'lucide-react'
 
 function CategoryIcon({ category }: { category: FileCategory | 'folder' }) {
@@ -206,23 +205,21 @@ function VimInsertItem({ row, index }: { row: StrDirectoryItem; index: number })
   const [value, setValue] = useState(row.str)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const onEscapeOrBlur = (e: React.FocusEvent | React.KeyboardEvent) => {
+  const onEscapeOrBlur = (e: React.FocusEvent | React.KeyboardEvent, isEnter: boolean) => {
     e.preventDefault()
     directoryStore.trigger.updateItemStr({
       index,
       str: value,
+      isEnter,
     })
   }
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      toast.show({
-        message: 'Not implemented',
-        severity: 'error',
-      })
+      onEscapeOrBlur(e, true)
     } else if (e.key === 'Escape') {
-      onEscapeOrBlur(e)
+      onEscapeOrBlur(e, false)
     }
   }
 
@@ -235,7 +232,7 @@ function VimInsertItem({ row, index }: { row: StrDirectoryItem; index: number })
       onChange={e => setValue(e.target.value)}
       onKeyDown={onKeyDown}
       onClick={e => e.stopPropagation()}
-      onBlur={onEscapeOrBlur}
+      onBlur={e => onEscapeOrBlur(e, false)}
       autoFocus
     />
   )

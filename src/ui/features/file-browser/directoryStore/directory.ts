@@ -460,7 +460,7 @@ export const directoryStore = createStore({
       updated.vim = event.state
       return updated
     },
-    updateItemStr: (context, event: { index: number; str: string }) => {
+    updateItemStr: (context, event: { index: number; str: string; isEnter: boolean }) => {
       const dir = getActiveDirectory(context, context.activeDirectoryId).directory
       if (dir.type !== 'path') return context
       const fullPath = dir.fullPath
@@ -469,19 +469,33 @@ export const directoryStore = createStore({
         ...newItems[event.index],
         str: event.str,
       }
+      const newVim = {
+        ...context.vim,
+        buffers: {
+          ...context.vim.buffers,
+          [fullPath]: {
+            ...context.vim.buffers[fullPath],
+            items: newItems,
+          },
+        },
+        mode: VimEngine.Mode.N,
+      }
+      const newVim2 = event.isEnter ? VimEngine.enterInInsert({ state: newVim, fullPath }) : newVim
+
+      const cursorLine = newVim2.buffers[fullPath].cursor.line
       return {
         ...context,
-        vim: {
-          ...context.vim,
-          buffers: {
-            ...context.vim.buffers,
-            [fullPath]: {
-              ...context.vim.buffers[fullPath],
-              items: newItems,
+        directoriesById: {
+          ...context.directoriesById,
+          [context.activeDirectoryId]: {
+            ...context.directoriesById[context.activeDirectoryId],
+            selection: {
+              indexes: new Set([cursorLine]),
+              last: cursorLine,
             },
           },
-          mode: VimEngine.Mode.N,
         },
+        vim: newVim2,
       }
     },
   },

@@ -34,6 +34,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
     fullSize?: boolean,
   ) => ipcInvoke("readFilePreview", { filePath, allowBigSize, fullSize }),
   deleteFiles: (filePaths: string[]) => ipcInvoke("deleteFiles", filePaths),
+  applyVimChanges: (changes: any) => ipcInvoke("applyVimChanges", changes),
   createFileOrFolder: (parentDir: string, name: string) =>
     ipcInvoke("createFileOrFolder", { parentDir, name }),
   setClipboardCutMode: (cut: boolean) =>

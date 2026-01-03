@@ -8,6 +8,7 @@ export type TaskDefinition = Tasks.Base &
     | Tasks.Paste
     | Tasks.Delete
     | Tasks.RunCommand
+    | Tasks.VimChanges
   );
 
 export type TaskCreate<T extends TaskDefinition["type"]> = $DistributiveOmit<
@@ -69,6 +70,15 @@ export namespace Tasks {
       command: string;
       parameters: Record<string, string>;
       fullPath: string;
+    };
+    result?: GenericResult<void>;
+  };
+
+  export type VimChanges = {
+    type: "vim-changes";
+    metadata: {
+      changeCount: number;
+      affectedDirectories: string[];
     };
     result?: GenericResult<void>;
   };
