@@ -105,6 +105,11 @@ export const VimShortcuts = {
           label: '[VIM] Append',
         },
         {
+          key: 'A',
+          handler: createHandler(VimEngine.A),
+          label: '[VIM] Append at end',
+        },
+        {
           key: 'l',
           handler: createHandler(VimEngine.l),
           label: '[VIM] Move cursor right',

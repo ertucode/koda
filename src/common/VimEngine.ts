@@ -430,22 +430,21 @@ export namespace VimEngine {
   }
 
   export function a(opts: CommandOpts): CommandResult {
-    const buffer = opts.state.buffers[opts.fullPath]
-    const maxLine = buffer.items[buffer.cursor.line].str.length - 1
-    return {
-      ...opts.state,
-      buffers: {
-        ...opts.state.buffers,
-        [opts.fullPath]: {
-          ...opts.state.buffers[opts.fullPath],
-          cursor: {
-            line: buffer.cursor.line,
-            column: Math.min(buffer.cursor.column + 1, maxLine),
-          },
-        },
-      },
-      mode: 'insert',
-    }
+    const r = moveCursor(opts, (_count, cursor, strLength) => ({
+      column: Math.min(strLength - 1, cursor.column + 1),
+      line: cursor.line,
+    }))
+    r.mode = 'insert'
+    return r
+  }
+
+  export function A(opts: CommandOpts): CommandResult {
+    const r = moveCursor(opts, (_count, cursor, strLength) => ({
+      column: strLength - 1,
+      line: cursor.line,
+    }))
+    r.mode = 'insert'
+    return r
   }
 
   export type Changes = {
