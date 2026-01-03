@@ -32,29 +32,19 @@ export function subscribeToTasks() {
       // Clear VIM buffers for affected directories
       const affectedDirectories = task.metadata.affectedDirectories
       const currentVimState = directoryStore.getSnapshot().context.vim
-      
-      // Create a new VIM state with affected buffers removed
-      const newBuffers = { ...currentVimState.buffers }
-      for (const dir of affectedDirectories) {
-        const expandedDir = PathHelpers.expandHome(homeDirectory, dir)
-        delete newBuffers[expandedDir]
-      }
-      
+
       // Update the VIM state
       directoryStore.send({
         type: 'updateVimState',
         state: {
           ...currentVimState,
-          buffers: newBuffers,
+          buffers: {},
         },
       })
-      
+
       // Reload all affected directories
       for (const dir of affectedDirectories) {
-        directoryHelpers.checkAndReloadDirectories(
-          PathHelpers.expandHome(homeDirectory, dir),
-          undefined
-        )
+        directoryHelpers.checkAndReloadDirectories(PathHelpers.expandHome(homeDirectory, dir), undefined)
       }
     }
   })
