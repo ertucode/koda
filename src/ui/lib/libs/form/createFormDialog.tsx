@@ -1,156 +1,138 @@
-import { useForm, UseFormProps, UseFormReturn } from "react-hook-form";
-import { arktypeResolver } from "@hookform/resolvers/arktype";
-import { ComponentType, ReactNode, Ref, useEffect, useMemo } from "react";
-import {
-  FormFieldConfig,
-  FormFieldFromConfigWrapper,
-} from "../form/FormFieldFromConfig";
-import {
-  ResultHandlerResult,
-  useDefaultResultHandler,
-} from "@/lib/hooks/useDefaultResultHandler";
-import { ZodType } from "zod";
-import { Dialog } from "@/lib/components/dialog";
-import { DialogForItem } from "@/lib/hooks/useDialogForItem";
-import { Button } from "@/lib/components/button";
-import { useDialogStoreDialog } from "@/features/file-browser/dialogStore";
-import { clsx } from "@/lib/functions/clsx";
+import { useForm, UseFormProps, UseFormReturn } from 'react-hook-form'
+import { arktypeResolver } from '@hookform/resolvers/arktype'
+import { ComponentType, ReactNode, Ref, useEffect, useMemo } from 'react'
+import { FormFieldConfig, FormFieldFromConfigWrapper } from '../form/FormFieldFromConfig'
+import { ResultHandlerResult, useDefaultResultHandler } from '@/lib/hooks/useDefaultResultHandler'
+import { ZodType } from 'zod'
+import { Dialog } from '@/lib/components/dialog'
+import { DialogForItem } from '@/lib/hooks/useDialogForItem'
+import { Button } from '@/lib/components/button'
+import { useDialogStoreDialog } from '@/features/file-browser/dialogStore'
+import { clsx } from '@/lib/functions/clsx'
+import { useTrigger } from '@/lib/hooks/useTrigger'
 
-export type CreateFormDialogOpts<
-  TItem,
-  TRequest extends Record<string, any>,
-> = {
-  schema: ZodType<TRequest>;
-  getFormParams: (item: TItem | undefined) => UseFormProps<TRequest, any>;
-  translationNamespace?: string[];
-  action: (body: TRequest, item: TItem) => Promise<ResultHandlerResult>;
+export type CreateFormDialogOpts<TItem, TRequest extends Record<string, any>> = {
+  schema: ZodType<TRequest>
+  getFormParams: (item: TItem | undefined) => UseFormProps<TRequest, any>
+  translationNamespace?: string[]
+  action: (body: TRequest, item: TItem) => Promise<ResultHandlerResult>
   onSuccessBehavior?: {
-    resetForm?: boolean;
-    closeDialog?: boolean;
-    noToastOnSuccess?: boolean;
-  };
+    resetForm?: boolean
+    closeDialog?: boolean
+    noToastOnSuccess?: boolean
+  }
   onNonErrorBehavior?: {
-    closeDialog?: boolean;
-  };
-  getConfigs: (
-    hookForm: UseFormReturn<TRequest>,
-    item: TItem | undefined,
-  ) => FormFieldConfig<keyof TRequest & string>[];
+    closeDialog?: boolean
+  }
+  getConfigs: (hookForm: UseFormReturn<TRequest>, item: TItem | undefined) => FormFieldConfig<keyof TRequest & string>[]
   getTexts: (item: TItem | undefined) => {
-    title: ReactNode;
-    buttonLabel: ReactNode;
-    buttonIcon?: React.ComponentType<{ className?: string }>;
-  };
-  extraButtons?: (formId: string) => ReactNode;
+    title: ReactNode
+    buttonLabel: ReactNode
+    buttonIcon?: React.ComponentType<{ className?: string }>
+  }
+  extraButtons?: (formId: string) => ReactNode
   dialogButtonOpts?: () => {
-    icon: React.ComponentType<{ className?: string }>;
-    label: string;
-  };
-  formId?: string;
+    icon: React.ComponentType<{ className?: string }>
+    label: string
+  }
+  formId?: string
   Wrapper?: ComponentType<{
-    children: ReactNode;
-    hookForm: UseFormReturn<TRequest>;
-    item: TItem | undefined;
-  }>;
-  dialogContentStyle?: React.CSSProperties;
-  dialogClassName?: string;
-  asyncInitialData?: (item: TItem | undefined) => Promise<TRequest | undefined>;
-};
+    children: ReactNode
+    hookForm: UseFormReturn<TRequest>
+    item: TItem | undefined
+  }>
+  dialogContentStyle?: React.CSSProperties
+  dialogClassName?: string
+  asyncInitialData?: (item: TItem | undefined) => Promise<TRequest | undefined>
+}
 
 export type FormDialogProps<TItem> = [TItem] extends [never]
   ? { ref?: undefined }
   : {
-      ref: Ref<DialogForItem<TItem>>;
-    };
+      ref: Ref<DialogForItem<TItem>>
+    }
 
 const defaultOnSuccessBehavior = {
   resetForm: true,
   closeDialog: true,
-};
+}
 
-export function createFormDialog<TItem, TForm extends Record<string, any>>(
-  opts: CreateFormDialogOpts<TItem, TForm>,
-) {
+export function createFormDialog<TItem, TForm extends Record<string, any>>(opts: CreateFormDialogOpts<TItem, TForm>) {
   return function ({ ref }: FormDialogProps<TItem>) {
-    const dialog = useDialogStoreDialog(ref);
+    const dialog = useDialogStoreDialog(ref)
 
-    return <FormDialogForm<TItem, TForm> dialog={dialog} {...opts} />;
-  };
+    return <FormDialogForm<TItem, TForm> dialog={dialog} {...opts} />
+  }
 }
 
 export function FormDialogForm<TItem, TForm extends Record<string, any>>(
   opts: CreateFormDialogOpts<TItem, TForm> & {
-    dialog: ReturnType<typeof useDialogStoreDialog<TItem>>;
-  },
+    dialog: ReturnType<typeof useDialogStoreDialog<TItem>>
+  }
 ) {
-  const formId = opts.formId ?? "dialog-form";
-  const { item, dialogOpen, onClose } = opts.dialog;
+  const formId = opts.formId ?? 'dialog-form'
+  const { item, dialogOpen, onClose } = opts.dialog
+  const [trigger, triggerValue] = useTrigger()
 
-  const formParams = useMemo(() => opts.getFormParams(item), [item]);
+  const formParams = useMemo(() => opts.getFormParams(item), [item, triggerValue])
   const hookForm = useForm<TForm>({
     ...formParams,
     resolver: arktypeResolver(opts.schema),
-  });
+  })
 
   const {
     register,
     handleSubmit,
     control,
     formState: { isSubmitting, errors },
-  } = hookForm;
+  } = hookForm
 
-  const { onResult } = useDefaultResultHandler();
+  const { onResult } = useDefaultResultHandler()
   async function onSubmit(data: TForm) {
-    const result = await opts.action(data, item!);
+    const result = await opts.action(data, item!)
 
     onResult(result, {
       success: () => {
         const onSuccessBehavior = {
           ...defaultOnSuccessBehavior,
           ...opts.onSuccessBehavior,
-        };
+        }
 
         if (onSuccessBehavior.resetForm) {
-          hookForm.reset();
+          hookForm.reset()
         }
         if (onSuccessBehavior.closeDialog) {
-          onClose();
+          onClose()
         }
       },
       nonError: () => {
         if (opts.onNonErrorBehavior?.closeDialog) {
-          onClose();
+          onClose()
         }
       },
       noToastOnSuccess: opts.onSuccessBehavior?.noToastOnSuccess,
-    });
+    })
   }
 
   useEffect(() => {
     if (opts.asyncInitialData) {
-      opts.asyncInitialData(item).then((data) => {
+      opts.asyncInitialData(item).then(data => {
         if (data) {
-          hookForm.reset(data);
+          hookForm.reset(data)
+          trigger()
         }
-      });
+      })
     }
-  }, [item]);
+  }, [item])
 
-  const configs = useMemo(
-    () => opts.getConfigs(hookForm, item),
-    [hookForm, item],
-  );
+  const configs = useMemo(() => opts.getConfigs(hookForm, item), [hookForm, item, triggerValue])
 
-  const text = opts.getTexts(item);
+  const text = opts.getTexts(item)
 
-  const dialogButtonOpts = opts.dialogButtonOpts?.();
+  const dialogButtonOpts = opts.dialogButtonOpts?.()
 
   const renderedForm = (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      id={formId}
-      className="flex flex-col gap-3"
-    >
+    <form onSubmit={handleSubmit(onSubmit)} id={formId} className="flex flex-col gap-3">
       <FormFieldFromConfigWrapper
         hookForm={{
           register,
@@ -160,7 +142,7 @@ export function FormDialogForm<TItem, TForm extends Record<string, any>>(
         configs={configs}
       ></FormFieldFromConfigWrapper>
     </form>
-  );
+  )
 
   const content = opts.Wrapper ? (
     <opts.Wrapper hookForm={hookForm} item={item}>
@@ -168,7 +150,7 @@ export function FormDialogForm<TItem, TForm extends Record<string, any>>(
     </opts.Wrapper>
   ) : (
     renderedForm
-  );
+  )
 
   return (
     <>
@@ -182,16 +164,11 @@ export function FormDialogForm<TItem, TForm extends Record<string, any>>(
           onClose={onClose}
           style={opts.dialogContentStyle}
           title={text.title}
-          className={clsx("max-w-100 w-100", opts.dialogClassName)}
+          className={clsx('max-w-100 w-100', opts.dialogClassName)}
           footer={
             <>
               {opts.extraButtons?.(formId)}
-              <Button
-                pending={isSubmitting}
-                form={formId}
-                type="submit"
-                icon={text.buttonIcon}
-              >
+              <Button pending={isSubmitting} form={formId} type="submit" icon={text.buttonIcon}>
                 {text.buttonLabel}
               </Button>
             </>
@@ -201,5 +178,5 @@ export function FormDialogForm<TItem, TForm extends Record<string, any>>(
         </Dialog>
       )}
     </>
-  );
+  )
 }

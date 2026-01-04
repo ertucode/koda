@@ -146,6 +146,7 @@ export namespace Zip {
         destination, // folder
         progressCallback,
         abortSignal,
+        extractWithoutPaths = false,
       } = opts;
 
       let settled = false;
@@ -199,21 +200,49 @@ export namespace Zip {
         const fullPath = path.resolve(source);
         const fullOutputDir = path.resolve(destination);
 
-        await extract(fullPath, {
-          dir: fullOutputDir,
-          onEntry: (entry, zipFile) => {
-            // Check if extraction was aborted
+        if (extractWithoutPaths) {
+          // Use AdmZip for extraction without paths
+          const zip = new AdmZip(fullPath);
+          const entries = zip.getEntries();
+          let processed = 0;
+
+          for (const entry of entries) {
             if (aborted) {
               throw new Error("Unarchive cancelled");
             }
 
-            // Track progress based on entries (files) processed
-            if (progressCallback && zipFile.entryCount > 0) {
-              const progress = (zipFile.entriesRead / zipFile.entryCount) * 100;
-              progressCallback(progress);
+            if (!entry.isDirectory) {
+              const fileName = path.basename(entry.entryName);
+              const targetPath = path.join(fullOutputDir, fileName);
+              
+              // Extract entry data and write to file
+              const data = entry.getData();
+              await fs.promises.writeFile(targetPath, data);
             }
-          },
-        });
+
+            processed++;
+            if (progressCallback) {
+              progressCallback((processed / entries.length) * 100);
+            }
+          }
+        } else {
+          // Use extract-zip for normal extraction with paths
+          await extract(fullPath, {
+            dir: fullOutputDir,
+            onEntry: (entry, zipFile) => {
+              // Check if extraction was aborted
+              if (aborted) {
+                throw new Error("Unarchive cancelled");
+              }
+
+              // Track progress based on entries (files) processed
+              if (progressCallback && zipFile.entryCount > 0) {
+                const progress = (zipFile.entriesRead / zipFile.entryCount) * 100;
+                progressCallback(progress);
+              }
+            },
+          });
+        }
 
         // Ensure we reach 100% on completion
         if (!aborted) {

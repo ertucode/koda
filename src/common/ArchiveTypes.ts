@@ -46,6 +46,7 @@ export namespace ArchiveTypes {
     destination: string;
     progressCallback: (progress: number) => void;
     abortSignal: AbortSignal;
+    extractWithoutPaths?: boolean; // Extract files without directory structure
   };
 
   export type UnarchiveResult = GenericResult<void>;

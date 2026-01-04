@@ -557,9 +557,10 @@ export const directoryHelpers = {
 
   extractArchive: async (
     archiveFilePath: string,
-    folderName: string,
+    targetName: string,
     archiveType: string,
-    directoryId: DirectoryId
+    directoryId: DirectoryId,
+    extractionMode: "folder" | "single-item" = "folder"
   ): Promise<ResultHandlerResult> => {
     const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
     if (context.directory.type !== 'path') {
@@ -567,17 +568,18 @@ export const directoryHelpers = {
     }
 
     try {
-      const destinationFolder = mergeMaybeSlashed(context.directory.fullPath, folderName)
+      const destinationPath = mergeMaybeSlashed(context.directory.fullPath, targetName)
 
       await getWindowElectron().startUnarchive(
         archiveType as any,
         archiveFilePath,
-        destinationFolder,
-        directoryHelpers.getClientMetadata(context)
+        destinationPath,
+        directoryHelpers.getClientMetadata(context),
+        extractionMode === "single-item"
       )
 
       // The task system will handle the progress and reload
-      return { success: true, data: { path: destinationFolder } }
+      return { success: true, data: { path: destinationPath } }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
       return GenericError.Message(errorMessage)

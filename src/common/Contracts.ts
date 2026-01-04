@@ -263,6 +263,7 @@ export type EventRequestMapping = {
     source: string
     destination: string
     clientMetadata: Tasks.ClientMetadata
+    extractSingleItem?: boolean
   }
   abortTask: string
   getApplicationsForFile: string
@@ -346,7 +347,7 @@ export type WindowElectron = {
   onGenericEvent: (cb: (e: GenericEvent) => void) => void
   onWindowFocus: (cb: () => void) => UnsubscribeFunction
   startArchive: (archiveType: ArchiveTypes.ArchiveType, source: string[], destination: string, clientMetadata: Tasks.ClientMetadata) => Promise<void>
-  startUnarchive: (archiveType: ArchiveTypes.ArchiveType, source: string, destination: string, clientMetadata: Tasks.ClientMetadata) => Promise<void>
+  startUnarchive: (archiveType: ArchiveTypes.ArchiveType, source: string, destination: string, clientMetadata: Tasks.ClientMetadata, extractSingleItem?: boolean) => Promise<void>
   abortTask: (taskId: string) => Promise<void>
   getApplicationsForFile: (filePath: string) => Promise<ApplicationInfo[]>
   openFileWithApplication: (filePath: string, applicationPath: string) => Promise<void>

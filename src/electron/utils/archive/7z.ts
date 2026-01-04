@@ -151,6 +151,7 @@ export namespace SevenZip {
         destination, // folder
         progressCallback,
         abortSignal,
+        extractWithoutPaths = false,
       } = opts;
 
       const sevenZBinary = sevenZPath;
@@ -212,9 +213,11 @@ export namespace SevenZip {
       // -----------------
       // SPAWN PROCESS
       // -----------------
-      // 7z x -o<destination> <source.7z>
+      // 7z x -o<destination> <source.7z> (extract with full paths)
+      // 7z e -o<destination> <source.7z> (extract without paths)
       // -bsp1 = show progress percentage
-      const args = ["x", `-o${destination}`, source, "-bsp1", "-y"];
+      const command = extractWithoutPaths ? "e" : "x";
+      const args = [command, `-o${destination}`, source, "-bsp1", "-y"];
 
       const sevenZProcess = spawn(sevenZBinary, args, {
         stdio: ["ignore", "pipe", "pipe"],

@@ -1,4 +1,4 @@
-import { Brands } from './Brands'
+import { Brands } from './Brands.js'
 
 export namespace PathHelpers {
   export function name(path: string) {

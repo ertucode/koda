@@ -103,7 +103,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     source: string,
     destination: string,
     clientMetadata: any,
-  ) => ipcInvoke("startUnarchive", { archiveType, source, destination, clientMetadata }),
+    extractSingleItem?: boolean,
+  ) => ipcInvoke("startUnarchive", { archiveType, source, destination, clientMetadata, extractSingleItem }),
   abortTask: (taskId: string) => ipcInvoke("abortTask", taskId),
   getApplicationsForFile: (filePath: string) =>
     ipcInvoke("getApplicationsForFile", filePath),

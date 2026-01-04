@@ -4,6 +4,9 @@ import { Tasks } from "../../common/Tasks.js";
 import { TaskManager } from "../TaskManager.js";
 import { Archive } from "./archive/Archive.js";
 import { expandHome } from "./expand-home.js";
+import fs from "fs";
+import path from "path";
+import { PathHelpers } from "../../common/PathHelpers.js";
 
 type StartArchiveRequest = {
   archiveType: ArchiveTypes.ArchiveType;
@@ -17,6 +20,7 @@ type StartUnarchiveRequest = {
   source: string;
   destination: string;
   clientMetadata: Tasks.ClientMetadata;
+  extractSingleItem?: boolean;
 };
 
 export async function startArchive(
@@ -80,7 +84,7 @@ export async function startArchive(
 export async function startUnarchive(
   request: StartUnarchiveRequest,
 ): Promise<void> {
-  const { archiveType, source, destination, clientMetadata } = request;
+  const { archiveType, source, destination, clientMetadata, extractSingleItem } = request;
 
   // Expand home paths
   const expandedSource = expandHome(source);
@@ -113,16 +117,58 @@ export async function startUnarchive(
         throw new Error("Task not found after creation");
       }
 
+      let finalDestination = expandedDestination;
+      let tempDestination: string | undefined;
+
+      // If extracting a single item, create a temp folder
+      if (extractSingleItem) {
+        const parentDir = PathHelpers.parent(expandedDestination).path;
+        const timestamp = Date.now();
+        tempDestination = path.join(parentDir, `.temp_extract_${timestamp}`);
+        finalDestination = tempDestination;
+      }
+
       const opts: ArchiveTypes.UnarchiveOpts = {
         source: expandedSource,
-        destination: expandedDestination,
+        destination: finalDestination,
         progressCallback: (progress: number) => {
           TaskManager.progress(taskId, progress);
         },
         abortSignal,
+        extractWithoutPaths: extractSingleItem,
       };
 
       const result = await Archive.unarchive(archiveType, opts);
+
+      // If extraction was successful and we're extracting a single item, move it
+      if (result.success && extractSingleItem && tempDestination) {
+        try {
+          // Get the single item from the temp folder
+          const items = await fs.promises.readdir(tempDestination);
+          
+          if (items.length !== 1) {
+            throw new Error(`Expected 1 item in archive, but found ${items.length}`);
+          }
+
+          const singleItemPath = path.join(tempDestination, items[0]);
+          
+          // Move the single item to the target destination
+          await fs.promises.rename(singleItemPath, expandedDestination);
+          
+          // Clean up the temp folder
+          await fs.promises.rm(tempDestination, { recursive: true, force: true });
+        } catch (moveError) {
+          // Clean up temp folder even if move fails
+          if (tempDestination) {
+            try {
+              await fs.promises.rm(tempDestination, { recursive: true, force: true });
+            } catch {
+              // Ignore cleanup errors
+            }
+          }
+          throw moveError;
+        }
+      }
 
       // Report the result
       TaskManager.result(taskId, result);

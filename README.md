@@ -9,7 +9,7 @@
 - unarchive as file if only one file
 - extract'tan sonra reload olmadı sanki.
 - for archives, navgate to it on double click. show unarchive button on the name part
-- paste picture from clipboard
+- paste picture from clipboard. If last clipboard data is 30 seconds old, and clipboard has image
 
 # AMBITIOUS TODO
 
