@@ -374,27 +374,15 @@ function unarchiveWithTar(
     }
     abortSignal.addEventListener("abort", cancel, { once: true });
 
-    // For extractWithoutPaths, we'll extract to temp and move files after
-    let actualDestination = destination;
-    let tempDir: string | undefined;
-    
-    if (extractWithoutPaths) {
-      tempDir = `${destination}_temp_${Date.now()}`;
-      actualDestination = tempDir;
-      try {
-        await fs.promises.mkdir(tempDir, { recursive: true });
-      } catch (err) {
-        return finish(err as Error);
-      }
-    }
-
     // -----------------
     // BUILD COMMAND
     // -----------------
     const compressionFlag = getCompressionFlag(compressionType);
 
     // Build tar command: tar -x[z|j|J]f archive.tar[.gz|.bz2|.xz] -C destination
-    const args = [`-x${compressionFlag}f`, source, "-C", actualDestination];
+    // Note: extractWithoutPaths doesn't affect tar extraction - the caller
+    // (start-archive-task.ts) handles moving files from temp folder if needed
+    const args = [`-x${compressionFlag}f`, source, "-C", destination];
 
     // -----------------
     // SPAWN PROCESS
@@ -437,54 +425,10 @@ function unarchiveWithTar(
     // -----------------
     // COMPLETION
     // -----------------
-    tarProcess.on("close", async (code) => {
+    tarProcess.on("close", (code) => {
       if (code === 0) {
-        // If extractWithoutPaths, move files from temp to destination
-        if (extractWithoutPaths && tempDir) {
-          try {
-            // Recursively collect all files (not directories) from temp
-            const collectFiles = async (dir: string): Promise<string[]> => {
-              const files: string[] = [];
-              const items = await fs.promises.readdir(dir, { withFileTypes: true });
-              
-              for (const item of items) {
-                const itemPath = path.join(dir, item.name);
-                if (item.isDirectory()) {
-                  files.push(...await collectFiles(itemPath));
-                } else {
-                  files.push(itemPath);
-                }
-              }
-              
-              return files;
-            };
-            
-            const allFiles = await collectFiles(tempDir);
-            
-            // Move each file to destination (flatten)
-            for (const filePath of allFiles) {
-              const fileName = path.basename(filePath);
-              const targetPath = path.join(destination, fileName);
-              await fs.promises.rename(filePath, targetPath);
-            }
-            
-            // Clean up temp directory
-            await fs.promises.rm(tempDir, { recursive: true, force: true });
-          } catch (moveErr) {
-            finish(moveErr as Error);
-            return;
-          }
-        }
         finish();
       } else {
-        // Clean up temp dir on error
-        if (tempDir) {
-          try {
-            await fs.promises.rm(tempDir, { recursive: true, force: true });
-          } catch {
-            // Ignore cleanup errors
-          }
-        }
         finish(
           new Error(`tar process exited with code ${code}: ${errorOutput}`),
         );

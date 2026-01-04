@@ -117,20 +117,20 @@ export async function startUnarchive(
         throw new Error("Task not found after creation");
       }
 
-      let finalDestination = expandedDestination;
+      let actualDestination = expandedDestination;
       let tempDestination: string | undefined;
 
-      // If extracting a single item, create a temp folder
+      // If extracting a single item, extract to temp folder first
       if (extractSingleItem) {
         const parentDir = PathHelpers.parent(expandedDestination).path;
         const timestamp = Date.now();
         tempDestination = path.join(parentDir, `.temp_extract_${timestamp}`);
-        finalDestination = tempDestination;
+        actualDestination = tempDestination;
       }
 
       const opts: ArchiveTypes.UnarchiveOpts = {
         source: expandedSource,
-        destination: finalDestination,
+        destination: actualDestination,
         progressCallback: (progress: number) => {
           TaskManager.progress(taskId, progress);
         },
