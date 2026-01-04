@@ -44,6 +44,7 @@ export type CreateFormDialogOpts<TItem, TRequest extends Record<string, any>> = 
   dialogContentStyle?: React.CSSProperties
   dialogClassName?: string
   asyncInitialData?: (item: TItem | undefined) => Promise<TRequest | undefined>
+  itemEffect?: (item: TItem | undefined) => void
 }
 
 export type FormDialogProps<TItem> = [TItem] extends [never]
@@ -122,6 +123,9 @@ export function FormDialogForm<TItem, TForm extends Record<string, any>>(
           trigger()
         }
       })
+    }
+    if (opts.itemEffect) {
+      opts.itemEffect(item)
     }
   }, [item])
 
