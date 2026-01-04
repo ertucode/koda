@@ -1,22 +1,20 @@
-import { Button } from "@/lib/components/button";
-import {
-  TabSetNode,
-  BorderNode,
-  ITabSetRenderValues,
-  Actions,
-} from "flexlayout-react";
-import { PlusIcon, Maximize2Icon } from "lucide-react";
-import { layoutModel } from "../file-browser/initializeDirectory";
-import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";
-import { directoryHelpers } from "../file-browser/directoryStore/directoryHelpers";
+import { Button } from '@/lib/components/button'
+import { TabSetNode, BorderNode, ITabSetRenderValues, Actions } from 'flexlayout-react'
+import { PlusIcon, Maximize2Icon } from 'lucide-react'
+import { layoutModel } from '../file-browser/initializeDirectory'
+import { LayoutHelpers } from '../file-browser/utils/LayoutHelpers'
+import { directoryHelpers } from '../file-browser/directoryStore/directoryHelpers'
+import { ReactNode } from 'react'
 
-export const onRenderTabSet = (
-  tabSetNode: TabSetNode | BorderNode,
-  renderValues: ITabSetRenderValues,
-) => {
-  renderValues.buttons = [];
+export const onRenderTabSet = (tabSetNode: TabSetNode | BorderNode, renderValues: ITabSetRenderValues) => {
+  renderValues.buttons = []
 
-  if (!LayoutHelpers.isDirectoryTabSet(tabSetNode)) return;
+  if (!LayoutHelpers.isDirectoryTabSet(tabSetNode)) {
+    if (LayoutHelpers.isPreviewTabSet(tabSetNode)) {
+      pushMaximize(renderValues.buttons, tabSetNode)
+    }
+    return
+  }
 
   renderValues.buttons.push(
     <Button
@@ -27,20 +25,24 @@ export const onRenderTabSet = (
       onClick={() => {
         directoryHelpers.createDirectory({
           tabId: tabSetNode.getId(),
-        });
+        })
       }}
-    />,
-  );
+    />
+  )
 
-  renderValues.buttons.push(
+  pushMaximize(renderValues.buttons, tabSetNode)
+}
+
+function pushMaximize(buttons: ReactNode[], tabSetNode: TabSetNode | BorderNode) {
+  buttons.push(
     <Button
       key="maximize-thing"
       icon={Maximize2Icon}
       className="btn-ghost btn-sm btn-square rounded-none"
       title="Maximize Thing"
       onClick={() => {
-        layoutModel.doAction(Actions.maximizeToggle(tabSetNode.getId()));
+        layoutModel.doAction(Actions.maximizeToggle(tabSetNode.getId()))
       }}
-    />,
-  );
-};
+    />
+  )
+}
