@@ -6,7 +6,6 @@
 # TODO
 
 - for archives, navgate to it on double click. show unarchive button on the name part
-- fix pending selection to be actually pending selection, not after selection
 
 # AMBITIOUS TODO
 
@@ -14,3 +13,7 @@
 - File encryption
 - tree view
 - themes
+
+# EH TODO
+
+- fix pending selection to be actually pending selection, not after selection

@@ -163,7 +163,7 @@ export const directorySelection = {
         label: 'Select all items',
       },
       {
-        key: ['ArrowUp', 'k', { shiftKey: true, key: 'KeyK', isCode: true }, { shiftKey: true, key: 'ArrowUp' }],
+        key: ['ArrowUp', { shiftKey: true, key: 'KeyK', isCode: true }, { shiftKey: true, key: 'ArrowUp' }],
         handler: throttle(e => {
           const state = getActiveDirectory(directoryStore.getSnapshot().context, undefined)
           const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
@@ -215,7 +215,7 @@ export const directorySelection = {
         label: 'Select previous item',
       },
       {
-        key: ['ArrowDown', 'j', { shiftKey: true, key: 'KeyJ', isCode: true }, { shiftKey: true, key: 'ArrowDown' }],
+        key: ['ArrowDown', { shiftKey: true, key: 'KeyJ', isCode: true }, { shiftKey: true, key: 'ArrowDown' }],
         handler: throttle(e => {
           const state = getActiveDirectory(directoryStore.getSnapshot().context, undefined)
           const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!

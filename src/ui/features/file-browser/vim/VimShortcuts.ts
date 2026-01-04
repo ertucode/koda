@@ -93,6 +93,8 @@ export const VimShortcuts = {
         { key: { key: 'A', shiftKey: true }, handler: create(VimMovements.A), label: '[VIM] Append at end' },
         { key: 'l', handler: create(VimMovements.l), label: '[VIM] Move cursor right' },
         { key: 'h', handler: create(VimMovements.h), label: '[VIM] Move cursor left' },
+        { key: 'j', handler: create(VimMovements.j), label: '[VIM] Move cursor down' },
+        { key: 'k', handler: create(VimMovements.k), label: '[VIM] Move cursor up' },
         { key: 'w', handler: create(VimMovements.w), label: '[VIM] Move cursor to start of word' },
         { key: 'b', handler: create(VimMovements.b), label: '[VIM] Move cursor to end of word' },
         { key: 'e', handler: create(VimMovements.e), label: '[VIM] Move cursor to end of word' },

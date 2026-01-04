@@ -1310,3 +1310,189 @@ describe('VimEngine history merging for insert mode commands', () => {
     expect(state.buffers['/test'].cursor.line).toBe(1)
   })
 })
+
+describe('VimMovements with operators (dj, dk, yj, yk)', () => {
+  it('should delete 2 lines with dj', () => {
+    const items = [
+      createRealBufferItem('line1'),
+      createRealBufferItem('line2'),
+      createRealBufferItem('line3'),
+      createRealBufferItem('line4'),
+    ]
+
+    const buffer = createBuffer('/test', items)
+    buffer.cursor = { line: 1, column: 0 } // Start at line2
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: { '/test': buffer },
+    }
+
+    // Press d
+    state = VimEngine.d({ state, fullPath: '/test' })
+    expect(state.pendingOperator).toBe('d')
+
+    // Press j - should delete current line (line2) and next line (line3)
+    state = VimMovements.j({ state, fullPath: '/test' })
+    expect(state.buffers['/test'].items.length).toBe(2)
+    expect(state.buffers['/test'].items[0].str).toBe('line1')
+    expect(state.buffers['/test'].items[1].str).toBe('line4')
+    expect(state.registry.length).toBe(2)
+    expect(state.registry[0].str).toBe('line2')
+    expect(state.registry[1].str).toBe('line3')
+  })
+
+  it('should delete 4 lines with d3j', () => {
+    const items = [
+      createRealBufferItem('line1'),
+      createRealBufferItem('line2'),
+      createRealBufferItem('line3'),
+      createRealBufferItem('line4'),
+      createRealBufferItem('line5'),
+    ]
+
+    const buffer = createBuffer('/test', items)
+    buffer.cursor = { line: 1, column: 0 } // Start at line2
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: { '/test': buffer },
+    }
+
+    // Press 3
+    state = VimEngine.addToCount({ state, fullPath: '/test' }, 3)
+    expect(state.count).toBe(3)
+
+    // Press d
+    state = VimEngine.d({ state, fullPath: '/test' })
+    expect(state.pendingOperator).toBe('d')
+
+    // Press j - should delete current line + next 3 lines (4 total)
+    state = VimMovements.j({ state, fullPath: '/test' })
+    expect(state.buffers['/test'].items.length).toBe(1)
+    expect(state.buffers['/test'].items[0].str).toBe('line1')
+    expect(state.registry.length).toBe(4)
+  })
+
+  it('should delete 2 lines with dk', () => {
+    const items = [
+      createRealBufferItem('line1'),
+      createRealBufferItem('line2'),
+      createRealBufferItem('line3'),
+      createRealBufferItem('line4'),
+    ]
+
+    const buffer = createBuffer('/test', items)
+    buffer.cursor = { line: 2, column: 0 } // Start at line3
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: { '/test': buffer },
+    }
+
+    // Press d
+    state = VimEngine.d({ state, fullPath: '/test' })
+    expect(state.pendingOperator).toBe('d')
+
+    // Press k - should delete previous line (line2) and current line (line3)
+    state = VimMovements.k({ state, fullPath: '/test' })
+    expect(state.buffers['/test'].items.length).toBe(2)
+    expect(state.buffers['/test'].items[0].str).toBe('line1')
+    expect(state.buffers['/test'].items[1].str).toBe('line4')
+    expect(state.registry.length).toBe(2)
+    expect(state.registry[0].str).toBe('line2')
+    expect(state.registry[1].str).toBe('line3')
+  })
+
+  it('should delete 3 lines with d2k', () => {
+    const items = [
+      createRealBufferItem('line1'),
+      createRealBufferItem('line2'),
+      createRealBufferItem('line3'),
+      createRealBufferItem('line4'),
+      createRealBufferItem('line5'),
+    ]
+
+    const buffer = createBuffer('/test', items)
+    buffer.cursor = { line: 3, column: 0 } // Start at line4
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: { '/test': buffer },
+    }
+
+    // Press 2
+    state = VimEngine.addToCount({ state, fullPath: '/test' }, 2)
+    expect(state.count).toBe(2)
+
+    // Press d
+    state = VimEngine.d({ state, fullPath: '/test' })
+    expect(state.pendingOperator).toBe('d')
+
+    // Press k - should delete previous 2 lines + current line (3 total)
+    state = VimMovements.k({ state, fullPath: '/test' })
+    expect(state.buffers['/test'].items.length).toBe(2)
+    expect(state.buffers['/test'].items[0].str).toBe('line1')
+    expect(state.buffers['/test'].items[1].str).toBe('line5')
+    expect(state.registry.length).toBe(3)
+    expect(state.registry[0].str).toBe('line2')
+    expect(state.registry[1].str).toBe('line3')
+    expect(state.registry[2].str).toBe('line4')
+  })
+
+  it('should yank 2 lines with yj', () => {
+    const items = [
+      createRealBufferItem('line1'),
+      createRealBufferItem('line2'),
+      createRealBufferItem('line3'),
+      createRealBufferItem('line4'),
+    ]
+
+    const buffer = createBuffer('/test', items)
+    buffer.cursor = { line: 1, column: 0 }
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: { '/test': buffer },
+    }
+
+    // Press y
+    state = VimEngine.y({ state, fullPath: '/test' })
+    expect(state.pendingOperator).toBe('y')
+
+    // Press j - should yank current line and next line
+    state = VimMovements.j({ state, fullPath: '/test' })
+    expect(state.buffers['/test'].items.length).toBe(4) // No deletion
+    expect(state.registry.length).toBe(2)
+    expect(state.registry[0].str).toBe('line2')
+    expect(state.registry[1].str).toBe('line3')
+  })
+
+  it('should change 2 lines with cj', () => {
+    const items = [
+      createRealBufferItem('line1'),
+      createRealBufferItem('line2'),
+      createRealBufferItem('line3'),
+      createRealBufferItem('line4'),
+    ]
+
+    const buffer = createBuffer('/test', items)
+    buffer.cursor = { line: 1, column: 0 }
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: { '/test': buffer },
+    }
+
+    // Press c
+    state = VimEngine.c({ state, fullPath: '/test' })
+    expect(state.pendingOperator).toBe('c')
+
+    // Press j - should delete 2 lines and enter insert mode
+    state = VimMovements.j({ state, fullPath: '/test' })
+    expect(state.mode).toBe('insert')
+    expect(state.buffers['/test'].items.length).toBe(3)
+    expect(state.buffers['/test'].items[1].str).toBe('') // Changed to empty line
+    expect(state.registry.length).toBe(2)
+  })
+})

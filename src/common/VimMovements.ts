@@ -30,6 +30,7 @@ function moveCursor(
         cursor,
       },
     },
+    count: 0,
   }
 }
 
@@ -81,6 +82,34 @@ export namespace VimMovements {
   }
 
   export function j(opts: CommandOpts): CommandResult {
+    if (opts.state.pendingOperator) {
+      // For operators with j/k, we need to execute a line-wise operation
+      // This should call dd/yy/cc style operations, not character range operations
+      const operator = opts.state.pendingOperator
+
+      // dj should delete current line + next line (2 lines total with count 1)
+      // d2j should delete current line + next 2 lines (3 lines total)
+      // So the effective count for dd is count + 1
+      const count = getEffectiveCount(opts.state)
+      const effectiveCount = count + 1
+
+      // Create a new state with the updated count and call the appropriate line operation
+      const newState: VimEngine.State = {
+        ...opts.state,
+        count: effectiveCount,
+      }
+
+      if (operator === 'd') {
+        return VimEngine.dd({ state: newState, fullPath: opts.fullPath })
+      } else if (operator === 'y') {
+        return VimEngine.yy({ state: newState, fullPath: opts.fullPath })
+      } else if (operator === 'c') {
+        return VimEngine.cc({ state: newState, fullPath: opts.fullPath })
+      }
+
+      return opts.state
+    }
+
     return moveCursor(opts, (count, cursor) => {
       const numItems = opts.state.buffers[opts.fullPath].items.length
       const dest = cursor.line + count
@@ -92,6 +121,47 @@ export namespace VimMovements {
   }
 
   export function k(opts: CommandOpts): CommandResult {
+    if (opts.state.pendingOperator) {
+      // For operators with k (upward motion), we need to execute a line-wise operation
+      // dk should delete current line + previous line (2 lines total with count 1)
+      // d2k should delete current line + previous 2 lines (3 lines total)
+      const operator = opts.state.pendingOperator
+      const count = getEffectiveCount(opts.state)
+      const effectiveCount = count + 1
+      const buffer = opts.state.buffers[opts.fullPath]
+
+      // Move cursor up by count lines first, then delete effectiveCount lines from there
+      const numItems = buffer.items.length
+      const dest = buffer.cursor.line - count
+      const newLine = dest < 0 ? numItems + dest : dest
+
+      // Create a new state with cursor moved up and updated count
+      const newState: VimEngine.State = {
+        ...opts.state,
+        count: effectiveCount,
+        buffers: {
+          ...opts.state.buffers,
+          [opts.fullPath]: {
+            ...buffer,
+            cursor: {
+              line: newLine,
+              column: buffer.cursor.column,
+            },
+          },
+        },
+      }
+
+      if (operator === 'd') {
+        return VimEngine.dd({ state: newState, fullPath: opts.fullPath })
+      } else if (operator === 'y') {
+        return VimEngine.yy({ state: newState, fullPath: opts.fullPath })
+      } else if (operator === 'c') {
+        return VimEngine.cc({ state: newState, fullPath: opts.fullPath })
+      }
+
+      return opts.state
+    }
+
     return moveCursor(opts, (count, cursor) => {
       const numItems = opts.state.buffers[opts.fullPath].items.length
       const dest = cursor.line - count
@@ -596,7 +666,7 @@ export namespace VimMovements {
     if (opts.state.pendingOperator) {
       const buffer = opts.state.buffers[opts.fullPath]
       const str = buffer.items[buffer.cursor.line].str
-      
+
       return VimEngine.executeOperatorWithRange(opts, {
         start: buffer.cursor.column,
         end: str.length,
