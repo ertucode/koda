@@ -3,8 +3,9 @@ import { taskStore } from './taskStore'
 import { directoryHelpers } from './file-browser/directoryStore/directoryHelpers'
 import { PathHelpers } from '@common/PathHelpers'
 import { directoryStore } from './file-browser/directoryStore/directory'
+import { Tasks } from '@common/Tasks'
 
-function shouldUseClientMetadata(task: any): boolean {
+function shouldUseClientMetadata(task: Tasks.Base): boolean {
   if (!task.clientMetadata) return false
 
   const start = new Date(task.createdIso)
@@ -13,32 +14,30 @@ function shouldUseClientMetadata(task: any): boolean {
   // Only use clientMetadata if task completed within 5 seconds
   if (elapsed >= 5000) return false
 
-  // Check if the user has moved the cursor since task creation
+  /* // Check if the user has moved the cursor since task creation
   const currentState = directoryStore.getSnapshot().context
-  const directory = currentState.directoriesById[task.clientMetadata.directoryId as any]
-  
+  const directory = currentState.directoriesById[task.clientMetadata.directoryId as DirectoryId]
+
   if (!directory) return false
 
   // Check if selection has changed
   const currentSelection = Array.from(directory.selection.indexes).sort()
-  const originalSelection = [...task.clientMetadata.selection].sort()
+  const originalSelection = [...task.clientMetadata.selection.indexes].sort()
+  console.log(currentSelection, originalSelection)
 
   // If selections are different, user has moved cursor
   if (currentSelection.length !== originalSelection.length) return false
-  if (!currentSelection.every((val, idx) => val === originalSelection[idx])) return false
+  if (!currentSelection.every((val, idx) => val === originalSelection[idx])) return false */
 
   return true
 }
 
-function getSelectionAfterDeletion(clientMetadata: any): number | undefined {
-  if (!clientMetadata?.selection || clientMetadata.selection.length === 0) return undefined
-
-  // Find the minimum index from the original selection
-  const minIndex = Math.min(...clientMetadata.selection)
+function getSelectionAfterDeletion(clientMetadata: Tasks.ClientMetadata | undefined): number | undefined {
+  if (!clientMetadata?.selection || clientMetadata.selection.indexes.size === 0) return 0
 
   // We want to select the item just before the lowest deleted index
   // If minIndex is 0, we select 0, otherwise select minIndex - 1
-  return Math.max(0, minIndex - 1)
+  return Math.max(0, Math.min(...clientMetadata.selection.indexes))
 }
 
 export function subscribeToTasks() {
@@ -53,15 +52,15 @@ export function subscribeToTasks() {
       const destination = task.metadata.destination
       const start = new Date(task.createdIso)
       const elapsed = new Date().getTime() - start.getTime()
-      
+
       let fileToSelect: string | undefined
-      
+
       if (shouldUseClientMetadata(task)) {
         fileToSelect = PathHelpers.name(destination)
       } else if (elapsed < 1000) {
         fileToSelect = PathHelpers.name(destination)
       }
-      
+
       return directoryHelpers.checkAndReloadDirectories(
         PathHelpers.parent(PathHelpers.expandHome(homeDirectory, destination)).path,
         fileToSelect
@@ -69,28 +68,22 @@ export function subscribeToTasks() {
     } else if (task.type === 'delete') {
       const fullPaths = [...new Set(task.metadata.files)]
       for (const fullPath of fullPaths) {
-        const directoryPath = PathHelpers.parent(fullPath).path
-        
+        const directoryPath = PathHelpers.expandHome(homeDirectory, PathHelpers.parent(fullPath).path)
+
         if (shouldUseClientMetadata(task)) {
           const selectionIndex = getSelectionAfterDeletion(task.clientMetadata)
-          
+
           // Use callback-based selection after reload
-          directoryHelpers.checkAndReloadDirectories(directoryPath, (dir) => {
+          directoryHelpers.checkAndReloadDirectories(directoryPath, dir => {
             if (selectionIndex !== undefined && dir.directoryData.length > 0) {
-              const indexToSelect = Math.min(selectionIndex, dir.directoryData.length - 1)
-              directoryStore.send({
-                type: 'setSelection',
-                directoryId: task.clientMetadata!.directoryId as any,
-                indexes: new Set([indexToSelect]),
-                last: indexToSelect,
-              })
+              return Math.min(selectionIndex, dir.directoryData.length - 1)
             }
             return undefined
           })
         } else {
           directoryHelpers.checkAndReloadDirectories(directoryPath, undefined)
         }
-        
+
         return
       }
     } else if (task.type === 'vim-changes') {

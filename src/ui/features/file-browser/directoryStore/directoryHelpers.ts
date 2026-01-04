@@ -31,6 +31,7 @@ import { resolveSortFromStores } from '../schemas'
 import { ArchiveHelpers } from '@common/ArchiveHelpers'
 import { confirmation } from '@/lib/components/confirmation'
 import { Tasks } from '@common/Tasks'
+import { Brands } from '@common/Brands'
 
 export const cd = async (newDirectory: DirectoryInfo, isNew: boolean, drectoryId: DirectoryId | undefined) => {
   const context = getActiveDirectory(directoryStore.getSnapshot().context, drectoryId)
@@ -662,8 +663,8 @@ export const directoryHelpers = {
     return undefined
   },
   checkAndReloadDirectories(
-    path: string,
-    fileToSelect: $Maybe<string> | ((dir: DirectoryContextDirectory) => $Maybe<string>)
+    path: Brands.ExpandedPath,
+    fileToSelect: $Maybe<string> | ((dir: DirectoryContextDirectory) => $Maybe<string | number>)
   ) {
     const directories = directoryStore.getSnapshot().context.directoriesById
 
@@ -674,7 +675,9 @@ export const directoryHelpers = {
         directoryHelpers.reload(dir.directoryId).then(() => {
           if (fileToSelect) {
             const fs = typeof fileToSelect === 'string' ? fileToSelect : fileToSelect(dir)
-            if (fs) directoryHelpers.setPendingSelection(fs, dir.directoryId)
+            if (typeof fs === 'number') {
+              directoryStore.trigger.setSelection({ directoryId: dir.directoryId, indexes: new Set([fs]) })
+            } else if (fs) directoryHelpers.setPendingSelection(fs, dir.directoryId)
           }
         })
 

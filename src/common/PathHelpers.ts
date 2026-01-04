@@ -1,3 +1,5 @@
+import { Brands } from './Brands'
+
 export namespace PathHelpers {
   export function name(path: string) {
     const parts = path.split('/').filter(Boolean)
@@ -13,31 +15,33 @@ export namespace PathHelpers {
    * Get the parent folder path and name from a full path
    * e.g., "/Users/john/Documents/file.txt" -> { path: "/Users/john/Documents", name: "Documents" }
    */
-  export function parent(fullPath: string): {
-    path: string
+  export function parent<T extends string>(
+    fullPath: T
+  ): {
+    path: T
     name: string
   } {
-    if (fullPath === '/') return { path: '', name: '' }
+    if (fullPath === '/') return { path: '' as T, name: '' }
     const parts = fullPath.split('/')
     // Remove empty parts but keep track of leading slash
     const filteredParts = parts.filter(Boolean)
 
     if (filteredParts.length === 1) {
       if (filteredParts[0] === '~') {
-        return { path: '/', name: '' }
+        return { path: '/' as T, name: '' }
       }
 
-      return { path: '/', name: '/' }
+      return { path: '/' as T, name: '/' }
     }
 
     if (filteredParts.length >= 2) {
       const parentParts = filteredParts.slice(0, -1)
       const parentPath = filteredParts[0][0] === '~' ? parentParts.join('/') : '/' + parentParts.join('/')
       const parentName = parentParts[parentParts.length - 1]
-      return { path: parentPath, name: parentName }
+      return { path: parentPath as T, name: parentName }
     }
 
-    return { path: '/', name: '/' }
+    return { path: '/' as T, name: '/' }
   }
 
   export function reconstructDirectoryUntilIndex(parts: string[], idx: number) {
@@ -50,11 +54,11 @@ export namespace PathHelpers {
     return dir.split('/').filter(Boolean)
   }
 
-  export function expandHome(home: string, filePath: string): string {
+  export function expandHome(home: string, filePath: string): Brands.ExpandedPath {
     if (filePath.startsWith('~/')) {
-      return home + filePath.slice(1)
+      return (home + filePath.slice(1)) as Brands.ExpandedPath
     }
-    return filePath
+    return filePath as Brands.ExpandedPath
   }
 
   export function revertExpandedHome(home: string, filePath: string): string {

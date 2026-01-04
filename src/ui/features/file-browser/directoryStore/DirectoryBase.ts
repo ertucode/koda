@@ -4,6 +4,7 @@ import { TagColor } from '../tags'
 import { SortState } from '../schemas'
 import { GenericError } from '@common/GenericError'
 import { VimEngine } from '@common/VimEngine'
+import { Brands } from '@common/Brands'
 
 export type DirectoryInfo = { type: 'path'; fullPath: string } | { type: 'tags'; color: TagColor }
 export type DirectoryType = DirectoryInfo['type']
@@ -19,7 +20,7 @@ export function getActiveDirectory(context: DirectoryContext, directoryId: Direc
   return context.directoriesById[dirId]
 }
 
-export type DirectoryId = $Branded<string, 'DirectoryId'>
+export type DirectoryId = Brands.DirectoryId
 export type DerivedDirectoryItem = VimEngine.BufferItem
 export type RealDirectoryItem = Extract<DerivedDirectoryItem, { type: 'real' }>
 export type StrDirectoryItem = Extract<DerivedDirectoryItem, { type: 'str' }>
