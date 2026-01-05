@@ -18,6 +18,7 @@ import {
   DirectoryContextDirectory,
   DirectoryInfo,
   DirectoryLocalSort,
+  DerivedDirectoryItem,
 } from './DirectoryBase'
 import { defaultSelection, getActiveDirectory, getFullPathForBuffer, selectBuffer } from './directoryPureHelpers'
 import { errorResponseToMessage, GenericError } from '@common/GenericError'
@@ -68,6 +69,7 @@ export function createDirectoryContext(directoryId: DirectoryId, directory: Dire
 }
 
 function updateVimCursor(state: VimEngine.State, fullPath: string, line: number) {
+  if (!state.buffers[fullPath]) return state
   return {
     ...state,
     buffers: {
@@ -119,6 +121,12 @@ export const directoryStore = createStore({
     directoryAdded: (_: { directoryId: DirectoryId }) => {},
     directoryRemoved: (_: { directoryId: DirectoryId }) => {},
     directoryNavigated: (_: { directoryId: DirectoryId; directory: DirectoryInfo }) => {},
+    showContextMenu: (_: {
+      element: HTMLElement
+      index: number
+      item: DerivedDirectoryItem
+      directoryId: DirectoryId
+    }) => {},
   },
   on: {
     focusFuzzyInput: (context, event: { e: KeyboardEvent | undefined }, enqueue) => {
@@ -126,6 +134,14 @@ export const directoryStore = createStore({
         e: event.e,
         directoryId: context.activeDirectoryId,
       })
+      return context
+    },
+    showContextMenu: (
+      context,
+      event: { element: HTMLElement; index: number; item: DerivedDirectoryItem; directoryId: DirectoryId },
+      enqueue
+    ) => {
+      enqueue.emit.showContextMenu(event)
       return context
     },
     setDirectoryData: (

@@ -11,7 +11,7 @@ export function getBufferSelection(state: DirectoryContext, directory: Directory
 export function getCursorLine(state: DirectoryContext, directory: DirectoryContextDirectory) {
   if (!directory) return 0
   const fullPath = getFullPathForBuffer(directory.directory)
-  return state.vim.buffers[fullPath]?.cursor.line
+  return state.vim.buffers[fullPath]?.cursor?.line
 }
 export function getCursorLineForDirectoryId(state: DirectoryContext, directoryId: DirectoryId | undefined) {
   return getCursorLine(state, getActiveDirectory(state, directoryId))

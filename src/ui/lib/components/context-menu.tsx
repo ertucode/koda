@@ -1,86 +1,72 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { sportForContextMenu } from '../functions/spotForContextMenu'
 
 export type ContextMenuProps<T> = {
-  children: React.ReactNode;
-  menu: ReturnType<typeof useContextMenu<T>>;
-};
+  children: React.ReactNode
+  menu: ReturnType<typeof useContextMenu<T>>
+}
 
 export function ContextMenu<T>({ children, menu }: ContextMenuProps<T>) {
-  const [position, setPosition] = useState(menu.position);
+  const [position, setPosition] = useState(menu.position)
   useLayoutEffect(() => {
-    if (!menu || !menu.position || !menu.ref.current) return;
+    if (!menu || !menu.position || !menu.ref.current) return
 
-    const dialog = menu.ref.current;
-    const { innerWidth, innerHeight } = window;
-    const rect = dialog.getBoundingClientRect();
+    const dialog = menu.ref.current
+    const { innerWidth, innerHeight } = window
+    const rect = dialog.getBoundingClientRect()
 
-    let x = menu.position.x;
-    let y = menu.position.y;
+    let x = menu.position.x
+    let y = menu.position.y
 
     // Right overflow
     if (x + rect.width > innerWidth) {
-      x = innerWidth - rect.width - 8;
+      x = innerWidth - rect.width - 8
     }
 
     // Bottom overflow
     if (y + rect.height > innerHeight) {
-      y = innerHeight - rect.height - 8;
+      y = innerHeight - rect.height - 8
     }
 
     // Left / Top safety
-    x = Math.max(8, x);
-    y = Math.max(8, y);
+    x = Math.max(8, x)
+    y = Math.max(8, y)
 
     if (x !== menu.position.x || y !== menu.position.y) {
-      setPosition((prev) => (prev ? { ...prev, x, y } : { x, y }));
+      setPosition(prev => (prev ? { ...prev, x, y } : { x, y }))
     } else {
-      setPosition(menu.position);
+      setPosition(menu.position)
     }
-  }, [menu.position]);
+  }, [menu.position])
 
   return (
-    <div
-      ref={menu.ref}
-      className="fixed z-50"
-      style={{ top: position?.y, left: position?.x }}
-    >
-      <ContextMenuContext.Provider value={menu}>
-        {children}
-      </ContextMenuContext.Provider>
+    <div ref={menu.ref} className="fixed z-50" style={{ top: position?.y, left: position?.x }}>
+      <ContextMenuContext.Provider value={menu}>{children}</ContextMenuContext.Provider>
     </div>
-  );
+  )
 }
 
 type NormalContextMenuItem = {
-  view: React.ReactNode;
-  onClick?: () => void;
-  submenu?: (NormalContextMenuItem | false | null | undefined)[];
-};
-export type ContextMenuItem = NormalContextMenuItem | { isSeparator: true };
+  view: React.ReactNode
+  onClick?: () => void
+  submenu?: (NormalContextMenuItem | false | null | undefined)[]
+}
+export type ContextMenuItem = NormalContextMenuItem | { isSeparator: true }
 
 export type ContextMenuListProps = {
-  items: (ContextMenuItem | false | null | undefined)[];
-};
+  items: (ContextMenuItem | false | null | undefined)[]
+}
 
 export function ContextMenuList({ items }: ContextMenuListProps) {
-  const menu = useContext(ContextMenuContext);
-  const filteredItems = items.filter((i): i is ContextMenuItem => !!i);
+  const menu = useContext(ContextMenuContext)
+  const filteredItems = items.filter((i): i is ContextMenuItem => !!i)
 
   return (
     <ul className="menu menu-sm bg-base-200 rounded-box w-56">
       {filteredItems.map((item, idx) => {
-        if ("isSeparator" in item) return <li key={idx}></li>;
+        if ('isSeparator' in item) return <li key={idx}></li>
         if (item.submenu) {
-          const filteredSubItems = item.submenu.filter(
-            (i): i is NormalContextMenuItem => !!i,
-          );
+          const filteredSubItems = item.submenu.filter((i): i is NormalContextMenuItem => !!i)
           return (
             <li key={idx}>
               <details>
@@ -90,8 +76,8 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
                     <li key={subIdx}>
                       <a
                         onClick={() => {
-                          subItem.onClick?.();
-                          menu.close();
+                          subItem.onClick?.()
+                          menu.close()
                         }}
                       >
                         {subItem.view}
@@ -101,78 +87,82 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
                 </ul>
               </details>
             </li>
-          );
+          )
         }
         return (
           <li key={idx}>
             <a
               onClick={() => {
-                item.onClick?.();
-                menu.close();
+                item.onClick?.()
+                menu.close()
               }}
             >
               {item.view}
             </a>
           </li>
-        );
+        )
       })}
     </ul>
-  );
+  )
 }
 
 type ContextMenuState<T> = {
-  position: { x: number; y: number };
-  item: T;
-  element: HTMLElement;
-};
+  position: { x: number; y: number }
+  item: T
+  element: HTMLElement
+}
 export function useContextMenu<T>() {
-  const [state, setState] = useState<ContextMenuState<T> | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
+  const [state, setState] = useState<ContextMenuState<T> | null>(null)
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handler = (e: MouseEvent | TouchEvent) => {
-      if (
-        !state?.element.contains(e.target as Node) &&
-        !ref.current?.contains(e.target as Node)
-      ) {
-        setState(null);
+      if (!state?.element.contains(e.target as Node) && !ref.current?.contains(e.target as Node)) {
+        setState(null)
       }
-    };
+    }
 
     const keydownHandler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setState(null);
+      if (e.key === 'Escape') {
+        setState(null)
       }
-    };
+    }
 
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("touchstart", handler);
-    document.addEventListener("keydown", keydownHandler);
+    document.addEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    document.addEventListener('keydown', keydownHandler)
 
     return () => {
-      document.removeEventListener("mousedown", handler);
-      document.removeEventListener("touchstart", handler);
-      document.removeEventListener("keydown", keydownHandler);
-    };
-  }, [state, ref]);
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+      document.removeEventListener('keydown', keydownHandler)
+    }
+  }, [state, ref])
 
   return {
     isOpen: state != null,
     onRightClick: (e: React.MouseEvent, item: T) => {
-      e.preventDefault();
+      e.preventDefault()
       setState({
         position: { x: e.clientX, y: e.clientY },
         item,
         element: e.currentTarget as HTMLElement,
-      });
+      })
+    },
+    showWithElement: (element: HTMLElement, item: T) => {
+      setState({
+        position: sportForContextMenu(element),
+        item,
+        element,
+      })
     },
     item: state?.item,
     position: state?.position,
     ref,
     close: () => setState(null),
-  };
+  }
 }
 
-const ContextMenuContext = createContext<
-  ReturnType<typeof useContextMenu<any>>
->({} as ReturnType<typeof useContextMenu>);
+const ContextMenuContext = createContext<ReturnType<typeof useContextMenu<any>>>(
+  {} as ReturnType<typeof useContextMenu>
+)

@@ -2,7 +2,7 @@ import { ChevronDownIcon, ChevronUpIcon, Loader2Icon, RefreshCwIcon, Settings2Ic
 import { ContextMenu, useContextMenu } from '../../lib/components/context-menu'
 import { clsx } from '../../lib/functions/clsx'
 import { useTable } from '../../lib/libs/table/useTable'
-import { memo, useMemo } from 'react'
+import { memo, useEffect, useMemo } from 'react'
 import { useSelector } from '@xstate/store/react'
 import {
   directoryHelpers,
@@ -119,6 +119,13 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     data: filteredDirectoryData,
   })
   const contextMenu = useContextMenu<{ item: DerivedDirectoryItem; index: number }>()
+  useEffect(() => {
+    return directoryStore.on('showContextMenu', ({ element, index, item, directoryId: dId }) => {
+      if (dId !== directoryId) return
+      contextMenu.showWithElement(element, { item, index })
+    }).unsubscribe
+  }, [directoryId, contextMenu])
+
   const headerContextMenu = useContextMenu<null>()
 
   const isDragOver = useSelector(fileDragDropStore, s => s.context.dragOverDirectoryId === directoryId)

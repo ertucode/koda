@@ -11,6 +11,7 @@ import { directorySelection } from './directoryStore/directorySelection'
 import { GlobalShortcuts } from '@/lib/hooks/globalShortcuts'
 import { subscribeToStores } from '@/lib/functions/storeHelpers'
 import { confirmation } from '@/lib/components/confirmation'
+import { getCursorLine, getActiveDirectory } from './directoryStore/directoryPureHelpers'
 
 const SHORTCUTS_KEY = 'file-browser'
 
@@ -46,6 +47,24 @@ export const FileBrowserShortcuts = {
           key: ['Enter'],
           handler: e => directoryHelpers.openSelectedItem(getFilteredData(), e, undefined),
           label: 'Open item on cursor',
+        },
+        {
+          key: { key: 'Enter', metaKey: true },
+          handler: _ => {
+            const snapshot = directoryStore.getSnapshot()
+            const active = getActiveDirectory(snapshot.context, undefined)
+            const cursorLine = getCursorLine(snapshot.context, active)
+            if (cursorLine == null) return
+            const data = getFilteredData()
+            const element = document.querySelector(`[data-list-item]:nth-child(${cursorLine + 1})`) as HTMLElement
+            directoryStore.trigger.showContextMenu({
+              directoryId: active.directoryId,
+              element: element as HTMLElement,
+              index: cursorLine,
+              item: data[cursorLine],
+            })
+          },
+          label: 'Open context menu on cursor',
         },
         {
           key: { key: 'p', ctrlKey: true },
