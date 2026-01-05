@@ -32,6 +32,7 @@ import { errorResponseToMessage, GenericError } from '@common/GenericError'
 import { getWindowElectron } from '@/getWindowElectron'
 import { Button } from '@/lib/components/button'
 import { VimCursor } from './VimCursor'
+import { getFullPathForBuffer } from './directoryStore/directoryPureHelpers'
 
 export type TableContextMenuProps<T> = {
   item: T
@@ -58,8 +59,9 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     s => {
       if (s.context.vim.mode !== 'insert') return
       const directory = s.context.directoriesById[directoryId]
-      if (!directory || directory.directory.type !== 'path') return
-      const buffer = s.context.vim.buffers[directory.directory.fullPath]
+      if (!directory) return
+      const fullPath = getFullPathForBuffer(directory.directory)
+      const buffer = s.context.vim.buffers[fullPath]
       return buffer
     },
     (a, b) => {

@@ -5,6 +5,7 @@ import { FolderBreadcrumb } from './FolderBreadcrumb'
 import { FileBrowserOptionsSection } from './FileBrowserOptionsSection'
 import { shallowEqual } from '@xstate/store'
 import { StringUtils } from '@common/StringUtils'
+import { getFullPathForBuffer } from '../directoryStore/directoryPureHelpers'
 
 export function BottomToolbar() {
   const activeDirectoryId = useSelector(directoryStore, s => s.context.activeDirectoryId)
@@ -40,8 +41,7 @@ function VimStatus() {
       if (!id) return undefined
       const d = s.context.directoriesById[id]
       if (!d) return undefined
-      if (d.directory.type !== 'path') return undefined
-      const fullPath = d.directory.fullPath
+      const fullPath = getFullPathForBuffer(d.directory)
       if (!fullPath) return undefined
       const buffer = s.context.vim.buffers[fullPath]
       if (!buffer) return undefined

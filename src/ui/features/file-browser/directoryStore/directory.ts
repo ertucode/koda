@@ -83,9 +83,9 @@ function updateVimCursor(state: VimEngine.State, fullPath: string, line: number)
   }
 }
 
-function getVimCursorFullPath(d: DirectoryContextDirectory, context: DirectoryContext): string | false {
+function getVimCursorFullPath(d: DirectoryContextDirectory): string | false {
   if (!d) return false
-  return d.directory.type === 'path' && context.vim.buffers[d.directory.fullPath] && d.directory.fullPath
+  return getFullPathForBuffer(d.directory)
 }
 
 const dummyDirectoryId = 'dummmyy' as DirectoryId // kimse dokunmadan initialize edilmeli zaten
@@ -227,7 +227,7 @@ export const directoryStore = createStore({
 
     setSelection: (context, event: { indexes: Set<number>; last?: number; directoryId: DirectoryId | undefined }) => {
       const activeDir = getActiveDirectory(context, event.directoryId)
-      const cursorLineFullPath = getVimCursorFullPath(activeDir, context)
+      const cursorLineFullPath = getVimCursorFullPath(activeDir)
 
       if (!cursorLineFullPath) {
         return context
@@ -261,7 +261,7 @@ export const directoryStore = createStore({
       }
     ) => {
       const activeDir = getActiveDirectory(context, event.directoryId)
-      const cursorLineFullPath = getVimCursorFullPath(activeDir, context)
+      const cursorLineFullPath = getVimCursorFullPath(activeDir)
 
       if (!cursorLineFullPath) {
         return context

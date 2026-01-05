@@ -7,7 +7,7 @@ import { DirectoryDataFromSettings } from '../utils/DirectoryDataFromSettings'
 import Fuse from 'fuse.js'
 import { directoryStore } from './directory'
 import { DerivedDirectoryItem, DirectoryId } from './DirectoryBase'
-import { getCursorLine } from './directoryPureHelpers'
+import { getCursorLine, getFullPathForBuffer } from './directoryPureHelpers'
 import { directorySelection } from './directorySelection'
 import { columnPreferencesStore } from '../columnPreferences'
 import { resolveSortFromStores, SortState } from '../schemas'
@@ -91,7 +91,7 @@ export function setupSubscriptions(directoryId: DirectoryId) {
       [directoryStore, fileBrowserSettingsStore, columnPreferencesStore],
       ([d, settings, columnPrefs]) => {
         const dir = d.directoriesById[directoryId]
-        const fullPath = dir?.directory.type === 'path' ? dir.directory.fullPath : undefined
+        const fullPath = dir && getFullPathForBuffer(dir.directory)
         return [
           dir?.directoryData,
           settings.settings,
@@ -103,7 +103,7 @@ export function setupSubscriptions(directoryId: DirectoryId) {
       ([d, settings, columnPrefs]): DerivedDirectoryItem[] => {
         const dir = d.directoriesById[directoryId]
         if (!dir) return []
-        const fullPath = dir?.directory.type === 'path' ? dir.directory.fullPath : undefined
+        const fullPath = dir && getFullPathForBuffer(dir.directory)
         if (fullPath && VimEngine.isActive(d.vim, fullPath)) {
           return d.vim.buffers[fullPath].items
         }
@@ -155,8 +155,7 @@ export function setupSubscriptions(directoryId: DirectoryId) {
         const snapshot = d
         const activeDirectory = snapshot.directoriesById[snapshot.activeDirectoryId]
         if (!activeDirectory) return
-        if (activeDirectory.directory.type !== 'path') return
-        const fullPath = activeDirectory.directory.fullPath
+        const fullPath = getFullPathForBuffer(activeDirectory.directory)
         if (!fullPath) return
 
         snapshot.vim.buffers[fullPath] = VimEngine.defaultBuffer(fullPath, items as VimEngine.RealBufferItem[])

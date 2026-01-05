@@ -18,6 +18,7 @@ import { useSelector } from '@xstate/store/react'
 import { FileQuestionIcon } from 'lucide-react'
 import { VimShortcutHelper } from '../vim/VimShortcutHelper'
 import { VimEngine } from '@common/VimEngine'
+import { getFullPathForBuffer } from '../directoryStore/directoryPureHelpers'
 
 function CategoryIcon({ category }: { category: FileCategory | 'folder' }) {
   const config = CategoryHelpers.get(category)
@@ -174,8 +175,9 @@ function VimModeName({ ctx, row, index }: { ctx: ColumnsContext; row: StrDirecto
   const isInsert = useSelector(directoryStore, s => {
     if (s.context.vim.mode !== 'insert') return false
     const directory = s.context.directoriesById[ctx.directoryId]
-    if (!directory || directory.directory.type !== 'path') return false
-    const buffer = s.context.vim.buffers[directory.directory.fullPath]
+    if (!directory) return false
+    const fullPath = getFullPathForBuffer(directory.directory)
+    const buffer = s.context.vim.buffers[fullPath]
     if (!buffer) return false
     return buffer.cursor.line === index
   })

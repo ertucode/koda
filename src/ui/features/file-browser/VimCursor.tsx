@@ -2,6 +2,7 @@ import { useSelector } from '@xstate/store/react'
 import { useDirectoryContext } from './DirectoryContext'
 import { directoryStore, selectActiveVimBuffer } from './directoryStore/directory'
 import { shallowEqual } from '@xstate/store'
+import { getFullPathForBuffer } from './directoryStore/directoryPureHelpers'
 
 export function VimCursor() {
   const directoryId = useDirectoryContext().directoryId
@@ -13,8 +14,7 @@ export function VimCursor() {
       if (s.context.activeDirectoryId !== directoryId) return
       const vim = selectActiveVimBuffer(directoryId)(s)
       if (!vim) return
-      if (s.context.directoriesById[directoryId].directory.type !== 'path') return
-      const fullPath = s.context.directoriesById[directoryId].directory.fullPath
+      const fullPath = getFullPathForBuffer(s.context.directoriesById[directoryId].directory)
       const str = s.context.vim.buffers[fullPath]?.items[vim.cursor.line]?.str
       if (!str) return
       return {

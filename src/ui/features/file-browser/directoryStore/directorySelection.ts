@@ -1,7 +1,7 @@
 import { SequenceShortcut, ShortcutWithHandler } from '@/lib/hooks/useShortcuts'
 import { createResetSelection, directoryStore } from './directory'
 import { DirectoryId } from './DirectoryBase'
-import { getActiveDirectory, getBufferSelection, selectBuffer } from './directoryPureHelpers'
+import { getActiveDirectory, getBufferSelection, getFullPathForBuffer, selectBuffer } from './directoryPureHelpers'
 import { directoryDerivedStores } from './directorySubscriptions'
 import { throttle } from '@common/throttle'
 
@@ -112,7 +112,7 @@ export const directorySelection = {
       const snapshot = directoryStore.getSnapshot()
       const state = getActiveDirectory(snapshot.context, undefined)
       const selection = getBufferSelection(snapshot.context, state)
-      const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
+      const fullPath = getFullPathForBuffer(state.directory)
       const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
       return {
         state,
