@@ -284,7 +284,7 @@ export const FileBrowserShortcuts = {
           key: { key: 'm', ctrlKey: true, metaKey: true },
           handler: e => {
             e?.preventDefault()
-            const activeTabSet = LayoutHelpers.getActiveTabsetWithComponent(['preview'])
+            const activeTabSet = LayoutHelpers.getTabsetWithComponent(['preview'])
             if (!activeTabSet) return
 
             layoutModel.doAction(Actions.maximizeToggle(activeTabSet.getId()))

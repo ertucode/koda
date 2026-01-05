@@ -21,6 +21,23 @@ export namespace LayoutHelpers {
     if (components.includes(first.getComponent()!)) return active
   }
 
+  export function getTabsetWithComponent(components: string[]) {
+    let result: TabSetNode | undefined = undefined as TabSetNode | undefined
+
+    layoutModel.visitNodes(node => {
+      if (result) return
+      if (node instanceof TabSetNode) {
+        const first = node.getChildren()[0]
+        if (!first) return false
+        if (!(first instanceof TabNode)) return false
+
+        if (components.includes(first.getComponent()!)) result = node
+      }
+    })
+
+    return result
+  }
+
   export function getActiveDirectoryId() {
     const node = layoutModel.getActiveTabset()?.getSelectedNode()
     if (isDirectory(node) && node.getConfig()?.directoryId) {
