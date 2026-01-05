@@ -281,6 +281,17 @@ export const FileBrowserShortcuts = {
           label: 'Maximize/Minimize',
         },
         {
+          key: { key: 'm', ctrlKey: true, metaKey: true },
+          handler: e => {
+            e?.preventDefault()
+            const activeTabSet = LayoutHelpers.getActiveTabsetWithComponent(['preview'])
+            if (!activeTabSet) return
+
+            layoutModel.doAction(Actions.maximizeToggle(activeTabSet.getId()))
+          },
+          label: 'Maximize/Minimize',
+        },
+        {
           key: { key: 'w', metaKey: true },
           handler: e => {
             if (directoryStore.getSnapshot().context.directoryOrder.length === 1) {
