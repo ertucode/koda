@@ -1,7 +1,13 @@
 import { getWindowElectron } from '@/getWindowElectron'
 import { captureDivAsBase64 } from '@/lib/functions/captureDiv'
 import { directoryStore, selectActiveVimBuffer } from './directoryStore/directory'
-import { DerivedDirectoryItem, DirectoryId, RealDirectoryItem } from './directoryStore/DirectoryBase'
+import {
+  DerivedDirectoryItem,
+  DirectoryId,
+  getActiveDirectory,
+  RealDirectoryItem,
+} from './directoryStore/DirectoryBase'
+import { getBufferSelection } from './directoryStore/defaultSelection'
 import { directoryHelpers } from './directoryStore/directoryHelpers'
 import { perDirectoryDataHelpers } from './directoryStore/perDirectoryData'
 import { fileDragDropHandlers, fileDragDropStore } from './fileDragDrop'
@@ -25,7 +31,8 @@ export function fileBrowserListItemProps({
       if (e.button !== 0) return
 
       const state = directoryStore.getSnapshot()
-      const isItemSelected = state.context.vim.selection.indexes.has(index)
+      const selection = getBufferSelection(state.context, getActiveDirectory(state.context, directoryId))
+      const isItemSelected = selection.indexes.has(index)
 
       // If item is not selected, start drag-to-select mode
       if (!isItemSelected) {
@@ -137,7 +144,8 @@ export function fileBrowserListItemProps({
 
       // Make element draggable only if it's selected
       const state = directoryStore.getSnapshot()
-      const isItemSelected = state.context.vim.selection.indexes.has(index)
+      const selection = getBufferSelection(state.context, getActiveDirectory(state.context, directoryId))
+      const isItemSelected = selection.indexes.has(index)
 
       const target = e.currentTarget as HTMLElement
       target.draggable = isItemSelected

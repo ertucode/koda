@@ -1,6 +1,7 @@
 import { SequenceShortcut, ShortcutWithHandler } from '@/lib/hooks/useShortcuts'
 import { createResetSelection, directoryStore } from './directory'
 import { DirectoryId, getActiveDirectory } from './DirectoryBase'
+import { getBufferSelection } from './defaultSelection'
 import { directoryDerivedStores } from './directorySubscriptions'
 import { throttle } from '@common/throttle'
 
@@ -16,8 +17,7 @@ export const directorySelection = {
     const directoryId = state.directoryId
     const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
     index = index < 0 ? filteredData.length + index : index
-    
-    const selection = snapshot.context.vim.selection
+    const selection = getBufferSelection(snapshot.context, state)
 
     // Helper to remove item from set
     const removeFromSet = (set: Set<number>, item: number) => {
@@ -170,13 +170,13 @@ export const directorySelection = {
         handler: e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
-          
+          const selection = getBufferSelection(snapshot.context, state)
+
           // Get cursor position from vim buffer if available, otherwise use selection.last
           const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
           const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
           const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-          
+
           // Select the current item (replace existing selection)
           directoryStore.send({
             type: 'setSelection',
@@ -193,13 +193,13 @@ export const directorySelection = {
         handler: e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
-          
+          const selection = getBufferSelection(snapshot.context, state)
+
           // Get cursor position from vim buffer if available, otherwise use selection.last
           const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
           const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
           const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-          
+
           // Toggle selection of current item
           const indexes = new Set(selection.indexes)
           if (indexes.has(cursorLine)) {
@@ -207,7 +207,7 @@ export const directorySelection = {
           } else {
             indexes.add(cursorLine)
           }
-          
+
           directoryStore.send({
             type: 'setSelection',
             indexes,
@@ -223,13 +223,13 @@ export const directorySelection = {
         handler: e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
-          
+          const selection = getBufferSelection(snapshot.context, state)
+
           // Get cursor position from vim buffer if available, otherwise use selection.last
           const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
           const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
           const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-          
+
           // Toggle selection of current item (same as ctrl+space)
           const indexes = new Set(selection.indexes)
           if (indexes.has(cursorLine)) {
@@ -237,7 +237,7 @@ export const directorySelection = {
           } else {
             indexes.add(cursorLine)
           }
-          
+
           directoryStore.send({
             type: 'setSelection',
             indexes,
@@ -253,22 +253,22 @@ export const directorySelection = {
         handler: e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
+          const selection = getBufferSelection(snapshot.context, state)
           const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
           const count = filteredData.length
-          
+
           // Get cursor position from vim buffer if available, otherwise use selection.last
           const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
           const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
           const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-          
+
           // Move down and add to selection
           const targetIndex = cursorLine + 1
           const finalTarget = targetIndex >= count ? 0 : targetIndex
-          
+
           const indexes = new Set(selection.indexes)
           indexes.add(finalTarget)
-          
+
           directoryStore.send({
             type: 'setSelection',
             indexes,
@@ -284,22 +284,22 @@ export const directorySelection = {
         handler: e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
+          const selection = getBufferSelection(snapshot.context, state)
           const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
           const count = filteredData.length
-          
+
           // Get cursor position from vim buffer if available, otherwise use selection.last
           const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
           const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
           const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-          
+
           // Move up and add to selection
           const targetIndex = cursorLine - 1
           const finalTarget = targetIndex < 0 ? count - 1 : targetIndex
-          
+
           const indexes = new Set(selection.indexes)
           indexes.add(finalTarget)
-          
+
           directoryStore.send({
             type: 'setSelection',
             indexes,
@@ -315,15 +315,15 @@ export const directorySelection = {
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
+          const selection = getBufferSelection(snapshot.context, state)
           const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
           const count = filteredData.length
-          
+
           // Get cursor position from vim buffer if available, otherwise use selection.last
           const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
           const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
           const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-          
+
           const cols = getColumnsPerRow()
           const offset = state.viewMode === 'grid' ? cols : 1
           const targetIndex = cursorLine - offset
@@ -374,15 +374,15 @@ export const directorySelection = {
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
+          const selection = getBufferSelection(snapshot.context, state)
           const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
           const count = filteredData.length
-          
+
           // Get cursor position from vim buffer if available, otherwise use selection.last
           const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
           const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
           const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-          
+
           const cols = getColumnsPerRow()
           const offset = state.viewMode === 'grid' ? cols : 1
           const targetIndex = cursorLine + offset
@@ -433,7 +433,7 @@ export const directorySelection = {
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
+          const selection = getBufferSelection(snapshot.context, state)
           const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
           const count = filteredData.length
           const lastSelected = selection.last ?? 0
@@ -469,7 +469,7 @@ export const directorySelection = {
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
+          const selection = getBufferSelection(snapshot.context, state)
           const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
           const count = filteredData.length
           const lastSelected = selection.last ?? 0
@@ -514,7 +514,7 @@ export const directorySelection = {
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
+          const selection = getBufferSelection(snapshot.context, state)
           const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
           const count = filteredData.length
           const lastSelected = selection.last ?? 0
@@ -528,7 +528,7 @@ export const directorySelection = {
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = snapshot.context.vim.selection
+          const selection = getBufferSelection(snapshot.context, state)
           const lastSelected = selection.last ?? 0
           directorySelection.select(Math.max(lastSelected - 10, 0), e, state.directoryId)
           e?.preventDefault()
@@ -557,7 +557,9 @@ export const directorySelection = {
   },
 
   isSelected: (index: number, directoryId: DirectoryId) => {
-    return directoryStore.getSnapshot().context.vim.selection.indexes.has(index)
+    const active = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
+    const selection = getBufferSelection(directoryStore.getSnapshot().context, active)
+    return selection.indexes.has(index)
   },
 
   selectManually: (index: number, directoryId: DirectoryId | undefined) => {
@@ -565,7 +567,8 @@ export const directorySelection = {
   },
 
   setSelection: (h: number | ((s: number) => number), directoryId: DirectoryId) => {
-    const selection = directoryStore.getSnapshot().context.vim.selection
+    const active = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
+    const selection = getBufferSelection(directoryStore.getSnapshot().context, active)
     let newSelection: number
     if (selection.indexes.size === 0) {
       newSelection = typeof h === 'number' ? h : h(0)

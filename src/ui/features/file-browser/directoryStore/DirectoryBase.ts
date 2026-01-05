@@ -5,6 +5,7 @@ import { SortState } from '../schemas'
 import { GenericError } from '@common/GenericError'
 import { VimEngine } from '@common/VimEngine'
 import { Brands } from '@common/Brands'
+import { Typescript } from '@common/Typescript'
 
 export type DirectoryInfo = { type: 'path'; fullPath: string } | { type: 'tags'; color: TagColor }
 export type DirectoryType = DirectoryInfo['type']
@@ -18,6 +19,11 @@ export function directoryInfoEquals(a: DirectoryInfo, b: DirectoryInfo): boolean
 export function getActiveDirectory(context: DirectoryContext, directoryId: DirectoryId | undefined) {
   const dirId = directoryId ?? context.activeDirectoryId
   return context.directoriesById[dirId]
+}
+export function getFullPathForSelection(directory: DirectoryInfo) {
+  if (directory.type === 'path') return directory.fullPath
+  if (directory.type === 'tags') return `tag:${directory.color}`
+  Typescript.assertUnreachable(directory)
 }
 
 export type DirectoryId = Brands.DirectoryId

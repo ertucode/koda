@@ -7,6 +7,7 @@ import { DirectoryDataFromSettings } from '../utils/DirectoryDataFromSettings'
 import Fuse from 'fuse.js'
 import { directoryStore } from './directory'
 import { DerivedDirectoryItem, DirectoryId } from './DirectoryBase'
+import { getBufferSelection, getCursorLine } from './defaultSelection'
 import { directorySelection } from './directorySelection'
 import { columnPreferencesStore } from '../columnPreferences'
 import { resolveSortFromStores, SortState } from '../schemas'
@@ -58,19 +59,20 @@ export function setupSubscriptions(directoryId: DirectoryId) {
   subscriptions.push(
     subscribeToStores(
       [directoryStore],
-      ([s]) => [s.vim.selection.last],
+      ([s]) => [getCursorLine(s, s.directoriesById[directoryId])],
       ([s]) => {
         const ss = s.directoriesById[directoryId]
         if (!ss) return
-        if (s.vim.selection.last != null) {
-          scrollRowIntoViewIfNeeded(ss.directoryId, s.vim.selection.last)
+        const last = getCursorLine(s, s.directoriesById[directoryId])
+        if (last != null) {
+          scrollRowIntoViewIfNeeded(ss.directoryId, last)
         }
       }
     )
   )
 
   // TODO: find a better way
-  const [useSort, getSort] = createUseDerivedStoreValue(
+  const [useSort, getSort, unsubscribeSort] = createUseDerivedStoreValue(
     [directoryStore, columnPreferencesStore],
     ([d, columnPrefs]) => {
       const dir = d.directoriesById[directoryId]
@@ -82,35 +84,38 @@ export function setupSubscriptions(directoryId: DirectoryId) {
       return sort
     }
   )
+  subscriptions.push(unsubscribeSort)
 
-  const [useFilteredDirectoryData, getFilteredDirectoryData] = createUseDerivedStoreValue(
-    [directoryStore, fileBrowserSettingsStore, columnPreferencesStore],
-    ([d, settings, columnPrefs]) => {
-      const dir = d.directoriesById[directoryId]
-      const fullPath = dir?.directory.type === 'path' ? dir.directory.fullPath : undefined
-      return [
-        dir?.directoryData,
-        settings.settings,
-        dir?.fuzzyQuery,
-        JSON.stringify(resolveSortFromStores(dir, columnPrefs)),
-        fullPath && d.vim.buffers[fullPath]?.items,
-      ]
-    },
-    ([d, settings, columnPrefs]): DerivedDirectoryItem[] => {
-      const dir = d.directoriesById[directoryId]
-      if (!dir) return []
-      const fullPath = dir?.directory.type === 'path' ? dir.directory.fullPath : undefined
-      if (fullPath && VimEngine.isActive(d.vim, fullPath)) {
-        return d.vim.buffers[fullPath].items
+  const [useFilteredDirectoryData, getFilteredDirectoryData, unsubscribeFilteredDirectoryData] =
+    createUseDerivedStoreValue(
+      [directoryStore, fileBrowserSettingsStore, columnPreferencesStore],
+      ([d, settings, columnPrefs]) => {
+        const dir = d.directoriesById[directoryId]
+        const fullPath = dir?.directory.type === 'path' ? dir.directory.fullPath : undefined
+        return [
+          dir?.directoryData,
+          settings.settings,
+          dir?.fuzzyQuery,
+          JSON.stringify(resolveSortFromStores(dir, columnPrefs)),
+          fullPath && d.vim.buffers[fullPath]?.items,
+        ]
+      },
+      ([d, settings, columnPrefs]): DerivedDirectoryItem[] => {
+        const dir = d.directoriesById[directoryId]
+        if (!dir) return []
+        const fullPath = dir?.directory.type === 'path' ? dir.directory.fullPath : undefined
+        if (fullPath && VimEngine.isActive(d.vim, fullPath)) {
+          return d.vim.buffers[fullPath].items
+        }
+
+        const sort = resolveSortFromStores(dir, columnPrefs)
+        const directoryData = DirectoryDataFromSettings.getDirectoryData(dir?.directoryData, settings.settings, sort)
+        const filteredDirectoryData = filterByQuery(directoryData, d.directoriesById[directoryId]?.fuzzyQuery)
+
+        return filteredDirectoryData.map(i => ({ type: 'real', str: i.name, item: i }))
       }
-
-      const sort = resolveSortFromStores(dir, columnPrefs)
-      const directoryData = DirectoryDataFromSettings.getDirectoryData(dir?.directoryData, settings.settings, sort)
-      const filteredDirectoryData = filterByQuery(directoryData, d.directoriesById[directoryId]?.fuzzyQuery)
-
-      return filteredDirectoryData.map(i => ({ type: 'real', str: i.name, item: i }))
-    }
-  )
+    )
+  subscriptions.push(unsubscribeFilteredDirectoryData)
 
   directoryDerivedStores.set(directoryId, {
     useFilteredDirectoryData,
@@ -135,6 +140,26 @@ export function setupSubscriptions(directoryId: DirectoryId) {
           }
           directoryHelpers.setPendingSelection(null, directoryId)
         }
+      }
+    )
+  )
+
+  subscriptions.push(
+    subscribeToStores(
+      [directoryStore, fileBrowserSettingsStore],
+      ([d, settings]) => [d.directoriesById[directoryId]?.directoryData, settings.settings],
+      ([d]) => {
+        const items = getFilteredDirectoryData()
+        if (!items) return
+
+        const snapshot = d
+        const activeDirectory = snapshot.directoriesById[snapshot.activeDirectoryId]
+        if (!activeDirectory) return
+        if (activeDirectory.directory.type !== 'path') return
+        const fullPath = activeDirectory.directory.fullPath
+        if (!fullPath) return
+
+        snapshot.vim.buffers[fullPath] = VimEngine.defaultBuffer(fullPath, items as VimEngine.RealBufferItem[])
       }
     )
   )

@@ -52,6 +52,7 @@ function createBuffer(fullPath: string, items: VimEngine.RealBufferItem[]): VimE
     originalItems: [...items],
     historyStack: new HistoryStack<VimEngine.HistoryItem>([]),
     cursor: { line: 0, column: 0 },
+    selection: { indexes: new Set<number>(), last: undefined },
   }
 }
 

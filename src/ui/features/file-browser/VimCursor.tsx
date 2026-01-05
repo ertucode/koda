@@ -16,6 +16,7 @@ export function VimCursor() {
       if (s.context.directoriesById[directoryId].directory.type !== 'path') return
       const fullPath = s.context.directoriesById[directoryId].directory.fullPath
       const str = s.context.vim.buffers[fullPath]?.items[vim.cursor.line]?.str
+      if (!str) return
       return {
         cursor: vim.cursor,
         until: str.slice(0, vim.cursor.column),

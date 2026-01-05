@@ -20,6 +20,7 @@ import {
   DirectoryInfo,
   DirectoryLocalSort,
 } from './DirectoryBase'
+import { defaultSelection } from './defaultSelection'
 import { errorResponseToMessage, GenericError } from '@common/GenericError'
 import { useSelector } from '@xstate/store/react'
 import { VimEngine } from '@common/VimEngine'
@@ -135,7 +136,7 @@ export const directoryStore = createStore({
         directoryId: DirectoryId
       }
     ) => {
-      return updateDirectory(context, event.directoryId, d => {
+      const updated = updateDirectory(context, event.directoryId, d => {
         const prevFirstItem = d.directoryData[0]
         const currentFirstItem = event.data[0]
         let fuzzyQuery = d.fuzzyQuery
@@ -155,7 +156,9 @@ export const directoryStore = createStore({
           fuzzyQuery,
         }
       })
+      return updated
     },
+
     // fuzzyQuery: '',
     setError: (context, event: { error: GenericError | undefined; directoryId: DirectoryId }) =>
       updateDirectory(context, event.directoryId, d => ({
@@ -228,25 +231,24 @@ export const directoryStore = createStore({
       const cursorLineFullPath = getVimCursorFullPath(activeDir, context)
 
       if (!cursorLineFullPath) {
-        return {
-          ...context,
-          vim: {
-            ...context.vim,
-            selection: {
-              indexes: event.indexes,
-              last: event.last,
-            },
-          },
-        }
+        return context
       }
+
+      const updatedVim = updateVimCursor(context.vim, cursorLineFullPath, event.last ?? 0)
 
       return {
         ...context,
         vim: {
-          ...updateVimCursor(context.vim, cursorLineFullPath, event.last ?? 0),
-          selection: {
-            indexes: event.indexes,
-            last: event.last,
+          ...updatedVim,
+          buffers: {
+            ...updatedVim.buffers,
+            [cursorLineFullPath]: {
+              ...updatedVim.buffers[cursorLineFullPath],
+              selection: {
+                indexes: event.indexes,
+                last: event.last,
+              },
+            },
           },
         },
       }
@@ -259,34 +261,34 @@ export const directoryStore = createStore({
         dontTouchWhenSelected?: boolean
       }
     ) => {
-      // Check if already selected
-      if (context.vim.selection.indexes.has(event.index)) {
-        return context
-      }
-
       const activeDir = getActiveDirectory(context, event.directoryId)
       const cursorLineFullPath = getVimCursorFullPath(activeDir, context)
 
       if (!cursorLineFullPath) {
-        return {
-          ...context,
-          vim: {
-            ...context.vim,
-            selection: {
-              indexes: new Set([event.index]),
-              last: event.index,
-            },
-          },
-        }
+        return context
       }
+
+      // Check if already selected
+      const buffer = context.vim.buffers[cursorLineFullPath]
+      if (buffer?.selection.indexes.has(event.index)) {
+        return context
+      }
+
+      const updatedVim = updateVimCursor(context.vim, cursorLineFullPath, event.index)
 
       return {
         ...context,
         vim: {
-          ...updateVimCursor(context.vim, cursorLineFullPath, event.index),
-          selection: {
-            indexes: new Set([event.index]),
-            last: event.index,
+          ...updatedVim,
+          buffers: {
+            ...updatedVim.buffers,
+            [cursorLineFullPath]: {
+              ...updatedVim.buffers[cursorLineFullPath],
+              selection: {
+                indexes: new Set([event.index]),
+                last: event.index,
+              },
+            },
           },
         },
       }
@@ -299,12 +301,25 @@ export const directoryStore = createStore({
       }))
 
       if (event.query) {
-        updatedContext.vim = {
-          ...updatedContext.vim,
-          selection: {
-            indexes: new Set([0]),
-            last: 0,
-          },
+        const activeDir = getActiveDirectory(updatedContext, event.directoryId)
+        if (activeDir.directory.type === 'path') {
+          const fullPath = activeDir.directory.fullPath
+          const buffer = updatedContext.vim.buffers[fullPath]
+          if (buffer) {
+            updatedContext.vim = {
+              ...updatedContext.vim,
+              buffers: {
+                ...updatedContext.vim.buffers,
+                [fullPath]: {
+                  ...buffer,
+                  selection: {
+                    indexes: new Set([0]),
+                    last: 0,
+                  },
+                },
+              },
+            }
+          }
         }
       }
 
@@ -610,8 +625,14 @@ export const selectPendingSelection =
   (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
     getActiveDirectory(state.context, directoryId).pendingSelection
 
-export const selectSelection = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
-  state.context.vim.selection
+export const selectSelection = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) => {
+  const activeDirectory = getActiveDirectory(state.context, directoryId)
+  if (activeDirectory.directory.type !== 'path') {
+    return defaultSelection
+  }
+  const buffer = state.context.vim.buffers[activeDirectory.directory.fullPath]
+  return buffer?.selection ?? defaultSelection
+}
 
 export const selectFuzzyQuery = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
   getActiveDirectory(state.context, directoryId).fuzzyQuery
@@ -623,7 +644,10 @@ export const selectError = (directoryId: DirectoryId | undefined) => (state: Sto
   getActiveDirectory(state.context, directoryId).error
 
 export function useRowIsSelected(index: number, directoryId: DirectoryId | undefined) {
-  return useSelector(directoryStore, s => s.context.vim.selection.indexes.has(index))
+  return useSelector(directoryStore, s => {
+    const selection = selectSelection(directoryId)(s)
+    return selection.indexes.has(index)
+  })
 }
 export const selectActiveVimBuffer =
   (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) => {

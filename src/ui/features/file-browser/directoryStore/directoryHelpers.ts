@@ -25,6 +25,7 @@ import {
   DirectoryContextDirectory,
   DerivedDirectoryItem,
 } from './DirectoryBase'
+import { getBufferSelection } from './defaultSelection'
 import { initialDirectoryInfo } from '../defaultPath'
 import { columnPreferencesStore } from '../columnPreferences'
 import { resolveSortFromStores } from '../schemas'
@@ -473,8 +474,9 @@ export const directoryHelpers = {
     directoryId: DirectoryId | undefined
   ) => {
     const snapshot = directoryStore.getSnapshot()
-    const lastSelected = snapshot.context.vim.selection.last
-    const selectionIndexes = snapshot.context.vim.selection.indexes
+    const selection = getBufferSelection(snapshot.context, getActiveDirectory(snapshot.context, directoryId))
+    const lastSelected = selection.last
+    const selectionIndexes = selection.indexes
     function resolveItemToOpen() {
       if (lastSelected == null || selectionIndexes.size !== 1) {
         return data[0]
@@ -495,7 +497,9 @@ export const directoryHelpers = {
   },
 
   openAssignTagsDialog: (fullPath: string, data: GetFilesAndFoldersInDirectoryItem[], directoryId: DirectoryId) => {
-    const indexes = directoryStore.getSnapshot().context.vim.selection.indexes
+    const snapshot = directoryStore.getSnapshot()
+    const selection = getBufferSelection(snapshot.context, getActiveDirectory(snapshot.context, directoryId))
+    const indexes = selection.indexes
     const selectedIndexes = [...indexes.values()]
     const selectedItems = selectedIndexes.map(i => {
       const item = data[i]
@@ -520,7 +524,8 @@ export const directoryHelpers = {
   },
   getFullPathForItem,
   getSelectedItemsOrCurrentItem(index: number, directoryId: DirectoryId) {
-    const selection = directoryStore.getSnapshot().context.vim.selection
+    const snapshot = directoryStore.getSnapshot()
+    const selection = getBufferSelection(snapshot.context, getActiveDirectory(snapshot.context, directoryId))
     const tableData = directoryDerivedStores.get(directoryId)?.getFilteredDirectoryData()!
     const item = tableData[index]
 
@@ -711,9 +716,11 @@ export const directoryHelpers = {
     }
   },
   getClientMetadata: (d: DirectoryContextDirectory): Tasks.ClientMetadata => {
+    const snapshot = directoryStore.getSnapshot()
+    const selection = getBufferSelection(snapshot.context, getActiveDirectory(snapshot.context, d.directoryId))
     return {
       directoryId: d.directoryId,
-      selection: directoryStore.getSnapshot().context.vim.selection,
+      selection,
     }
   },
 }

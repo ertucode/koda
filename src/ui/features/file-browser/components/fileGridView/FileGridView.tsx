@@ -3,7 +3,7 @@ import { useSelector } from '@xstate/store/react'
 import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
 import { useDirectoryContext } from '@/features/file-browser/DirectoryContext'
 import { directoryDerivedStores } from '../../directoryStore/directorySubscriptions'
-import { directoryStore } from '../../directoryStore/directory'
+import { directoryStore, useRowIsSelected } from '../../directoryStore/directory'
 import { directoryHelpers } from '../../directoryStore/directory'
 import { ContextMenu, useContextMenu } from '@/lib/components/context-menu'
 import { FileTableRowContextMenu } from '../../FileTableRowContextMenu'
@@ -34,9 +34,7 @@ type GridItemProps = {
 }
 
 const GridItem = memo(function GridItem({ item, index, directoryId, onContextMenu }: GridItemProps) {
-  const isSelected = useSelector(directoryStore, state =>
-    state.context.vim.selection.indexes.has(index)
-  )
+  const isSelected = useRowIsSelected(index, directoryId)
 
   const isDragOverThisRow = useSelector(
     fileDragDropStore,

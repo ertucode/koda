@@ -36,7 +36,8 @@ import { ApplicationInfo } from '@common/Contracts'
 import { ArchiveHelpers } from '@common/ArchiveHelpers'
 import { CommandHelpers } from './CommandHelpers'
 import { checkGlob } from '@/lib/functions/checkGlob'
-import { DerivedDirectoryItem, RealDirectoryItem } from './directoryStore/DirectoryBase'
+import { DerivedDirectoryItem, getActiveDirectory, RealDirectoryItem } from './directoryStore/DirectoryBase'
+import { getBufferSelection } from './directoryStore/defaultSelection'
 
 export const FileTableRowContextMenu = ({
   item: i,
@@ -80,7 +81,10 @@ export const FileTableRowContextMenu = ({
         view: <TextWithIcon icon={StarIcon}>Add to favorites</TextWithIcon>,
       }
 
-  const selectionIndexes = directoryStore.getSnapshot().context.vim.selection.indexes
+  const snapshot = directoryStore.getSnapshot()
+  const active = getActiveDirectory(snapshot.context, directoryId)
+  const selection = getBufferSelection(snapshot.context, active)
+  const selectionIndexes = selection.indexes
   const isSelected = itemIndex !== -1 && selectionIndexes.has(itemIndex)
   const sItems = (
     isSelected && selectionIndexes.size > 0 ? [...selectionIndexes].map(i => tableData[i]) : [item]
