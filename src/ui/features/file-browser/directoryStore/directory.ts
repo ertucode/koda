@@ -508,23 +508,11 @@ export const directoryStore = createStore({
       }
       return result
     },
-    updateVimState: (
-      context,
-      event: { state: VimEngine.State; selection?: { index: number; directoryId: DirectoryId } }
-    ) => {
-      const updated = event.selection
-        ? updateDirectory(context, event.selection.directoryId, d => {
-            return {
-              ...d,
-              selection: {
-                indexes: new Set([event.selection!.index]),
-                last: event.selection!.index,
-              },
-            }
-          })
-        : { ...context }
-      updated.vim = event.state
-      return updated
+    updateVimState: (context, event: { state: VimEngine.State }) => {
+      return {
+        ...context,
+        vim: event.state,
+      }
     },
   },
 })

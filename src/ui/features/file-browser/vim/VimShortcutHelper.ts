@@ -20,16 +20,10 @@ export namespace VimShortcutHelper {
     result: Exclude<ReturnType<typeof getSnapshotWithInitializedVim>, undefined>,
     updater: Updater
   ) {
-    const { snapshot, fullPath, activeDirectory } = result
-
-    const beforeCursor = snapshot.vim.buffers[fullPath].cursor
-    const updated = updater({ state: snapshot.vim, fullPath })
-    const afterCursor = updated.buffers[fullPath].cursor
-    const isChanged = beforeCursor.line !== afterCursor.line || beforeCursor.column !== afterCursor.column
+    const { snapshot, fullPath } = result
 
     directoryStore.trigger.updateVimState({
-      state: updated,
-      selection: isChanged ? { index: afterCursor.line, directoryId: activeDirectory.directoryId } : undefined,
+      state: updater({ state: snapshot.vim, fullPath }),
     })
   }
 
