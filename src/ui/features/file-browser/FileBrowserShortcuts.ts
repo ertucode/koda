@@ -6,19 +6,11 @@ import { layoutModel } from './initializeDirectory'
 import { Actions, TabNode } from 'flexlayout-react'
 import { LayoutHelpers } from './utils/LayoutHelpers'
 import { DirectoryId } from './directoryStore/DirectoryBase'
-import { directoryDerivedStores } from './directoryStore/directorySubscriptions'
+import { getFilteredData } from './directoryStore/directorySubscriptions'
 import { directorySelection } from './directoryStore/directorySelection'
 import { GlobalShortcuts } from '@/lib/hooks/globalShortcuts'
 import { subscribeToStores } from '@/lib/functions/storeHelpers'
 import { confirmation } from '@/lib/components/confirmation'
-
-function getData() {
-  return directoryDerivedStores.get(getActiveDirectoryId())?.getFilteredDirectoryData()!
-}
-
-function getActiveDirectoryId() {
-  return directoryStore.getSnapshot().context.activeDirectoryId
-}
 
 const SHORTCUTS_KEY = 'file-browser'
 
@@ -52,7 +44,7 @@ export const FileBrowserShortcuts = {
       shortcuts: [
         {
           key: ['Enter'],
-          handler: e => directoryHelpers.openSelectedItem(getData(), e, undefined),
+          handler: e => directoryHelpers.openSelectedItem(getFilteredData(), e, undefined),
           label: 'Open item on cursor',
         },
         {
@@ -117,16 +109,13 @@ export const FileBrowserShortcuts = {
         {
           key: { key: 'Backspace', metaKey: true },
           handler: () => {
-            const snapshot = directoryStore.getSnapshot()
-            const s = selectSelection(undefined)(snapshot)
-            // Command+Delete on macOS
-            if (s.indexes.size === 0) return
-            const data = getData()
-            const itemsToDelete = [...s.indexes]
-              .map(i => data[i])
-              .filter(i => i.type === 'real')
-              .map(i => i.item)
-            directoryHelpers.handleDelete(itemsToDelete, data, undefined)
+            const items = directorySelection.getSelectedRealsOrCurrentReal(undefined)
+            if (items)
+              directoryHelpers.handleDelete(
+                items.map(i => i.item),
+                getFilteredData(),
+                undefined
+              )
           },
           enabledIn: () => true,
           label: 'Delete selected items',
@@ -152,10 +141,8 @@ export const FileBrowserShortcuts = {
           key: { key: 'r', metaKey: true, shiftKey: true },
           handler: e => {
             e?.preventDefault()
-            const data = getData()
-            const snapshot = directoryStore.getSnapshot()
-            const s = selectSelection(undefined)(snapshot)
-            const itemsToRename = s.indexes.size < 1 ? data : [...s.indexes].map(i => data[i])
+            const itemsToRename = directorySelection.getSelectedRealsOrCurrentReal(undefined)
+            if (!itemsToRename) return
             const itemsToRenameMapped = itemsToRename.filter(i => i.type === 'real').map(i => i.item)
             dialogActions.open('batchRename', itemsToRenameMapped)
           },
@@ -174,8 +161,8 @@ export const FileBrowserShortcuts = {
 
             e?.preventDefault()
             if (s.indexes.size === 0) return
-            const data = getData()
-            const itemsToCopy = [...s.indexes].map(i => data[i])
+            const itemsToCopy = directorySelection.getSelectedRealsOrCurrentReal(undefined)
+            if (!itemsToCopy) return
             const itemsToCopyMapped = itemsToCopy.filter(i => i.type === 'real').map(i => i.item)
             clipboardHelpers.copy(itemsToCopyMapped, false, undefined)
           },
@@ -194,8 +181,8 @@ export const FileBrowserShortcuts = {
             e?.preventDefault()
             const s = selectSelection(undefined)(directoryStore.getSnapshot())
             if (s.indexes.size === 0) return
-            const data = getData()
-            const itemsToCut = [...s.indexes].map(i => data[i])
+            const itemsToCut = directorySelection.getSelectedRealsOrCurrentReal(undefined)
+            if (!itemsToCut) return
             const itemsToCutMapped = itemsToCut.filter(i => i.type === 'real').map(i => i.item)
             clipboardHelpers.copy(itemsToCutMapped, true, undefined)
           },

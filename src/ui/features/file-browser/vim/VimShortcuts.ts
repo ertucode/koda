@@ -2,9 +2,11 @@ import { GlobalShortcuts } from '@/lib/hooks/globalShortcuts'
 import { VimEngine } from '@common/VimEngine'
 import { VimMovements } from '@common/VimMovements'
 import { directoryStore } from '../directoryStore/directory'
-import { dialogActions } from '../dialogStore'
+import { dialogActions, dialogStore } from '../dialogStore'
 import { VimShortcutHelper } from './VimShortcutHelper'
 import { getSnapshotWithInitializedVim } from '../directoryStore/vimHelpers'
+import { confirmation } from '@/lib/components/confirmation'
+import { subscribeToStores } from '@/lib/functions/storeHelpers'
 
 const SHORTCUTS_KEY = 'vim'
 
@@ -39,6 +41,7 @@ directoryStore.subscribe(s => {
   }
 })
 
+let subscription: (() => void) | undefined = undefined
 export const VimShortcuts = {
   init: () => {
     GlobalShortcuts.create({
@@ -129,8 +132,17 @@ export const VimShortcuts = {
       ],
       sequences: [],
     })
+    subscription = subscribeToStores(
+      [dialogStore, confirmation],
+      ([dialog, confirmation]) => [!dialog.openDialog, confirmation.isOpen],
+      ([dialog, confirmation]) => {
+        const enabled = !dialog.openDialog && !confirmation.isOpen
+        GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, enabled)
+      }
+    )
   },
   deinit: () => {
     GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, false)
+    subscription?.()
   },
 }

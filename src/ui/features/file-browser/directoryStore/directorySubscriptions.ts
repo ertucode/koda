@@ -173,3 +173,8 @@ export const unsubscribeDirectorySubscriptions = (directoryId: DirectoryId) => {
   subscriptions.forEach(unsubscribe => unsubscribe())
   directorySubscriptions.delete(directoryId)
 }
+
+export function getFilteredData(dirId?: DirectoryId | undefined) {
+  const directoryId = dirId ?? directoryStore.getSnapshot().context.activeDirectoryId
+  return directoryDerivedStores.get(directoryId)?.getFilteredDirectoryData()!
+}

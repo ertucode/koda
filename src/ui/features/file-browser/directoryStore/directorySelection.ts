@@ -1,7 +1,7 @@
 import { SequenceShortcut, ShortcutWithHandler } from '@/lib/hooks/useShortcuts'
 import { createResetSelection, directoryStore } from './directory'
 import { DirectoryId } from './DirectoryBase'
-import { getActiveDirectory, getBufferSelection } from './directoryPureHelpers'
+import { getActiveDirectory, getBufferSelection, selectBuffer } from './directoryPureHelpers'
 import { directoryDerivedStores } from './directorySubscriptions'
 import { throttle } from '@common/throttle'
 
@@ -449,5 +449,20 @@ export const directorySelection = {
       last: newSelection,
       directoryId,
     })
+  },
+
+  getSelectedRealsOrCurrentReal: (directoryId: DirectoryId | undefined) => {
+    const snapshot = directoryStore.getSnapshot()
+    const buffer = selectBuffer(snapshot.context, directoryId)
+    if (!buffer) return undefined
+
+    const selection = buffer.selection.indexes
+    const result = [...selection].map(i => buffer.items[i]).filter(i => i.type === 'real')
+    if (result.length === 0) {
+      const item = buffer.items[buffer.cursor.line]
+      if (item.type === 'real') return [item]
+      return undefined
+    }
+    return result
   },
 }
