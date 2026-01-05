@@ -6,7 +6,7 @@ import { RecentsList } from '../file-browser/components/RecentsList'
 import { TagsList } from '../file-browser/components/TagsList'
 import { useSelector } from '@xstate/store/react'
 import { FilePreview } from '../file-browser/components/FilePreview'
-import { directoryStore, selectSelection, directoryHelpers } from '../file-browser/directoryStore/directory'
+import { directoryStore, directoryHelpers, selectCursorLine } from '../file-browser/directoryStore/directory'
 import { directoryDerivedStores } from '../file-browser/directoryStore/directorySubscriptions'
 
 const paneClassName = 'w-full h-full flex flex-col overflow-auto'
@@ -58,14 +58,11 @@ export const layoutFactory = (node: TabNode) => {
 
 function FileBrowserFilePreview() {
   const activeDirectoryId = useSelector(directoryStore, s => s.context.activeDirectoryId)
-  const selection = useSelector(directoryStore, selectSelection(activeDirectoryId))
+  const cursorLine = useSelector(directoryStore, selectCursorLine(activeDirectoryId))
   const filteredDirectoryData = directoryDerivedStores.get(activeDirectoryId)?.useFilteredDirectoryData()
 
   // Get selected file for preview (only if exactly one file is selected)
-  const sItem =
-    filteredDirectoryData && selection.indexes.size === 1 && selection.last != null
-      ? filteredDirectoryData[selection.last]
-      : null
+  const sItem = filteredDirectoryData && cursorLine != null ? filteredDirectoryData[cursorLine] : null
   const selectedItem = sItem?.type === 'real' ? sItem.item : null
   const previewFilePath = selectedItem
     ? (selectedItem.fullPath ?? directoryHelpers.getFullPath(selectedItem.name, activeDirectoryId))

@@ -3,7 +3,7 @@ import { useSelector } from '@xstate/store/react'
 import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
 import { useDirectoryContext } from '@/features/file-browser/DirectoryContext'
 import { directoryDerivedStores } from '../../directoryStore/directorySubscriptions'
-import { directoryStore, useRowIsSelected } from '../../directoryStore/directory'
+import { directoryStore, useRowState } from '../../directoryStore/directory'
 import { directoryHelpers } from '../../directoryStore/directory'
 import { ContextMenu, useContextMenu } from '@/lib/components/context-menu'
 import { FileTableRowContextMenu } from '../../FileTableRowContextMenu'
@@ -34,7 +34,7 @@ type GridItemProps = {
 }
 
 const GridItem = memo(function GridItem({ item, index, directoryId, onContextMenu }: GridItemProps) {
-  const isSelected = useRowIsSelected(index, directoryId)
+  const { isSelected, isCursor } = useRowState(index, directoryId)
 
   const isDragOverThisRow = useSelector(
     fileDragDropStore,
@@ -48,7 +48,8 @@ const GridItem = memo(function GridItem({ item, index, directoryId, onContextMen
       className={clsx(
         'group relative flex flex-col rounded-lg border border-base-300 hover:bg-base-200 cursor-pointer transition-colors select-none overflow-hidden h-36',
         isSelected && 'bg-base-content/10 ring-2 ring-primary',
-        isDragOverThisRow && 'bg-primary/20 ring-2 ring-primary'
+        isDragOverThisRow && 'bg-primary/20 ring-2 ring-primary',
+        isCursor && 'bg-primary/20 ring-2 ring-primary'
       )}
       data-list-item
       {...fileBrowserListItemProps({

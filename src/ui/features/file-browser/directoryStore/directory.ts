@@ -631,6 +631,10 @@ export const selectSelection = (directoryId: DirectoryId | undefined) => (state:
   return buffer?.selection ?? defaultSelection
 }
 
+export const selectCursorLine = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) => {
+  return selectBuffer(state.context, directoryId)?.cursor.line
+}
+
 export const selectFuzzyQuery = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
   getActiveDirectory(state.context, directoryId).fuzzyQuery
 
@@ -640,19 +644,6 @@ export const selectViewMode = (directoryId: DirectoryId | undefined) => (state: 
 export const selectError = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
   getActiveDirectory(state.context, directoryId).error
 
-export function useRowIsSelected(index: number, directoryId: DirectoryId | undefined) {
-  return useSelector(directoryStore, s => {
-    const selection = selectSelection(directoryId)(s)
-    return selection.indexes.has(index)
-  })
-}
-export function useRowIsCursor(index: number, directoryId: DirectoryId | undefined) {
-  return useSelector(directoryStore, s => {
-    const buffer = selectBuffer(s.context, directoryId)
-    if (!buffer) return false
-    return buffer.cursor.line === index
-  })
-}
 // TODO: better name
 export function useRowState(index: number, directoryId: DirectoryId | undefined) {
   return useSelector(
@@ -672,6 +663,6 @@ export const selectActiveVimBuffer =
   (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) => {
     const activeDirectory = getActiveDirectory(state.context, directoryId)
     if (!activeDirectory) return undefined
-    if (activeDirectory.directory.type !== 'path') return undefined
-    return state.context.vim.buffers[activeDirectory.directory.fullPath]
+    const fullPath = getFullPathForBuffer(activeDirectory.directory)
+    return state.context.vim.buffers[fullPath]
   }
