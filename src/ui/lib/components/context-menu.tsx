@@ -60,30 +60,135 @@ export type ContextMenuListProps = {
 export function ContextMenuList({ items }: ContextMenuListProps) {
   const menu = useContext(ContextMenuContext)
   const filteredItems = items.filter((i): i is ContextMenuItem => !!i)
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [openSubmenuIndex, setOpenSubmenuIndex] = useState<number | null>(null)
+  const [selectedSubmenuIndex, setSelectedSubmenuIndex] = useState(0)
+  const ulRef = useRef<HTMLUListElement>(null)
+  const detailsRefs = useRef<(HTMLDetailsElement | null)[]>([])
+
+  // Filter out separators for navigation
+  const navigableItems = filteredItems.filter(item => !('isSeparator' in item)) as NormalContextMenuItem[]
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Ctrl modifier
+      if (!e.ctrlKey) return
+
+      const currentItem = navigableItems[selectedIndex]
+      const isInSubmenu = openSubmenuIndex !== null
+
+      switch (e.key) {
+        case 'j': // Navigate down
+          e.preventDefault()
+          if (isInSubmenu && currentItem?.submenu) {
+            const filteredSubItems = currentItem.submenu.filter((i): i is NormalContextMenuItem => !!i)
+            setSelectedSubmenuIndex(prev => Math.min(prev + 1, filteredSubItems.length - 1))
+          } else {
+            setSelectedIndex(prev => Math.min(prev + 1, navigableItems.length - 1))
+          }
+          break
+
+        case 'k': // Navigate up
+          e.preventDefault()
+          if (isInSubmenu) {
+            setSelectedSubmenuIndex(prev => Math.max(prev - 1, 0))
+          } else {
+            setSelectedIndex(prev => Math.max(prev - 1, 0))
+          }
+          break
+
+        case 'l': // Navigate right (open submenu)
+          e.preventDefault()
+          if (openSubmenuIndex !== null && currentItem.submenu) {
+            // Execute submenu item action
+            const filteredSubItems = currentItem.submenu.filter((i): i is NormalContextMenuItem => !!i)
+            const subItem = filteredSubItems[selectedSubmenuIndex]
+            if (subItem) {
+              subItem.onClick?.()
+              menu.close()
+            }
+          } else if (currentItem.submenu) {
+            // Open submenu
+            setOpenSubmenuIndex(selectedIndex)
+            setSelectedSubmenuIndex(0)
+            const detailsElement = detailsRefs.current[selectedIndex]
+            if (detailsElement) {
+              detailsElement.open = true
+            }
+          } else {
+            // Execute action
+            currentItem.onClick?.()
+            menu.close()
+          }
+          break
+
+        case 'h': // Navigate left (close submenu)
+          e.preventDefault()
+          if (isInSubmenu) {
+            setOpenSubmenuIndex(null)
+            setSelectedSubmenuIndex(0)
+            // Close the details element
+            const detailsElement = detailsRefs.current[selectedIndex]
+            if (detailsElement) {
+              detailsElement.open = false
+            }
+          }
+          break
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedIndex, openSubmenuIndex, selectedSubmenuIndex, navigableItems, menu])
+
+  // Reset refs array
+  useEffect(() => {
+    detailsRefs.current = detailsRefs.current.slice(0, filteredItems.length)
+  }, [filteredItems.length])
+
+  let navigableIndex = -1
 
   return (
-    <ul className="menu menu-sm bg-base-200 rounded-box w-56">
+    <ul ref={ulRef} className="menu menu-sm bg-base-200 rounded-box w-56">
       {filteredItems.map((item, idx) => {
         if ('isSeparator' in item) return <li key={idx}></li>
+
+        navigableIndex++
+        const currentNavigableIndex = navigableIndex
+        const isSelected = currentNavigableIndex === selectedIndex && openSubmenuIndex === null
+
         if (item.submenu) {
           const filteredSubItems = item.submenu.filter((i): i is NormalContextMenuItem => !!i)
+          const isSubmenuOpen = openSubmenuIndex === currentNavigableIndex
+
           return (
             <li key={idx}>
-              <details>
-                <summary>{item.view}</summary>
+              <details
+                ref={el => {
+                  detailsRefs.current[currentNavigableIndex] = el
+                }}
+              >
+                <summary className={isSelected ? 'bg-base-300' : ''}>{item.view}</summary>
                 <ul>
-                  {filteredSubItems.map((subItem, subIdx) => (
-                    <li key={subIdx}>
-                      <a
-                        onClick={() => {
-                          subItem.onClick?.()
-                          menu.close()
-                        }}
-                      >
-                        {subItem.view}
-                      </a>
-                    </li>
-                  ))}
+                  {filteredSubItems.map((subItem, subIdx) => {
+                    const isSubItemSelected = isSubmenuOpen && subIdx === selectedSubmenuIndex
+                    return (
+                      <li key={subIdx}>
+                        <a
+                          className={isSubItemSelected ? 'bg-base-300' : ''}
+                          onClick={() => {
+                            subItem.onClick?.()
+                            menu.close()
+                          }}
+                        >
+                          {subItem.view}
+                        </a>
+                      </li>
+                    )
+                  })}
                 </ul>
               </details>
             </li>
@@ -92,6 +197,7 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
         return (
           <li key={idx}>
             <a
+              className={isSelected ? 'bg-base-300' : ''}
               onClick={() => {
                 item.onClick?.()
                 menu.close()

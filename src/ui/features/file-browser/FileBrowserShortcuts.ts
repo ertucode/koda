@@ -56,7 +56,7 @@ export const FileBrowserShortcuts = {
             const cursorLine = getCursorLine(snapshot.context, active)
             if (cursorLine == null) return
             const data = getFilteredData()
-            const element = document.querySelector(`[data-list-item]:nth-child(${cursorLine + 1})`) as HTMLElement
+            const element = document.querySelector(`[data-cursor="${active.directoryId}"]`) as HTMLElement
             directoryStore.trigger.showContextMenu({
               directoryId: active.directoryId,
               element: element as HTMLElement,
