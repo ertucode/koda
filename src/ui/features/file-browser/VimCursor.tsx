@@ -31,25 +31,24 @@ export function VimCursor() {
 
   return (
     <div
-      className="absolute z-10 leading-none whitespace-pre"
+      className="absolute z-10 whitespace-pre flex items-center"
       style={{
-        top: HEADER + PADDING + cursor.line * ROW_HEIGHT,
+        top: HEADER + cursor.line * ROW_HEIGHT,
         left: NAME_START,
-        height: CURSOR_HEIGHT,
+        height: ROW_HEIGHT,
         fontSize: fontsize,
       }}
       data-cursor={directoryId}
     >
-      <span className="opacity-0">{data.until}</span>
-      <span className="bg-red-100/50 ">{data.char}</span>
+      <span className="opacity-0 h-full flex items-center">{data.until}</span>
+
+      <span className="bg-red-100/50 h-full flex items-center">{data.char}</span>
     </div>
   )
 }
 
 const fontsize = `0.6875rem`
 
-const PADDING = 7
 const HEADER = 30
 const ROW_HEIGHT = 25.5
 const NAME_START = 40
-const CURSOR_HEIGHT = ROW_HEIGHT - PADDING * 2
