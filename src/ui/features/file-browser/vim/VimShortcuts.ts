@@ -99,38 +99,18 @@ export const VimShortcuts = {
         { key: 'w', handler: create(VimMovements.w), label: '[VIM] Move cursor to start of word' },
         { key: 'b', handler: create(VimMovements.b), label: '[VIM] Move cursor to end of word' },
         { key: 'e', handler: create(VimMovements.e), label: '[VIM] Move cursor to end of word' },
-        {
-          key: 'f',
-          handler: create(VimMovements.f),
-          label: '[VIM] Move cursor to next occurrence of character',
-        },
-        {
-          key: 'F',
-          handler: create(VimMovements.F),
-          label: '[VIM] Move cursor to previous occurrence of character',
-        },
-        {
-          key: 't',
-          handler: create(VimMovements.t),
-          label: '[VIM] Move cursor to next occurrence of character',
-        },
-        {
-          key: 'T',
-          handler: create(VimMovements.T),
-          label: '[VIM] Move cursor to previous occurrence of character',
-        },
-        {
-          key: ';',
-          handler: create(VimMovements.semicolon),
-          label: '[VIM] Repeat last f/F/t/T command',
-        },
+        { key: 'f', handler: create(VimMovements.f), label: '[VIM] Move cursor to next occurrence of character' },
+        { key: 'F', handler: create(VimMovements.F), label: '[VIM] Move cursor to previous occurrence of character' },
+        { key: 't', handler: create(VimMovements.t), label: '[VIM] Move cursor to next occurrence of character' },
+        { key: 'T', handler: create(VimMovements.T), label: '[VIM] Move cursor to previous occurrence of character' },
+        { key: ';', handler: create(VimMovements.semicolon), label: '[VIM] Repeat last f/F/t/T command' },
         {
           key: ',',
           handler: create(VimMovements.comma),
           label: '[VIM] Repeat last f/F/t/T command in reverse direction',
         },
+        // TODO: fix shortcut implementation
         {
-          // TODO: fix shortcut implementation
           key: { key: '_', shiftKey: true },
           handler: create(VimMovements.underscore),
           label: '[VIM] Move to first non-blank character of line',
@@ -140,6 +120,11 @@ export const VimShortcuts = {
           key: { key: '$', shiftKey: true },
           handler: create(VimMovements.dollar),
           label: '[VIM] Move to end of line',
+        },
+        {
+          key: 'Escape',
+          handler: create(VimEngine.escInNormal),
+          label: '[VIM] Escape to reset selection',
         },
       ],
       sequences: [],

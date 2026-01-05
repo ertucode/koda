@@ -107,29 +107,79 @@ export const directorySelection = {
   },
 
   getSelectionShortcuts: (): ShortcutWithHandler[] => {
+    // Helper function to get current cursor position
+    const getCursorPosition = () => {
+      const snapshot = directoryStore.getSnapshot()
+      const state = getActiveDirectory(snapshot.context, undefined)
+      const selection = getBufferSelection(snapshot.context, state)
+      const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
+      const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
+      return {
+        state,
+        selection,
+        cursorLine: vimBuffer?.cursor.line ?? selection.last ?? 0,
+        filteredData: directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!,
+      }
+    }
+
+    // Helper function to move cursor and optionally modify selection
+    const moveCursor = (
+      offset: number,
+      mode: 'replace' | 'add' | 'toggle',
+      e?: KeyboardEvent | React.KeyboardEvent
+    ) => {
+      const { state, selection, cursorLine, filteredData } = getCursorPosition()
+      const count = filteredData.length
+
+      let targetIndex = cursorLine + offset
+      // Wrap around
+      if (targetIndex < 0) targetIndex = count - 1
+      if (targetIndex >= count) targetIndex = 0
+
+      const indexes = new Set(selection.indexes)
+
+      if (mode === 'replace') {
+        // Clear selection and select only target
+        indexes.clear()
+        indexes.add(targetIndex)
+      } else if (mode === 'add') {
+        // Add target to selection
+        indexes.add(targetIndex)
+      } else if (mode === 'toggle') {
+        // Toggle target in selection
+        if (indexes.has(targetIndex)) {
+          indexes.delete(targetIndex)
+        } else {
+          indexes.add(targetIndex)
+        }
+      }
+
+      directoryStore.send({
+        type: 'setSelection',
+        indexes,
+        last: targetIndex,
+        directoryId: state.directoryId,
+      })
+      e?.preventDefault()
+    }
+
     // Helper function to calculate columns in grid view
     const getColumnsPerRow = (): number => {
       const context = getActiveDirectory(directoryStore.getSnapshot().context, undefined)
       if (context.viewMode !== 'grid') return 1
 
-      // Find the grid container
       const gridContainer = document.querySelector(`[data-list-id="${context.directoryId}"] > div`) as HTMLElement
       if (!gridContainer) return 1
 
-      // Get all grid items
       const gridItems = gridContainer.querySelectorAll('[data-list-item]')
       if (gridItems.length < 2) return 1
 
-      // Calculate columns based on the position of first two items
       const firstItem = gridItems[0] as HTMLElement
       const secondItem = gridItems[1] as HTMLElement
-
       const firstRect = firstItem.getBoundingClientRect()
       const secondRect = secondItem.getBoundingClientRect()
 
-      // If the second item is on the same row (y position is similar)
       if (Math.abs(firstRect.top - secondRect.top) < 10) {
-        // Count how many items are on the first row
         let cols = 1
         for (let i = 1; i < gridItems.length; i++) {
           const itemRect = (gridItems[i] as HTMLElement).getBoundingClientRect()
@@ -145,394 +195,210 @@ export const directorySelection = {
       return 1
     }
 
-    // Throttle delay for selection shortcuts
     const THROTTLE_DELAY = 0
 
     return [
+      // Cmd+A: Select all
       {
         key: [{ key: 'a', metaKey: true }],
         handler: e => {
-          const context = getActiveDirectory(directoryStore.getSnapshot().context, undefined)
-          const filteredData = directoryDerivedStores.get(context.directoryId)!.getFilteredDirectoryData()!
-          const count = filteredData.length
+          const { state, filteredData } = getCursorPosition()
           directoryStore.send({
             type: 'setSelection',
-            indexes: new Set(Array.from({ length: count }).map((_, i) => i)),
-            last: count - 1,
-            directoryId: context.directoryId,
+            indexes: new Set(Array.from({ length: filteredData.length }).map((_, i) => i)),
+            last: filteredData.length - 1,
+            directoryId: state.directoryId,
           })
           e?.preventDefault()
         },
         label: 'Select all items',
       },
-      {
-        key: ' ',
-        handler: e => {
-          const snapshot = directoryStore.getSnapshot()
-          const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
 
-          // Get cursor position from vim buffer if available, otherwise use selection.last
-          const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
-          const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
-          const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-
-          // Select the current item (replace existing selection)
-          directoryStore.send({
-            type: 'setSelection',
-            indexes: new Set([cursorLine]),
-            last: cursorLine,
-            directoryId: state.directoryId,
-          })
-          e?.preventDefault()
-        },
-        label: 'Select current item',
-      },
-      {
-        key: { key: ' ', ctrlKey: true },
-        handler: e => {
-          const snapshot = directoryStore.getSnapshot()
-          const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
-
-          // Get cursor position from vim buffer if available, otherwise use selection.last
-          const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
-          const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
-          const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-
-          // Toggle selection of current item
-          const indexes = new Set(selection.indexes)
-          if (indexes.has(cursorLine)) {
-            indexes.delete(cursorLine)
-          } else {
-            indexes.add(cursorLine)
-          }
-
-          directoryStore.send({
-            type: 'setSelection',
-            indexes,
-            last: cursorLine,
-            directoryId: state.directoryId,
-          })
-          e?.preventDefault()
-        },
-        label: 'Toggle selection of current item',
-      },
+      // Shift+Space: Toggle current item
       {
         key: { key: ' ', shiftKey: true },
-        handler: e => {
-          const snapshot = directoryStore.getSnapshot()
-          const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
-
-          // Get cursor position from vim buffer if available, otherwise use selection.last
-          const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
-          const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
-          const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-
-          // Toggle selection of current item (same as ctrl+space)
-          const indexes = new Set(selection.indexes)
-          if (indexes.has(cursorLine)) {
-            indexes.delete(cursorLine)
-          } else {
-            indexes.add(cursorLine)
-          }
-
-          directoryStore.send({
-            type: 'setSelection',
-            indexes,
-            last: cursorLine,
-            directoryId: state.directoryId,
-          })
-          e?.preventDefault()
-        },
+        handler: e => moveCursor(0, 'toggle', e),
         label: 'Toggle selection of current item',
       },
+
+      // Space: Set selection to current item only
       {
-        key: { key: 'j', ctrlKey: true },
-        handler: e => {
+        key: { key: ' ' },
+        handler: e => moveCursor(0, 'replace', e),
+        label: 'Select only current item',
+      },
+
+      // J/ArrowDown: Move down (replace selection)
+      {
+        key: ['j', 'ArrowDown'],
+        handler: throttle(e => {
+          const cols = getColumnsPerRow()
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
-          const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
-          const count = filteredData.length
+          const offset = state.viewMode === 'grid' ? cols : 1
+          moveCursor(offset, 'replace', e)
+        }, THROTTLE_DELAY),
+        label: 'Move down',
+      },
 
-          // Get cursor position from vim buffer if available, otherwise use selection.last
-          const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
-          const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
-          const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
+      // K/ArrowUp: Move up (replace selection)
+      {
+        key: ['k', 'ArrowUp'],
+        handler: throttle(e => {
+          const cols = getColumnsPerRow()
+          const snapshot = directoryStore.getSnapshot()
+          const state = getActiveDirectory(snapshot.context, undefined)
+          const offset = state.viewMode === 'grid' ? cols : 1
+          moveCursor(-offset, 'replace', e)
+        }, THROTTLE_DELAY),
+        label: 'Move up',
+      },
 
-          // Move down and add to selection
-          const targetIndex = cursorLine + 1
-          const finalTarget = targetIndex >= count ? 0 : targetIndex
+      // J/Shift+ArrowDown: Move down and add to selection
+      {
+        key: [
+          { key: 'J', shiftKey: true },
+          { key: 'ArrowDown', shiftKey: true },
+        ],
+        handler: throttle(e => {
+          const { state, selection, cursorLine, filteredData } = getCursorPosition()
+          const cols = getColumnsPerRow()
+          const offset = state.viewMode === 'grid' ? cols : 1
 
+          // Add current item to selection first
           const indexes = new Set(selection.indexes)
-          indexes.add(finalTarget)
+          indexes.add(cursorLine)
+
+          // Then move and add target
+          let targetIndex = cursorLine + offset
+          const count = filteredData.length
+          if (targetIndex >= count) targetIndex = 0
+          indexes.add(targetIndex)
 
           directoryStore.send({
             type: 'setSelection',
             indexes,
-            last: finalTarget,
+            last: targetIndex,
             directoryId: state.directoryId,
           })
           e?.preventDefault()
-        },
+        }, THROTTLE_DELAY),
         label: 'Move down and add to selection',
       },
+
+      // K/Shift+ArrowUp: Move up and add to selection
       {
-        key: { key: 'k', ctrlKey: true },
-        handler: e => {
-          const snapshot = directoryStore.getSnapshot()
-          const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
-          const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
-          const count = filteredData.length
+        key: [
+          { key: 'K', shiftKey: true },
+          { key: 'ArrowUp', shiftKey: true },
+        ],
+        handler: throttle(e => {
+          const { state, selection, cursorLine, filteredData } = getCursorPosition()
+          const cols = getColumnsPerRow()
+          const offset = state.viewMode === 'grid' ? cols : 1
 
-          // Get cursor position from vim buffer if available, otherwise use selection.last
-          const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
-          const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
-          const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-
-          // Move up and add to selection
-          const targetIndex = cursorLine - 1
-          const finalTarget = targetIndex < 0 ? count - 1 : targetIndex
-
+          // Add current item to selection first
           const indexes = new Set(selection.indexes)
-          indexes.add(finalTarget)
+          indexes.add(cursorLine)
+
+          // Then move and add target
+          let targetIndex = cursorLine - offset
+          const count = filteredData.length
+          if (targetIndex < 0) targetIndex = count - 1
+          indexes.add(targetIndex)
 
           directoryStore.send({
             type: 'setSelection',
             indexes,
-            last: finalTarget,
+            last: targetIndex,
             directoryId: state.directoryId,
           })
           e?.preventDefault()
-        },
+        }, THROTTLE_DELAY),
         label: 'Move up and add to selection',
       },
+
+      // h/ArrowLeft: Move left in grid, jump up 10 in list
       {
-        key: ['ArrowUp', { shiftKey: true, key: 'KeyK', isCode: true }, { shiftKey: true, key: 'ArrowUp' }],
+        key: ['h', 'ArrowLeft'],
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
-          const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
-          const count = filteredData.length
-
-          // Get cursor position from vim buffer if available, otherwise use selection.last
-          const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
-          const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
-          const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-
-          const cols = getColumnsPerRow()
-          const offset = state.viewMode === 'grid' ? cols : 1
-          const targetIndex = cursorLine - offset
-
-          // In grid mode with offset > 1, we need special handling for shift
-          const isShiftEvent = e && e.shiftKey && (!('key' in e) || (e.key !== 'G' && e.key !== 'g'))
-          const isGridJump = state.viewMode === 'grid' && offset > 1
-
-          let finalTarget = targetIndex < 0 ? count - 1 : targetIndex
-
-          if (isShiftEvent && isGridJump && cursorLine != null) {
-            // In grid mode with shift, select items in a visual column pattern
-            const indexes = new Set(selection.indexes)
-            const current = cursorLine
-
-            // Move up by cols each time
-            let pos = current
-            while (pos > finalTarget && pos >= 0) {
-              indexes.add(pos)
-              pos -= cols
-            }
-            if (pos >= 0) indexes.add(pos)
-
-            directoryStore.send({
-              type: 'setSelection',
-              indexes,
-              last: finalTarget,
-              directoryId: state.directoryId,
-            })
-          } else if (isShiftEvent) {
-            // Normal shift behavior for list mode
-            directorySelection.select(finalTarget, e, state.directoryId)
-          } else {
-            // No shift - just move selection
-            directoryStore.send({
-              type: 'setSelection',
-              indexes: new Set([finalTarget]),
-              last: finalTarget,
-              directoryId: state.directoryId,
-            })
-          }
-          e?.preventDefault()
+          const offset = state.viewMode === 'grid' ? -1 : -10
+          moveCursor(offset, 'replace', e)
         }, THROTTLE_DELAY),
-        label: 'Select previous item',
+        label: 'Move left or jump up',
       },
+
+      // l/ArrowRight: Move right in grid, jump down 10 in list
       {
-        key: ['ArrowDown', { shiftKey: true, key: 'KeyJ', isCode: true }, { shiftKey: true, key: 'ArrowDown' }],
+        key: ['l', 'ArrowRight'],
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
-          const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
-          const count = filteredData.length
-
-          // Get cursor position from vim buffer if available, otherwise use selection.last
-          const fullPath = state.directory.type === 'path' ? state.directory.fullPath : undefined
-          const vimBuffer = fullPath ? snapshot.context.vim.buffers[fullPath] : undefined
-          const cursorLine = vimBuffer?.cursor.line ?? selection.last ?? 0
-
-          const cols = getColumnsPerRow()
-          const offset = state.viewMode === 'grid' ? cols : 1
-          const targetIndex = cursorLine + offset
-
-          // In grid mode with offset > 1, we need special handling for shift
-          const isShiftEvent = e && e.shiftKey && (!('key' in e) || (e.key !== 'G' && e.key !== 'g'))
-          const isGridJump = state.viewMode === 'grid' && offset > 1
-
-          let finalTarget = targetIndex >= count ? 0 : targetIndex
-
-          if (isShiftEvent && isGridJump && cursorLine != null) {
-            // In grid mode with shift, select items in a visual column pattern
-            const indexes = new Set(selection.indexes)
-            const current = cursorLine
-
-            // Move down by cols each time
-            let pos = current
-            while (pos < finalTarget && pos < count) {
-              indexes.add(pos)
-              pos += cols
-            }
-            if (pos < count) indexes.add(pos)
-
-            directoryStore.send({
-              type: 'setSelection',
-              indexes,
-              last: finalTarget,
-              directoryId: state.directoryId,
-            })
-          } else if (isShiftEvent) {
-            // Normal shift behavior for list mode
-            directorySelection.select(finalTarget, e, state.directoryId)
-          } else {
-            // No shift - just move selection
-            directoryStore.send({
-              type: 'setSelection',
-              indexes: new Set([finalTarget]),
-              last: finalTarget,
-              directoryId: state.directoryId,
-            })
-          }
-          e?.preventDefault()
+          const offset = state.viewMode === 'grid' ? 1 : 10
+          moveCursor(offset, 'replace', e)
         }, THROTTLE_DELAY),
-        label: 'Select next item',
+        label: 'Move right or jump down',
       },
+
+      // H/Shift+ArrowLeft: Move left and add in grid, jump up 10 and add in list
       {
-        key: 'ArrowLeft',
+        key: [
+          { key: 'H', shiftKey: true },
+          { key: 'ArrowLeft', shiftKey: true },
+        ],
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
-          const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
-          const count = filteredData.length
-          const lastSelected = selection.last ?? 0
-
-          if (state.viewMode === 'grid') {
-            // In grid mode, move left by 1
-            const targetIndex = lastSelected - 1
-            const finalTarget = targetIndex < 0 ? count - 1 : targetIndex
-
-            const isShiftEvent = e && e.shiftKey
-            if (isShiftEvent) {
-              // Use the select function for proper range selection
-              directorySelection.select(finalTarget, e, state.directoryId)
-            } else {
-              // Just move selection
-              directoryStore.send({
-                type: 'setSelection',
-                indexes: new Set([finalTarget]),
-                last: finalTarget,
-                directoryId: state.directoryId,
-              })
-            }
-          } else {
-            // In list mode, jump 10 items up (use original behavior)
-            directorySelection.select(lastSelected - 10, e, state.directoryId)
-          }
-          e?.preventDefault()
+          const offset = state.viewMode === 'grid' ? -1 : -10
+          moveCursor(offset, 'add', e)
         }, THROTTLE_DELAY),
-        label: 'Move left or Jump 10 items up',
+        label: 'Move left and add to selection',
       },
+
+      // L/Shift+ArrowRight: Move right and add in grid, jump down 10 and add in list
       {
-        key: 'ArrowRight',
+        key: [
+          { key: 'L', shiftKey: true },
+          { key: 'ArrowRight', shiftKey: true },
+        ],
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
-          const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
-          const count = filteredData.length
-          const lastSelected = selection.last ?? 0
-
-          if (state.viewMode === 'grid') {
-            // In grid mode, move right by 1
-            const targetIndex = lastSelected + 1
-            const finalTarget = targetIndex >= count ? 0 : targetIndex
-
-            const isShiftEvent = e && e.shiftKey
-            if (isShiftEvent) {
-              // Use the select function for proper range selection
-              directorySelection.select(finalTarget, e, state.directoryId)
-            } else {
-              // Just move selection
-              directoryStore.send({
-                type: 'setSelection',
-                indexes: new Set([finalTarget]),
-                last: finalTarget,
-                directoryId: state.directoryId,
-              })
-            }
-          } else {
-            // In list mode, jump 10 items down (use original behavior)
-            directorySelection.select(lastSelected + 10, e, state.directoryId)
-          }
-          e?.preventDefault()
+          const offset = state.viewMode === 'grid' ? 1 : 10
+          moveCursor(offset, 'add', e)
         }, THROTTLE_DELAY),
-        label: 'Move right or Jump 10 items down',
+        label: 'Move right and add to selection',
       },
+
+      // Shift+G: Go to last item
       {
         key: { key: 'G', shiftKey: true },
         handler: e => {
-          // Go to the bottom (like vim G)
-          directorySelection.select(-1, e, undefined)
+          const { state, filteredData } = getCursorPosition()
+          directoryStore.send({
+            type: 'setSelection',
+            indexes: new Set([filteredData.length - 1]),
+            last: filteredData.length - 1,
+            directoryId: state.directoryId,
+          })
           e?.preventDefault()
         },
         label: 'Go to last item',
       },
+
+      // Ctrl+D: Page down
       {
         key: { key: 'd', ctrlKey: true },
-        handler: throttle(e => {
-          const snapshot = directoryStore.getSnapshot()
-          const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
-          const filteredData = directoryDerivedStores.get(state.directoryId)!.getFilteredDirectoryData()!
-          const count = filteredData.length
-          const lastSelected = selection.last ?? 0
-          directorySelection.select(Math.min(lastSelected + 10, count - 1), e, state.directoryId)
-          e?.preventDefault()
-        }, THROTTLE_DELAY),
+        handler: throttle(e => moveCursor(10, 'replace', e), THROTTLE_DELAY),
         label: 'Page down',
       },
+
+      // Ctrl+U: Page up
       {
         key: { key: 'u', ctrlKey: true },
-        handler: throttle(e => {
-          const snapshot = directoryStore.getSnapshot()
-          const state = getActiveDirectory(snapshot.context, undefined)
-          const selection = getBufferSelection(snapshot.context, state)
-          const lastSelected = selection.last ?? 0
-          directorySelection.select(Math.max(lastSelected - 10, 0), e, state.directoryId)
-          e?.preventDefault()
-        }, THROTTLE_DELAY),
+        handler: throttle(e => moveCursor(-10, 'replace', e), THROTTLE_DELAY),
         label: 'Page up',
       },
     ]
