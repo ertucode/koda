@@ -963,6 +963,9 @@ export namespace VimEngine {
   }
 
   export function defaultBuffer(fullPath: string, items: RealBufferItem[]): Buffer {
+    if (!Array.isArray(items)) {
+      throw new Error('function implemented')
+    }
     return {
       fullPath,
       items,
