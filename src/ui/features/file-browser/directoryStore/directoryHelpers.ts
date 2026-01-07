@@ -281,6 +281,7 @@ export const directoryHelpers = {
     // goUp only makes sense when in a path directory
     if (directory.type !== 'path') return
 
+    console.log(PathHelpers.resolveUpDirectory(homeDirectory, directory.fullPath), homeDirectory, directory.fullPath)
     const info: DirectoryInfo = {
       type: 'path',
       fullPath: PathHelpers.resolveUpDirectory(homeDirectory, directory.fullPath),

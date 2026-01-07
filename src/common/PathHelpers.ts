@@ -63,7 +63,8 @@ export namespace PathHelpers {
 
   export function revertExpandedHome(home: string, filePath: string): string {
     if (filePath.startsWith(home)) {
-      return '~' + filePath.slice(home.length)
+      const remainder = filePath.slice(home.length)
+      return remainder ? '~' + remainder : '~/'
     }
     return filePath
   }
@@ -75,7 +76,17 @@ export namespace PathHelpers {
         parts = getFolderNameParts(homeDirectory)
       }
     }
+
+    // Check if the first part is ~, meaning the input started with ~/
+    const startsWithTilde = parts.length > 0 && parts[0] === '~'
+
     let fullPath = parts.slice(0, parts.length - 1).join('/')
+
+    // If input started with ~/ and we have no parts left, return ~/
+    if (startsWithTilde && fullPath === '~') {
+      return '~/'
+    }
+
     if (fullPath[0] !== '/' && fullPath[0] !== '~') {
       fullPath = '/' + fullPath
     }
