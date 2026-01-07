@@ -73,7 +73,7 @@ export function FuzzyInput({ directoryId }: { directoryId: DirectoryId }) {
         }
 
         if (e.key === 'Enter') {
-          directoryHelpers.openItemOnCursor(filteredData, undefined, directoryId)
+          directoryHelpers.openItemOnCursor(filteredData, directoryId)
           e.currentTarget.blur()
         }
       }}

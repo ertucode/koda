@@ -467,16 +467,11 @@ export const directoryHelpers = {
     }, 5)
   },
 
-  openItemOnCursor: (
-    data: DerivedDirectoryItem[],
-    e: KeyboardEvent | undefined,
-    directoryId: DirectoryId | undefined
-  ) => {
+  openItemOnCursor: (data: DerivedDirectoryItem[], directoryId: DirectoryId | undefined) => {
     const snapshot = directoryStore.getSnapshot()
     const cursorLine = getCursorLineForDirectoryId(snapshot.context, directoryId) || 0
     const itemToOpen = data[cursorLine]
     if (itemToOpen.type !== 'real') return
-    if (itemToOpen.item.type === 'file' && e?.key === 'l') return
 
     directoryHelpers.openItem(itemToOpen.item, directoryId)
   },
