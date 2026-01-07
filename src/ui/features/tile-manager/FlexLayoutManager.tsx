@@ -12,6 +12,7 @@ import { useSyncDirectoryStoreAndLayout } from './useSyncDirectoryStoreAndLayout
 import { LayoutHelpers } from '../file-browser/utils/LayoutHelpers'
 import { SettingsShortcuts } from '../file-browser/SettingsShortcuts'
 import { VimShortcuts } from '../file-browser/vim/VimShortcuts'
+import { WindowStoreShortcuts } from '../windowStore'
 
 export const FlexLayoutManager: React.FC = () => {
   const layoutRef = useRef<Layout>(null)
@@ -20,9 +21,11 @@ export const FlexLayoutManager: React.FC = () => {
   useEffect(() => {
     FileBrowserShortcuts.init()
     VimShortcuts.init()
+    WindowStoreShortcuts.init()
     return () => {
       FileBrowserShortcuts.deinit()
       VimShortcuts.deinit()
+      WindowStoreShortcuts.deinit()
     }
   })
 
