@@ -136,6 +136,8 @@ export function setupSubscriptions(directoryId: DirectoryId) {
         const fullPath = getFullPathForBuffer(currentDir.directory)
         if (!fullPath) return
 
+        if (VimEngine.isActive(snapshot.vim, fullPath)) return
+
         snapshot.vim.buffers[fullPath] = VimEngine.defaultBuffer(fullPath, items as VimEngine.RealBufferItem[])
       }
     )

@@ -2,7 +2,16 @@ import { useState, Ref, forwardRef, useEffect, useMemo, useRef } from 'react'
 import { Dialog } from '@/lib/components/dialog'
 import { Button } from '@/lib/components/button'
 import { VimEngine } from '@common/VimEngine'
-import { FileIcon, FolderIcon, PlusIcon, TrashIcon, Edit3Icon, ArrowRightIcon, CopyIcon, AlertTriangleIcon } from 'lucide-react'
+import {
+  FileIcon,
+  FolderIcon,
+  PlusIcon,
+  TrashIcon,
+  Edit3Icon,
+  ArrowRightIcon,
+  CopyIcon,
+  AlertTriangleIcon,
+} from 'lucide-react'
 import { useDialogStoreDialog } from '../dialogStore'
 import { DialogForItem } from '@/lib/hooks/useDialogForItem'
 import { getWindowElectron } from '@/getWindowElectron'
@@ -276,13 +285,15 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
 
   const handleApply = async () => {
     if (selectedIds.size === 0) return
-    
+
     // Validate for duplicates before applying
     if (hasDuplicates) {
-      alert('Cannot apply changes: Multiple changes are targeting the same destination path. Please deselect conflicting changes.')
+      alert(
+        'Cannot apply changes: Multiple changes are targeting the same destination path. Please deselect conflicting changes.'
+      )
       return
     }
-    
+
     const selectedChanges = changesWithIds.filter(c => selectedIds.has(c.id)).map(({ id, ...change }) => change)
 
     const result = await getWindowElectron().applyVimChanges(selectedChanges)
@@ -487,7 +498,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
         if (change.type !== 'rename') return null
         return (
           <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
-            <span className="font-semibold text-right text-orange-600 dark:text-orange-400 text-xs">Move</span>
+            <span className="font-semibold text-right text-orange-600 dark:text-orange-400 text-xs">Move From</span>
             <div className="flex items-center gap-1.5">
               {change.item.type === 'file' ? (
                 <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
@@ -512,7 +523,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
         if (change.type !== 'rename') return null
         return (
           <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
-            <span className="font-semibold text-right text-cyan-600 dark:text-cyan-400 text-xs">Move</span>
+            <span className="font-semibold text-right text-cyan-600 dark:text-cyan-400 text-xs">Move To</span>
             <div className="flex items-center gap-1.5">
               {change.item.type === 'file' ? (
                 <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
@@ -614,18 +625,14 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
             <div className="flex items-start gap-3">
               <AlertTriangleIcon className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">
-                  Duplicate Destinations Detected
-                </h4>
+                <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">Duplicate Destinations Detected</h4>
                 <p className="text-sm text-red-700 dark:text-red-400 mb-3">
                   Multiple changes are targeting the same destination path. Please deselect conflicting changes:
                 </p>
                 <ul className="space-y-2">
                   {duplicateDestinations.map((dup, idx) => (
                     <li key={idx} className="text-sm">
-                      <div className="font-mono text-red-800 dark:text-red-300 font-semibold mb-1">
-                        {dup.path}
-                      </div>
+                      <div className="font-mono text-red-800 dark:text-red-300 font-semibold mb-1">{dup.path}</div>
                       <div className="text-red-600 dark:text-red-400 pl-4">
                         Targeted by {dup.changes.length} changes
                       </div>
