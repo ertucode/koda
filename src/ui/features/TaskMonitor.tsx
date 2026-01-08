@@ -257,17 +257,35 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
   }
 
   if (task.type === "run-command") {
-    const { command, fullPath } = task.metadata;
+    const { command, fullPath, parameters } = task.metadata;
+    const hasParameters = Object.keys(parameters).length > 0;
 
     return (
       <div className="mt-2 space-y-1.5 text-xs">
         <div className="flex items-center gap-1.5 text-base-content/70">
           <TerminalIcon className="h-3 w-3 flex-shrink-0" />
           <span className="font-medium">Command:</span>
-          <code className="text-xs bg-base-300 px-1.5 py-0.5 rounded font-mono">
+          <code className="text-xs bg-base-300 px-1.5 py-0.5 rounded font-mono break-all">
             {command}
           </code>
         </div>
+        {hasParameters && (
+          <div className="flex items-start gap-1.5 text-base-content/70">
+            <span className="font-medium">Parameters:</span>
+            <div className="flex-1 space-y-0.5">
+              {Object.entries(parameters).map(([key, value]) => (
+                <div key={key} className="flex gap-1">
+                  <code className="text-xs bg-base-300 px-1.5 py-0.5 rounded font-mono">
+                    {key}:
+                  </code>
+                  <code className="text-xs bg-base-300 px-1.5 py-0.5 rounded font-mono break-all flex-1">
+                    {value}
+                  </code>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-1.5 text-base-content/70">
           <FolderIcon className="h-3 w-3 flex-shrink-0" />
           <span className="font-medium">Path:</span>
@@ -450,8 +468,23 @@ function TaskItem({
             )}
 
             {status === "error" && task.result && !task.result.success && (
-              <div className="mt-2 p-2 bg-error/10 border border-error/20 rounded text-xs text-error">
-                {errorResponseToMessage(task.result.error)}
+              <div className="mt-2 p-2 bg-error/10 border border-error/20 rounded text-xs text-error relative group/error">
+                <div className="break-words whitespace-pre-wrap overflow-wrap-anywhere pr-6">
+                  {errorResponseToMessage(task.result.error)}
+                </div>
+                <button
+                  onClick={() => {
+                    if (task.result && !task.result.success) {
+                      navigator.clipboard.writeText(
+                        errorResponseToMessage(task.result.error),
+                      );
+                    }
+                  }}
+                  className="btn btn-ghost btn-xs absolute top-1 right-1 opacity-0 group-hover/error:opacity-100 transition-opacity"
+                  title="Copy error"
+                >
+                  <Copy className="h-3 w-3" />
+                </button>
               </div>
             )}
 
