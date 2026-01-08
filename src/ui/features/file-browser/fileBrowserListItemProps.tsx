@@ -152,40 +152,49 @@ export function fileBrowserListItemProps({
       const items = directoryHelpers.getSelectedItemsOrCurrentItem(index, directoryId) as RealDirectoryItem[]
       const isOutsideDrag = e.metaKey || e.ctrlKey || e.shiftKey
 
+      const dragItems = items.map(i => ({
+        fullPath: directoryHelpers.getFullPathForItem(i.item, directoryId),
+        type: i.item.type,
+        name: i.item.name,
+      }))
+
       if (isOutsideDrag) {
         // e.preventDefault çağırmayınca başka uygulamaya taşıma yapılamıyor.
         // e.preventDefault() çağırınca uygulama içinde taşıma yapılamıyor.
         // Şu anda dışarı drag sadece metaKeyle başlarsa ve bırakırken metaKey kapatılırsa çalışıyor.
         e.preventDefault()
+
+        const filePaths = items.map(i => directoryHelpers.getFullPathForItem(i.item, directoryId))
+
+        // Create ghost element for Electron native drag
+        const electronGhost = document.createElement('pre')
+        electronGhost.className = 'drag-ghost'
+        // electronGhost.style.maxWidth = DRAG_IMAGE_WIDTH + 'px'
+        // electronGhost.style.width = DRAG_IMAGE_WIDTH + 'px'
+        electronGhost.textContent = dragItems.map(i => i.name).join('\n')
+
+        // Start the native drag with custom ghost image
+        getWindowElectron().onDragStart({
+          files: filePaths,
+          image: await captureDivAsBase64(electronGhost, e),
+        })
+        electronGhost.remove()
       } else {
+        // Create and set custom drag ghost image for both inside and outside drags
+        const ghost = document.createElement('pre')
+        ghost.className = 'drag-ghost'
+        ghost.textContent = dragItems.map(i => i.name).join('\n')
+
+        document.body.appendChild(ghost)
+        e.dataTransfer.setDragImage(ghost, 0, 0)
+        setTimeout(() => document.body.removeChild(ghost), 0)
         e.dataTransfer.setData('application/x-mygui-file-drag', 'true')
-
         // Store dragged items data for favorites/other drop targets
-        e.dataTransfer.setData(
-          'application/x-mygui-drag-items',
-          JSON.stringify(
-            items.map(i => ({
-              fullPath: directoryHelpers.getFullPathForItem(i.item, directoryId),
-              type: i.item.type,
-              name: i.item.name,
-            }))
-          )
-        )
+        e.dataTransfer.setData('application/x-mygui-drag-items', JSON.stringify(dragItems))
       }
-
-      const filePaths = items.map(i => directoryHelpers.getFullPathForItem(i.item, directoryId))
 
       // Handle drag start
       await fileDragDropHandlers.handleRowDragStart(items, directoryId)
-
-      const table = document.querySelector('[data-list-id="' + directoryId + '"]')
-      if (!table) return
-
-      // Start the native drag
-      getWindowElectron().onDragStart({
-        files: filePaths,
-        image: await captureDivAsBase64(table as HTMLElement),
-      })
     },
     onDragOver: e => {
       fileDragDropHandlers.handleRowDragOver(e, index, item.type === 'dir')

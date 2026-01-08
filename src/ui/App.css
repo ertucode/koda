@@ -51,6 +51,7 @@
   @import './styles/kbd.css';
   @import './styles/join.css';
   @import './styles/toast.css';
+  @import './styles/drag-image.css';
 }
 
 /* @font-face { */
