@@ -257,7 +257,26 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
   }
 
   if (task.type === "run-command") {
-    return "TODO";
+    const { command, fullPath } = task.metadata;
+
+    return (
+      <div className="mt-2 space-y-1.5 text-xs">
+        <div className="flex items-center gap-1.5 text-base-content/70">
+          <TerminalIcon className="h-3 w-3 flex-shrink-0" />
+          <span className="font-medium">Command:</span>
+          <code className="text-xs bg-base-300 px-1.5 py-0.5 rounded font-mono">
+            {command}
+          </code>
+        </div>
+        <div className="flex items-center gap-1.5 text-base-content/70">
+          <FolderIcon className="h-3 w-3 flex-shrink-0" />
+          <span className="font-medium">Path:</span>
+          <span className="truncate" title={fullPath}>
+            {formatPath(fullPath)}
+          </span>
+        </div>
+      </div>
+    );
   }
 
   if (task.type === "vim-changes") {
