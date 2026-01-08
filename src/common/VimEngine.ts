@@ -1178,4 +1178,55 @@ export namespace VimEngine {
       pendingOperator: undefined,
     }
   }
+
+  // x - delete character under cursor
+  export function x({ state, fullPath }: CommandOpts): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const currentItems = [...buffer.items]
+    const currentStr = currentItems[buffer.cursor.line].str
+    const count = getEffectiveCount(state)
+
+    // Delete count characters starting from cursor position
+    const beforeCursor = currentStr.slice(0, buffer.cursor.column)
+    const afterCursor = currentStr.slice(buffer.cursor.column + count)
+    const newStr = beforeCursor + afterCursor
+    const deletedStr = currentStr.slice(buffer.cursor.column, buffer.cursor.column + count)
+
+    currentItems[buffer.cursor.line] = {
+      ...currentItems[buffer.cursor.line],
+      str: newStr,
+    }
+
+    return {
+      count: 0,
+      mode: 'normal',
+      registry: [createStrBufferItem(deletedStr)],
+      buffers: {
+        ...state.buffers,
+        [fullPath]: {
+          ...buffer,
+          items: currentItems,
+          historyStack: buffer.historyStack.withNew({
+            reversions: [
+              {
+                type: 'update-content',
+                index: buffer.cursor.line,
+                str: currentStr,
+              },
+              {
+                type: 'cursor',
+                cursor: buffer.cursor,
+              },
+            ],
+          }),
+          cursor: {
+            line: buffer.cursor.line,
+            column: Math.min(buffer.cursor.column, Math.max(0, newStr.length - 1)),
+          },
+          selection: buffer.selection,
+        },
+      },
+      pendingOperator: undefined,
+    }
+  }
 }

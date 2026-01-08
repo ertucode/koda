@@ -91,6 +91,7 @@ export const VimShortcuts = {
         { key: 'c', handler: create(VimEngine.c), label: '[VIM] Change operator' },
         { key: 'y', handler: create(VimEngine.y), label: '[VIM] Yank operator' },
         { key: 's', handler: create(VimEngine.s), label: '[VIM] Substitute character' },
+        { key: 'x', handler: create(VimEngine.x), label: '[VIM] Delete character under cursor' },
         { key: { key: 'C', shiftKey: true }, handler: create(VimEngine.C), label: '[VIM] Change to end of line' },
         { key: { key: 'D', shiftKey: true }, handler: create(VimEngine.D), label: '[VIM] Delete to end of line' },
         { key: 'i', handler: create(VimMovements.i), label: '[VIM] Insert' },

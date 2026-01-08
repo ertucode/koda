@@ -6,11 +6,9 @@ export namespace VimShortcutHelper {
   export type Updater = (opts: VimEngine.CommandOpts) => VimEngine.State
   export function createHandler(updater: Updater) {
     return (e: { preventDefault: () => void } | undefined) => {
+      const [shouldRun, result] = VimShortcutHelper.shouldRun()
+      if (!shouldRun) return
       e?.preventDefault()
-      const result = getSnapshotWithInitializedVim()
-      if (!result) return
-      const pendingFindCommand = result.snapshot.vim.pendingFindCommand
-      if (pendingFindCommand) return undefined
 
       return initializedWithUpdater(result, updater)
     }
@@ -38,5 +36,13 @@ export namespace VimShortcutHelper {
     if (!result) return
 
     return VimShortcutHelper.createHandler(updater)(undefined)
+  }
+
+  export function shouldRun() {
+    const result = getSnapshotWithInitializedVim()
+    if (!result) return [false, undefined] as const
+    const pendingFindCommand = result.snapshot.vim.pendingFindCommand
+    if (pendingFindCommand) return [false, undefined] as const
+    return [true, result] as const
   }
 }

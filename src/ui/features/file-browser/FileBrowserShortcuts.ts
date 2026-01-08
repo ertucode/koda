@@ -12,6 +12,7 @@ import { GlobalShortcuts } from '@/lib/hooks/globalShortcuts'
 import { subscribeToStores } from '@/lib/functions/storeHelpers'
 import { confirmation } from '@/lib/components/confirmation'
 import { getCursorLine, getActiveDirectory } from './directoryStore/directoryPureHelpers'
+import { VimShortcutHelper } from './vim/VimShortcutHelper'
 
 const SHORTCUTS_KEY = 'file-browser'
 
@@ -125,7 +126,11 @@ export const FileBrowserShortcuts = {
         },
         {
           key: ['-'],
-          handler: () => directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, undefined),
+          handler: () => {
+            const [shouldRun] = VimShortcutHelper.shouldRun()
+            if (!shouldRun) return
+            directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, undefined)
+          },
           label: 'Go up to parent directory',
         },
         {
@@ -154,6 +159,8 @@ export const FileBrowserShortcuts = {
           key: 'r',
           notKey: { key: 'r', metaKey: true },
           handler: e => {
+            const [shouldRun] = VimShortcutHelper.shouldRun()
+            if (!shouldRun) return
             e?.preventDefault()
             directoryHelpers.reload(undefined)
           },

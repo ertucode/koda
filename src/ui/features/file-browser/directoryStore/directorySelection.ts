@@ -221,14 +221,14 @@ export const directorySelection = {
 
       // Shift+Space: Toggle current item
       {
-        key: { key: ' ', shiftKey: true },
+        key: { key: 'v', shiftKey: true },
         handler: e => moveCursor(0, 'toggle', e),
         label: 'Toggle selection of current item',
       },
 
       // Space: Set selection to current item only
       {
-        key: { key: ' ' },
+        key: { key: 'v' },
         handler: e => moveCursor(0, 'replace', e),
         label: 'Select only current item',
       },
