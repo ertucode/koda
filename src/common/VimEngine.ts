@@ -517,6 +517,8 @@ export namespace VimEngine {
     const buffer = state.buffers[fullPath]
     return {
       ...state,
+      pendingFindCommand: undefined,
+      pendingOperator: undefined,
       buffers: {
         ...state.buffers,
         [fullPath]: {
