@@ -3,6 +3,7 @@ import { TaskEvents, Tasks } from './Tasks.js'
 import { type ArchiveTypes } from './ArchiveTypes.js'
 import { GenericEvent } from './GenericEvent.js'
 import { VimEngine } from './VimEngine.js'
+import { type AsyncStorageKey } from './AsyncStorageKeys.js'
 
 export type ContextLine = {
   lineNumber: number
@@ -171,6 +172,7 @@ export type EventResponseMapping = {
   setCompactWindowSize: Promise<void>
   restoreWindowSize: Promise<void>
   getIsCompactWindowSize: Promise<boolean>
+  setAsyncStorageValue: void
 }
 
 export type StringSearchOptions = {
@@ -289,6 +291,7 @@ export type EventRequestMapping = {
   setCompactWindowSize: void
   restoreWindowSize: void
   getIsCompactWindowSize: void
+  setAsyncStorageValue: { key: AsyncStorageKey; value: $Maybe<string> }
 }
 
 export type EventRequest<Key extends keyof EventResponseMapping> = Key extends keyof EventRequestMapping
@@ -394,4 +397,5 @@ export type WindowElectron = {
   setCompactWindowSize: () => Promise<void>
   restoreWindowSize: () => Promise<void>
   getIsCompactWindowSize: () => Promise<boolean>
+  setAsyncStorageValue: (key: AsyncStorageKey, value: $Maybe<string>) => Promise<void>
 }

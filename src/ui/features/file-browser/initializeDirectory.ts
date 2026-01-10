@@ -1,54 +1,47 @@
-import { IJsonModel, Model } from "flexlayout-react";
-import { defaultPath } from "./defaultPath";
-import { directoryStore } from "./directoryStore/directory";
-import { DirectoryId } from "./directoryStore/DirectoryBase";
-import { layoutStore, selectDefaultLayout } from "./layoutStore";
-import { windowArgs } from "@/getWindowElectron";
+import { IJsonModel, Model } from 'flexlayout-react'
+import { defaultPath } from './defaultPath'
+import { directoryStore } from './directoryStore/directory'
+import { DirectoryId } from './directoryStore/DirectoryBase'
+import { layoutStore, selectDefaultLayout } from './layoutStore'
+import { windowArgs } from '@/getWindowElectron'
+import { saveToAsyncStorage } from './utils/asyncStorage'
+import { AsyncStorageKeys } from '@common/AsyncStorageKeys'
+import z from 'zod'
 
-const isSelectAppMode = windowArgs.isSelectAppMode;
+const isSelectAppMode = windowArgs.isSelectAppMode
 
-type InitDirectories = Parameters<
-  typeof directoryStore.trigger.initDirectories
->[0]["directories"];
-function init(
-  directories: InitDirectories,
-  activeDirectoryId: string,
-  layoutJson: IJsonModel,
-) {
+type InitDirectories = Parameters<typeof directoryStore.trigger.initDirectories>[0]['directories']
+function init(directories: InitDirectories, activeDirectoryId: string, layoutJson: IJsonModel) {
   directoryStore.trigger.initDirectories({
     directories: directories,
     activeDirectoryId: activeDirectoryId,
-  });
+  })
 
-  return layoutJson;
+  return layoutJson
 }
 
 function initFromPaths(paths: string[]) {
-  const directoriesToInit: Parameters<
-    typeof directoryStore.trigger.initDirectories
-  >[0]["directories"] = paths.map((p) => {
-    return {
-      fullPath: p,
-      type: "path",
-      id: Math.random().toString(36).slice(2) as DirectoryId,
-    };
-  });
+  const directoriesToInit: Parameters<typeof directoryStore.trigger.initDirectories>[0]['directories'] = paths.map(
+    p => {
+      return {
+        fullPath: p,
+        type: 'path',
+        id: Math.random().toString(36).slice(2) as DirectoryId,
+      }
+    }
+  )
 
-  return init(
-    directoriesToInit,
-    directoriesToInit[0].id,
-    createDefaultLayout(directoriesToInit),
-  );
+  return init(directoriesToInit, directoriesToInit[0].id, createDefaultLayout(directoriesToInit))
 }
 
 function createDefaultLayout(directories: InitDirectories) {
   const directoryTabs = directories.map((dir, index) => ({
-    type: "tab" as const,
+    type: 'tab' as const,
     name: `Directory ${index + 1}`,
-    component: "directory",
+    component: 'directory',
     config: { directoryId: dir.id },
     enableClose: true,
-  }));
+  }))
 
   return {
     global: {
@@ -66,52 +59,52 @@ function createDefaultLayout(directories: InitDirectories) {
     },
     borders: [],
     layout: {
-      type: "row",
+      type: 'row',
       weight: 100,
       children: [
         // Left sidebar column - vertical split with favorites, recents, tags
         {
-          type: "row",
+          type: 'row',
           weight: 10,
           children: [
             {
-              type: "tabset",
+              type: 'tabset',
               weight: 33,
               selected: 0,
               enableTabStrip: true,
               children: [
                 {
-                  type: "tab",
-                  name: "FAVORITES",
-                  component: "favorites",
+                  type: 'tab',
+                  name: 'FAVORITES',
+                  component: 'favorites',
                   enableClose: false,
                 },
               ],
             },
             {
-              type: "tabset",
+              type: 'tabset',
               weight: 33,
               selected: 0,
               enableTabStrip: true,
               children: [
                 {
-                  type: "tab",
-                  name: "RECENTS",
-                  component: "recents",
+                  type: 'tab',
+                  name: 'RECENTS',
+                  component: 'recents',
                   enableClose: false,
                 },
               ],
             },
             {
-              type: "tabset",
+              type: 'tabset',
               weight: 34,
               selected: 0,
               enableTabStrip: true,
               children: [
                 {
-                  type: "tab",
-                  name: "TAGS",
-                  component: "tags",
+                  type: 'tab',
+                  name: 'TAGS',
+                  component: 'tags',
                   enableClose: false,
                 },
               ],
@@ -120,11 +113,11 @@ function createDefaultLayout(directories: InitDirectories) {
         },
         // Middle: Options at top, directories below
         {
-          type: "row",
+          type: 'row',
           weight: 80,
           children: [
             {
-              type: "tabset",
+              type: 'tabset',
               weight: 96,
               selected: 0,
               enableTabStrip: true,
@@ -133,9 +126,9 @@ function createDefaultLayout(directories: InitDirectories) {
                   ? directoryTabs
                   : [
                       {
-                        type: "tab",
-                        name: "No Directories",
-                        component: "placeholder",
+                        type: 'tab',
+                        name: 'No Directories',
+                        component: 'placeholder',
                       },
                     ],
             },
@@ -143,65 +136,60 @@ function createDefaultLayout(directories: InitDirectories) {
         },
         // Right preview section
         {
-          type: "tabset",
+          type: 'tabset',
           weight: 15,
           selected: 0,
           enableTabStrip: true,
           children: [
             {
-              type: "tab",
-              name: "PREVIEW",
-              component: "preview",
+              type: 'tab',
+              name: 'PREVIEW',
+              component: 'preview',
               enableClose: false,
             },
           ],
         },
       ],
     },
-  };
+  }
 }
 
 export const layoutJson = ((): IJsonModel => {
   if (isSelectAppMode && windowArgs.initialPath) {
-    return initFromPaths([windowArgs.initialPath]);
+    return initFromPaths([windowArgs.initialPath])
   }
-  // First, check if there's an applied layout in localStorage (from CustomLayoutsDialog)
-  const appliedLayoutStr = localStorage.getItem("mygui-flexlayout-model");
+  // First, check if there's an applied layout in asyncStorage (from CustomLayoutsDialog)
+  const appliedLayoutStr = windowArgs.asyncStorage.oneTimeLayoutModel
   if (appliedLayoutStr) {
     try {
-      const appliedLayout = JSON.parse(appliedLayoutStr);
+      const appliedLayout = JSON.parse(appliedLayoutStr)
       if (appliedLayout.layout && appliedLayout.directories) {
         directoryStore.trigger.initDirectories({
           directories: appliedLayout.directories,
-          activeDirectoryId:
-            appliedLayout.activeDirectoryId || appliedLayout.directories[0]?.id,
-        });
+          activeDirectoryId: appliedLayout.activeDirectoryId || appliedLayout.directories[0]?.id,
+        })
         // Clear the applied layout after loading it once
-        localStorage.removeItem("mygui-flexlayout-model");
-        return appliedLayout.layout;
+        saveToAsyncStorage(AsyncStorageKeys.oneTimeLayoutModel, z.null(), null)
+        return appliedLayout.layout
       }
     } catch (error) {
-      console.error("Failed to load applied layout:", error);
+      console.error('Failed to load applied layout:', error)
       // Clear corrupted data
-      localStorage.removeItem("mygui-flexlayout-model");
+      saveToAsyncStorage(AsyncStorageKeys.oneTimeLayoutModel, z.null(), null)
     }
   }
 
   // Otherwise, use the default layout from layoutStore
-  const layoutStoreState = layoutStore.get();
-  const defaultLayout = selectDefaultLayout(layoutStoreState);
-  const layoutToUse = defaultLayout || layoutStoreState.context.layouts[0];
+  const layoutStoreState = layoutStore.get()
+  const defaultLayout = selectDefaultLayout(layoutStoreState)
+  const layoutToUse = defaultLayout || layoutStoreState.context.layouts[0]
 
   // If we have a saved layout with directories, use it
   if (layoutToUse) {
-    return init(
-      layoutToUse.directories,
-      layoutToUse.activeDirectoryId,
-      layoutToUse.layoutJson,
-    );
+    return init(layoutToUse.directories, layoutToUse.activeDirectoryId, layoutToUse.layoutJson)
   }
 
-  return initFromPaths(["~/Downloads", defaultPath]);
-})();
+  return initFromPaths(['~/Downloads', defaultPath])
+})()
 
-export const layoutModel = Model.fromJson(layoutJson);
+export const layoutModel = Model.fromJson(layoutJson)

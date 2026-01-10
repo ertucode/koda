@@ -1,25 +1,27 @@
-import z from "zod";
-import { fromBase64, toBase64 } from "./base64.js";
-import { CommandMetadata } from "./Command.js";
+import z from 'zod'
+import { fromBase64, toBase64 } from './base64.js'
+import { CommandMetadata } from './Command.js'
+import { AsyncStorageKeys } from './AsyncStorageKeys.js'
 
 export const WindowArguments = z.object({
   initialPath: z.string().optional(),
-  mode: z.enum(["select-app"]).optional(),
+  mode: z.enum(['select-app']).optional(),
   homeDir: z.string(),
   commands: CommandMetadata.array().optional(),
-});
-export type WindowArguments = z.infer<typeof WindowArguments>;
+  asyncStorage: z.partialRecord(z.enum(Object.values(AsyncStorageKeys)), z.string().nullish()),
+})
+export type WindowArguments = z.infer<typeof WindowArguments>
 
 export function serializeWindowArguments(args: WindowArguments) {
-  return toBase64(JSON.stringify(args));
+  return toBase64(JSON.stringify(args))
 }
 
 export function deserializeWindowArguments(base64: string): WindowArguments {
   try {
-    return WindowArguments.parse(JSON.parse(fromBase64(base64)));
+    return WindowArguments.parse(JSON.parse(fromBase64(base64)))
   } catch (e) {
-    console.error(e);
+    console.error(e)
     // Unrecoverable
-    throw e;
+    throw e
   }
 }

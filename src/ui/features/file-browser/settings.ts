@@ -1,43 +1,40 @@
-import { createStore } from "@xstate/store";
-import { z } from "zod";
-import { createLocalStoragePersistence } from "./utils/localStorage";
+import { createStore } from '@xstate/store'
+import { z } from 'zod'
+import { createAsyncStoragePersistence } from './utils/asyncStorage'
+import { AsyncStorageKeys } from '@common/AsyncStorageKeys'
 
 const fileCategoryFilter = z.enum([
-  "all",
-  "image",
-  "video",
-  "audio",
-  "document",
-  "spreadsheet",
-  "presentation",
-  "archive",
-  "code",
-  "font",
-  "executable",
-  "other",
-]);
+  'all',
+  'image',
+  'video',
+  'audio',
+  'document',
+  'spreadsheet',
+  'presentation',
+  'archive',
+  'code',
+  'font',
+  'executable',
+  'other',
+])
 
-export type FileCategoryFilter = z.infer<typeof fileCategoryFilter>;
+export type FileCategoryFilter = z.infer<typeof fileCategoryFilter>
 
 const SettingsSchema = z.object({
   showDotFiles: z.boolean(),
   foldersOnTop: z.boolean(),
   fileTypeFilter: fileCategoryFilter.optional(),
-});
+})
 
-export type FileBrowserSettings = z.infer<typeof SettingsSchema>;
+export type FileBrowserSettings = z.infer<typeof SettingsSchema>
 
 const defaultSettings: FileBrowserSettings = {
   showDotFiles: false,
   foldersOnTop: true,
-  fileTypeFilter: "all",
-};
+  fileTypeFilter: 'all',
+}
 
-// Create localStorage persistence helper
-const settingsPersistence = createLocalStoragePersistence(
-  "fbSettings",
-  SettingsSchema,
-);
+const settingsPersistence = createAsyncStoragePersistence(AsyncStorageKeys.settings, SettingsSchema)
 
 // Create the store
 export const fileBrowserSettingsStore = createStore({
@@ -45,7 +42,7 @@ export const fileBrowserSettingsStore = createStore({
     settings: settingsPersistence.load(defaultSettings),
   },
   on: {
-    toggleShowDotFiles: (context) => ({
+    toggleShowDotFiles: context => ({
       ...context,
       settings: {
         ...context.settings,
@@ -53,7 +50,7 @@ export const fileBrowserSettingsStore = createStore({
       },
     }),
 
-    toggleFoldersOnTop: (context) => ({
+    toggleFoldersOnTop: context => ({
       ...context,
       settings: {
         ...context.settings,
@@ -74,64 +71,55 @@ export const fileBrowserSettingsStore = createStore({
       settings: event.settings,
     }),
   },
-});
+})
 
 // Subscribe to store changes for persistence
-fileBrowserSettingsStore.subscribe((state) => {
-  // Persist state changes to localStorage
-  settingsPersistence.save(state.context.settings);
-});
+fileBrowserSettingsStore.subscribe(state => {
+  settingsPersistence.save(state.context.settings)
+})
 
 // Helper functions for common operations
 export const fileBrowserSettingsHelpers = {
-  toggleShowDotFiles: () =>
-    fileBrowserSettingsStore.send({ type: "toggleShowDotFiles" }),
+  toggleShowDotFiles: () => fileBrowserSettingsStore.send({ type: 'toggleShowDotFiles' }),
 
-  toggleFoldersOnTop: () =>
-    fileBrowserSettingsStore.send({ type: "toggleFoldersOnTop" }),
+  toggleFoldersOnTop: () => fileBrowserSettingsStore.send({ type: 'toggleFoldersOnTop' }),
 
   setFileTypeFilter: (filter: FileCategoryFilter) =>
-    fileBrowserSettingsStore.send({ type: "setFileTypeFilter", filter }),
+    fileBrowserSettingsStore.send({ type: 'setFileTypeFilter', filter }),
 
   setSettings: (newSettings: FileBrowserSettings) =>
     fileBrowserSettingsStore.send({
-      type: "setSettings",
+      type: 'setSettings',
       settings: newSettings,
     }),
-};
+}
 
 // Selector functions for common use cases
-export const selectSettings = (
-  state: ReturnType<typeof fileBrowserSettingsStore.get>,
-) => state.context.settings;
+export const selectSettings = (state: ReturnType<typeof fileBrowserSettingsStore.get>) => state.context.settings
 
-export const selectShowDotFiles = (
-  state: ReturnType<typeof fileBrowserSettingsStore.get>,
-) => state.context.settings.showDotFiles;
+export const selectShowDotFiles = (state: ReturnType<typeof fileBrowserSettingsStore.get>) =>
+  state.context.settings.showDotFiles
 
-export const selectFoldersOnTop = (
-  state: ReturnType<typeof fileBrowserSettingsStore.get>,
-) => state.context.settings.foldersOnTop;
+export const selectFoldersOnTop = (state: ReturnType<typeof fileBrowserSettingsStore.get>) =>
+  state.context.settings.foldersOnTop
 
-export const selectFileTypeFilter = (
-  state: ReturnType<typeof fileBrowserSettingsStore.get>,
-) => state.context.settings.fileTypeFilter;
+export const selectFileTypeFilter = (state: ReturnType<typeof fileBrowserSettingsStore.get>) =>
+  state.context.settings.fileTypeFilter
 
 export const FILE_TYPE_FILTER_OPTIONS: {
-  value: FileCategoryFilter;
-  label: string;
+  value: FileCategoryFilter
+  label: string
 }[] = [
-  { value: "all", label: "All files" },
-  { value: "image", label: "Images" },
-  { value: "video", label: "Videos" },
-  { value: "audio", label: "Audio" },
-  { value: "document", label: "Documents" },
-  { value: "spreadsheet", label: "Spreadsheets" },
-  { value: "presentation", label: "Presentations" },
-  { value: "archive", label: "Archives" },
-  { value: "code", label: "Code" },
-  { value: "font", label: "Fonts" },
-  { value: "executable", label: "Executables" },
-  { value: "other", label: "Other" },
-];
-
+  { value: 'all', label: 'All files' },
+  { value: 'image', label: 'Images' },
+  { value: 'video', label: 'Videos' },
+  { value: 'audio', label: 'Audio' },
+  { value: 'document', label: 'Documents' },
+  { value: 'spreadsheet', label: 'Spreadsheets' },
+  { value: 'presentation', label: 'Presentations' },
+  { value: 'archive', label: 'Archives' },
+  { value: 'code', label: 'Code' },
+  { value: 'font', label: 'Fonts' },
+  { value: 'executable', label: 'Executables' },
+  { value: 'other', label: 'Other' },
+]
