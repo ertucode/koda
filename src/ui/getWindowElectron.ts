@@ -5,6 +5,8 @@ export function getWindowElectron() {
   return (window as any).electron as WindowElectron
 }
 
+console.log(getWindowElectron().getWindowArgs())
+console.log(new URLSearchParams(window.location.search).get('window-args'))
 const windowArgsStr =
   getWindowElectron().getWindowArgs() || new URLSearchParams(window.location.search).get('window-args') || ''
 
