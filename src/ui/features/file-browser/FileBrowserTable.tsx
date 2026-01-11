@@ -175,11 +175,14 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
 
       <div
         className={clsx(
-          'relative h-full w-full min-h-0 overflow-auto rounded-none border-none',
-          isDragOver && 'ring-2 ring-primary ring-inset'
+          'relative h-full w-full min-h-0 overflow-auto rounded-none border-none'
+          // isDragOver && 'ring-2 ring-primary ring-inset'
         )}
         {...fileBrowserListContainerProps({ directoryId, directory })}
       >
+        {isDragOver && (
+          <div className="absolute inset-0 pointer-events-none border border-blue-500 bg-blue-500/10 z-50"></div>
+        )}
         <VimCursor />
         <VimFuzzyHighlight />
         <LoadingOverlay />

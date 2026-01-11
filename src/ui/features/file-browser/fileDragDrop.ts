@@ -29,6 +29,7 @@ type FileDragDropContext = {
   dragToSelectStartIdx: number | null
   dragToSelectDirectoryId: DirectoryId | null
   dragToSelectWithMetaKey: boolean
+  dragToSelectStartPosition: { x: number; y: number } | null
   // Track active drag for in-app drops (since native drag doesn't use dataTransfer)
   activeDrag: ActiveDrag
 }
@@ -42,6 +43,8 @@ export const fileDragDropStore = createStore({
     dragToSelectStartIdx: null,
     dragToSelectDirectoryId: null,
     dragToSelectWithMetaKey: false,
+    dragToSelectStartPosition: null,
+    dragToSelectCurrentPosition: null,
     activeDrag: null,
   } as FileDragDropContext,
   on: {
@@ -59,6 +62,7 @@ export const fileDragDropStore = createStore({
         startIdx: number
         directoryId: DirectoryId
         withMetaKey: boolean
+        startPosition: { x: number; y: number }
       }
     ) => ({
       ...context,
@@ -66,6 +70,7 @@ export const fileDragDropStore = createStore({
       dragToSelectStartIdx: event.startIdx,
       dragToSelectDirectoryId: event.directoryId,
       dragToSelectWithMetaKey: event.withMetaKey,
+      dragToSelectStartPosition: event.startPosition,
     }),
     endDragToSelect: context => ({
       ...context,
@@ -73,6 +78,7 @@ export const fileDragDropStore = createStore({
       dragToSelectStartIdx: null,
       dragToSelectDirectoryId: null,
       dragToSelectWithMetaKey: false,
+      dragToSelectStartPosition: null,
     }),
     setActiveDrag: (context, event: { activeDrag: ActiveDrag }) => ({
       ...context,
@@ -85,6 +91,7 @@ export const fileDragDropStore = createStore({
       dragToSelectStartIdx: null,
       dragToSelectDirectoryId: null,
       dragToSelectWithMetaKey: false,
+      dragToSelectStartPosition: null,
       activeDrag: null,
     }),
   },
@@ -131,12 +138,18 @@ const handleGlobalMouseUp = () => {
 // Handler functions
 export const fileDragDropHandlers = {
   // Start drag-to-select mode
-  startDragToSelect: (startIdx: number, directoryId: DirectoryId, withMetaKey: boolean = false) => {
+  startDragToSelect: (
+    startIdx: number,
+    directoryId: DirectoryId,
+    withMetaKey: boolean = false,
+    startPosition: { x: number; y: number }
+  ) => {
     fileDragDropStore.send({
       type: 'startDragToSelect',
       startIdx,
       directoryId,
       withMetaKey,
+      startPosition,
     })
     // Add global mouseup listener to handle release anywhere
     document.body.addEventListener('mouseup', handleGlobalMouseUp)

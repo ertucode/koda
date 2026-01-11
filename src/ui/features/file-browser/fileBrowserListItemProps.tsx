@@ -3,7 +3,7 @@ import { DerivedDirectoryItem, DirectoryId, RealDirectoryItem } from './director
 
 import { directoryHelpers } from './directoryStore/directoryHelpers'
 import { perDirectoryDataHelpers } from './directoryStore/perDirectoryData'
-import { getBufferSelection } from './directoryStore/directoryPureHelpers'
+import { getBufferSelection, selectBuffer } from './directoryStore/directoryPureHelpers'
 import { fileDragDropHandlers, fileDragDropStore } from './fileDragDrop'
 
 export function fileBrowserListItemProps({
@@ -26,12 +26,14 @@ export function fileBrowserListItemProps({
 
       // Check if click is on a no-drag-to-select element (like the file name)
       const target = e.target as HTMLElement
-      const isOnNoDragToSelect = target.closest('[data-no-drag-to-select]') !== null
+      const buffer = selectBuffer(directoryStore.getSnapshot().context, directoryId)
+      if (!buffer) return
+      if (buffer.selection.indexes.has(index)) return
 
-      // Start drag-to-select when clicking outside no-drag-to-select zones
-      if (!isOnNoDragToSelect) {
-        fileDragDropHandlers.startDragToSelect(index, directoryId, e.metaKey)
-      }
+      const isOnNoDragToSelect = target.closest('[data-no-drag-to-select]') !== null
+      if (isOnNoDragToSelect) return
+
+      fileDragDropHandlers.startDragToSelect(index, directoryId, e.metaKey, { x: e.clientX, y: e.clientY })
     },
     onMouseEnter: () => {
       const dragState = fileDragDropStore.getSnapshot()
