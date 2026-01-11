@@ -16,7 +16,6 @@ import { DirectoryDataFromSettings } from '../utils/DirectoryDataFromSettings'
 import { selectSettings as selectSettingsFromStore } from '../settings'
 import { FileBrowserCache } from '../FileBrowserCache'
 import { directoryDerivedStores } from './directorySubscriptions'
-import { directorySelection } from './directorySelection'
 import { DirectoryInfo, DirectoryId, DirectoryContextDirectory, DerivedDirectoryItem } from './DirectoryBase'
 import {
   directoryInfoEquals,
@@ -463,7 +462,7 @@ export const directoryHelpers = {
       const beforeNavigationName = PathHelpers.name(beforeNavigation.fullPath)
       const idx = directoryData.findIndex(i => i.name === beforeNavigationName)
       if (idx === -1) return
-      directorySelection.selectManually(idx, directoryId)
+      directoryStore.trigger.setCursor({ cursor: { line: idx }, directoryId })
     }, 5)
   },
 

@@ -26,15 +26,6 @@ export const directoryDerivedStores = new Map<
 export function setupSubscriptions(directoryId: DirectoryId) {
   const subscriptions: (() => void)[] = []
   directorySubscriptions.set(directoryId, subscriptions)
-  subscriptions.push(
-    subscribeToStores(
-      [directoryStore],
-      ([s]) => [s.directoriesById[directoryId]?.directoryData],
-      _ => {
-        directorySelection.resetSelection(directoryId)
-      }
-    )
-  )
 
   subscriptions.push(
     subscribeToStores(

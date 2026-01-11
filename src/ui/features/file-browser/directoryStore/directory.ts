@@ -233,8 +233,9 @@ export const directoryStore = createStore({
       }
 
       const updatedVim = updateVimCursor(context.vim, cursorLineFullPath, event.last ?? 0)
+      if (updatedVim === context.vim) return context
 
-      return {
+      const res: DirectoryContext = {
         ...context,
         vim: {
           ...updatedVim,
@@ -250,6 +251,8 @@ export const directoryStore = createStore({
           },
         },
       }
+
+      return res
     },
     selectManually: (
       context,
@@ -273,8 +276,9 @@ export const directoryStore = createStore({
       }
 
       const updatedVim = updateVimCursor(context.vim, cursorLineFullPath, event.index)
+      if (updatedVim === context.vim) return context
 
-      return {
+      const res: DirectoryContext = {
         ...context,
         vim: {
           ...updatedVim,
@@ -289,6 +293,25 @@ export const directoryStore = createStore({
             },
           },
         },
+      }
+      return res
+    },
+    setCursor: (
+      context,
+      event: { cursor: Partial<VimEngine.CursorPosition>; directoryId: DirectoryId | undefined }
+    ) => {
+      const activeDirectory = getActiveDirectory(context, event.directoryId)
+      const fullPath = getFullPathForBuffer(activeDirectory.directory)
+      const buffer = context.vim.buffers[fullPath]
+      if (!buffer) return context
+      const [newState, newBuffer] = VimEngine.spreadBuffers(context.vim, fullPath)
+      newBuffer.cursor = {
+        ...buffer.cursor,
+        ...event.cursor,
+      }
+      return {
+        ...context,
+        vim: newState,
       }
     },
     toggleViewMode: (context, event: { directoryId: DirectoryId | undefined }) =>

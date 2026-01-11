@@ -15,7 +15,7 @@ export type RecentItem = z.infer<typeof recentItemSchema>
 
 const MAX_RECENTS = 30
 
-const recentsPersistence = createAsyncStoragePersistence(AsyncStorageKeys.recents, recentsSchema)
+const recentsPersistence = createAsyncStoragePersistence(AsyncStorageKeys.recents, recentsSchema, 1000)
 
 // Create the store
 export const recentsStore = createStore({

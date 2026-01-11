@@ -1,5 +1,6 @@
 import { getWindowElectron, windowArgs } from '@/getWindowElectron'
 import { AsyncStorageKey } from '@common/AsyncStorageKeys'
+import { debounce } from '@common/debounce'
 import { z } from 'zod'
 
 /**
@@ -41,7 +42,9 @@ export const saveToAsyncStorage = async <T>(key: AsyncStorageKey, schema: z.ZodT
  * @param schema - Zod schema for validation
  * @returns Object with load and save functions
  */
-export const createAsyncStoragePersistence = <T>(key: AsyncStorageKey, schema: z.ZodType<T>) => ({
+export const createAsyncStoragePersistence = <T>(key: AsyncStorageKey, schema: z.ZodType<T>, debounceMs?: number) => ({
   load: (defaultValue: T) => loadFromAsyncStorage(key, schema, defaultValue),
-  save: (value: T) => saveToAsyncStorage(key, schema, value),
+  save: debounceMs
+    ? debounce((value: T) => saveToAsyncStorage(key, schema, value), debounceMs)
+    : (value: T) => saveToAsyncStorage(key, schema, value),
 })
