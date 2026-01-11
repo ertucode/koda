@@ -138,7 +138,12 @@ export function setupSubscriptions(directoryId: DirectoryId) {
 
         if (VimEngine.isActive(snapshot.vim, fullPath)) return
 
-        snapshot.vim.buffers[fullPath] = VimEngine.defaultBuffer(fullPath, items as VimEngine.RealBufferItem[])
+        const prevBuffer = snapshot.vim.buffers[fullPath]
+        const nextBuffer = VimEngine.defaultBuffer(fullPath, items as VimEngine.RealBufferItem[])
+        snapshot.vim.buffers[fullPath] = nextBuffer
+        if (prevBuffer) {
+          nextBuffer.cursor = VimEngine.reuseCursor(prevBuffer, nextBuffer)
+        }
       }
     )
   )

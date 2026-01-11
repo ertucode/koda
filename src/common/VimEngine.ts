@@ -1002,6 +1002,15 @@ export namespace VimEngine {
     }
   }
 
+  export function reuseCursor(prevBuffer: Buffer, nextBuffer: Buffer): CursorPosition {
+    const line = Math.min(prevBuffer.cursor.line, nextBuffer.items.length - 1)
+    const column = Math.min(prevBuffer.cursor.column, nextBuffer.items[line].str.length)
+    return {
+      column,
+      line,
+    }
+  }
+
   export function createFuzzy(query: string | undefined): Fuzzy {
     return {
       query,
