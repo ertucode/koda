@@ -9,18 +9,6 @@
 
   - open dialog
 
-- paste conflict dialog should be simpler for one item
-
-- revamp selection for mouse
-- mouse selection requirements
-  - Don't interfere with drag and drop (drag, or cmd drag)
-  - select one with click (click)
-  - toggle one with click (cmd, click?)
-  - Select with drag (shift, drag?)
-  - Undo with drag (ctrl, drag?)
-  - Select between with click (shift, click?)
-  - Undo select with click (ctrl, click?)
-
 # AMBITIOUS TODO
 
 - Plugin system
