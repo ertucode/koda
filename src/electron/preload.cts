@@ -24,7 +24,6 @@ electron.contextBridge.exposeInMainWorld('electron', {
   getFilesAndFoldersInDirectory: (directory: string) => ipcInvoke('getFilesAndFoldersInDirectory', directory),
   openFile: (filePath: string) => ipcInvoke('openFile', filePath),
   onDragStart: req => ipcInvoke('onDragStart', req),
-  captureRect: rect => ipcInvoke('captureRect', rect),
   getWindowArgs: () => getArgv('--window-args=')!,
   readFilePreview: (filePath: string, allowBigSize?: boolean, fullSize?: boolean) =>
     ipcInvoke('readFilePreview', { filePath, allowBigSize, fullSize }),

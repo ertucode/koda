@@ -6,6 +6,20 @@ import { getWindowElectron } from '@/getWindowElectron'
 import { toast } from '@/lib/components/toast'
 import { DerivedDirectoryItem, DirectoryId, RealDirectoryItem } from './directoryStore/DirectoryBase'
 import { useSelector } from '@xstate/store/react'
+import { captureDivAsBase64 } from '@/lib/functions/captureDiv'
+
+// Type for drag items (shared with components)
+export type DragItem = {
+  fullPath: string
+  type: 'file' | 'dir'
+  name: string
+}
+
+// Type for active in-app drag data
+type ActiveDrag = {
+  items: DragItem[]
+  sourceDirectoryId: DirectoryId
+} | null
 
 // Store context for drag and drop state
 type FileDragDropContext = {
@@ -15,6 +29,8 @@ type FileDragDropContext = {
   dragToSelectStartIdx: number | null
   dragToSelectDirectoryId: DirectoryId | null
   dragToSelectWithMetaKey: boolean
+  // Track active drag for in-app drops (since native drag doesn't use dataTransfer)
+  activeDrag: ActiveDrag
 }
 
 // Create the store
@@ -26,6 +42,7 @@ export const fileDragDropStore = createStore({
     dragToSelectStartIdx: null,
     dragToSelectDirectoryId: null,
     dragToSelectWithMetaKey: false,
+    activeDrag: null,
   } as FileDragDropContext,
   on: {
     setDragOverDirectory: (context, event: { directoryId: DirectoryId | null }) => ({
@@ -57,6 +74,10 @@ export const fileDragDropStore = createStore({
       dragToSelectDirectoryId: null,
       dragToSelectWithMetaKey: false,
     }),
+    setActiveDrag: (context, event: { activeDrag: ActiveDrag }) => ({
+      ...context,
+      activeDrag: event.activeDrag,
+    }),
     reset: () => ({
       dragOverDirectoryId: null,
       dragOverRowIdx: null,
@@ -64,6 +85,7 @@ export const fileDragDropStore = createStore({
       dragToSelectStartIdx: null,
       dragToSelectDirectoryId: null,
       dragToSelectWithMetaKey: false,
+      activeDrag: null,
     }),
   },
 })
@@ -79,10 +101,22 @@ export const selectDragOverRowIdx = () => {
   return state.context.dragOverRowIdx
 }
 
-// Helper to check if a drag event is a file drag (not a pane/tab drag)
+// Helper to check if there's an active file drag (either from dataTransfer or store)
 const isFileDrag = (e: React.DragEvent): boolean => {
-  // Check if this drag has our custom file drag marker
-  return e.dataTransfer.types.includes('application/x-mygui-file-drag')
+  // Check if this drag has our custom file drag marker (HTML5 drag)
+  if (e.dataTransfer.types.includes('application/x-mygui-file-drag')) {
+    return true
+  }
+
+  // For native drag, check if we have active drag in store AND the drag contains files
+  // (Electron's native drag sets 'Files' type in dataTransfer)
+  // This prevents false positives from other drag sources like flexlayout tabs
+  const activeDrag = fileDragDropStore.getSnapshot().context.activeDrag
+  if (activeDrag !== null && e.dataTransfer.types.includes('Files')) {
+    return true
+  }
+
+  return false
 }
 
 // Global mouse up handler for drag-to-select
@@ -114,7 +148,46 @@ export const fileDragDropHandlers = {
     document.body.removeEventListener('mouseup', handleGlobalMouseUp)
   },
 
-  // Handle drag start on table rows
+  // Start native drag - always uses Electron's native drag for outside-app compatibility
+  // Also stores drag data in state for in-app drop handlers to use
+  startNativeDrag: async (items: DragItem[], sourceDirectoryId: DirectoryId, e: React.DragEvent) => {
+    // Store drag data in state for in-app drops (since native drag doesn't use dataTransfer)
+    fileDragDropStore.send({
+      type: 'setActiveDrag',
+      activeDrag: { items, sourceDirectoryId },
+    })
+
+    // Create ghost element for Electron native drag
+    const electronGhost = document.createElement('pre')
+    electronGhost.className = 'drag-ghost'
+    electronGhost.textContent = items.map(i => i.name).join('\n')
+
+    const { rect, remove } = await captureDivAsBase64(electronGhost, e)
+    electronGhost.remove()
+
+    // Trigger Electron's native drag (works for outside-app drops)
+    // e.preventDefault() is called in the component to enable this
+    await getWindowElectron().onDragStart({
+      files: items.map(i => i.fullPath),
+      rect,
+    })
+    remove()
+  },
+
+  // Clear active drag (call on drag end)
+  clearActiveDrag: () => {
+    fileDragDropStore.send({
+      type: 'setActiveDrag',
+      activeDrag: null,
+    })
+  },
+
+  // Get current active drag data (for in-app drop handlers)
+  getActiveDrag: () => {
+    return fileDragDropStore.getSnapshot().context.activeDrag
+  },
+
+  // Handle drag start on table rows (copies to clipboard for paste operations)
   handleRowDragStart: async (items: RealDirectoryItem[], directoryId: DirectoryId) => {
     // Copy files to clipboard (cut=true for move by default)
     // The cut mode can be changed to false (copy) if Alt is pressed during drop

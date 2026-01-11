@@ -1,7 +1,17 @@
-import { getWindowElectron } from '@/getWindowElectron'
 import React from 'react'
 
-export async function captureDivAsBase64(element: HTMLElement, e: React.MouseEvent): Promise<string> {
+export async function captureDivAsBase64(
+  element: HTMLElement,
+  e: React.MouseEvent
+): Promise<{
+  rect: {
+    width: number
+    height: number
+    x: number
+    y: number
+  }
+  remove: () => void
+}> {
   const clone = element.cloneNode(true) as HTMLElement
 
   clone.style.position = 'fixed'
@@ -22,14 +32,14 @@ export async function captureDivAsBase64(element: HTMLElement, e: React.MouseEve
   await new Promise(resolve => setTimeout(resolve, 10))
 
   const rect = clone.getBoundingClientRect()
-  const base64 = await getWindowElectron().captureRect({
-    width: rect.width,
-    height: rect.height,
-    x: rect.x,
-    y: rect.y,
-  })
 
-  document.body.removeChild(clone)
-
-  return base64
+  return {
+    rect: {
+      width: rect.width,
+      height: rect.height,
+      x: rect.x,
+      y: rect.y,
+    },
+    remove: () => document.body.removeChild(clone),
+  }
 }

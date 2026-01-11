@@ -116,7 +116,6 @@ export type EventResponseMapping = {
   getFileInfoByPaths: Promise<GetFilesAndFoldersInDirectoryItem[]>
   openFile: Promise<unknown>
   onDragStart: Promise<unknown>
-  captureRect: Promise<unknown>
   readFilePreview: Promise<
     | {
         content: string
@@ -224,9 +223,8 @@ export type EventRequestMapping = {
   openFile: string
   onDragStart: {
     files: string[]
-    image: string
+    rect: Rect
   }
-  captureRect: Rect
   readFilePreview: {
     filePath: string
     allowBigSize?: boolean
@@ -314,7 +312,6 @@ export type WindowElectron = {
   getFilesAndFoldersInDirectory: (directory: string) => Promise<GenericResult<GetFilesAndFoldersInDirectoryItem[]>>
   openFile: (filePath: string) => Promise<unknown>
   onDragStart: (request: EventRequestMapping['onDragStart']) => Promise<unknown>
-  captureRect: (rect: Rect) => Promise<string>
   readFilePreview: (
     filePath: string,
     allowBigSize?: boolean

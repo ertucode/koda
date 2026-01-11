@@ -13,6 +13,7 @@ import {
   selectDirectory,
 } from "../directoryStore/directory";
 import { setDefaultPath } from "../defaultPath";
+import { fileDragDropHandlers } from "../fileDragDrop";
 
 interface FavoritesListProps {
   className?: string;
@@ -38,22 +39,28 @@ export function FavoritesList({ className }: FavoritesListProps) {
   };
 
   const handleExternalDrop = (e: React.DragEvent, insertIndex: number) => {
-    // Get dragged items from dataTransfer
+    // Try to get dragged items from dataTransfer (HTML5 drag) or from store (native drag)
+    let itemsToAdd: Array<{ fullPath: string; type: "file" | "dir"; name: string }> | null = null;
+
+    // First try dataTransfer (HTML5 drag)
     const dragItemsJson = e.dataTransfer.getData("application/x-mygui-drag-items");
-    
-    if (!dragItemsJson) {
-      return;
+    if (dragItemsJson) {
+      try {
+        itemsToAdd = JSON.parse(dragItemsJson);
+      } catch (error) {
+        console.error("Failed to parse drag items", error);
+      }
     }
 
-    let itemsToAdd: Array<{ fullPath: string; type: "file" | "dir"; name: string }>;
-    try {
-      itemsToAdd = JSON.parse(dragItemsJson);
-    } catch (error) {
-      console.error("Failed to parse drag items", error);
-      return;
+    // If not found, try from store (native drag)
+    if (!itemsToAdd) {
+      const activeDrag = fileDragDropHandlers.getActiveDrag();
+      if (activeDrag) {
+        itemsToAdd = activeDrag.items;
+      }
     }
 
-    if (itemsToAdd.length === 0) {
+    if (!itemsToAdd || itemsToAdd.length === 0) {
       return;
     }
 

@@ -6,6 +6,7 @@ import {
   useContextMenu,
   type ContextMenuItem,
 } from "@/lib/components/context-menu";
+import { fileDragDropHandlers } from "../fileDragDrop";
 
 interface FileBrowserSidebarSectionProps<T> {
   items: T[];
@@ -41,12 +42,20 @@ export function FileBrowserSidebarSection<T>({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Check if this is an external drag (from file table)
+  // Works with both HTML5 drag (dataTransfer) and native drag (activeDrag in store)
   const isExternalDrag = (e: React.DragEvent): boolean => {
-    return (
-      acceptsExternalDrop &&
-      e.dataTransfer.types.includes("application/x-mygui-file-drag") &&
-      draggedIndex === null
-    );
+    if (!acceptsExternalDrop || draggedIndex !== null) return false;
+    // Check dataTransfer for HTML5 drag
+    if (e.dataTransfer.types.includes("application/x-mygui-file-drag")) {
+      return true;
+    }
+    // For native drag, check store AND that drag contains files
+    // (prevents false positives from flexlayout tab drags)
+    const activeDrag = fileDragDropHandlers.getActiveDrag();
+    if (activeDrag !== null && e.dataTransfer.types.includes("Files")) {
+      return true;
+    }
+    return false;
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {

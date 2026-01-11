@@ -1,5 +1,3 @@
-import { getWindowElectron } from '@/getWindowElectron'
-import { captureDivAsBase64 } from '@/lib/functions/captureDiv'
 import { directoryStore } from './directoryStore/directory'
 import { DerivedDirectoryItem, DirectoryId, RealDirectoryItem } from './directoryStore/DirectoryBase'
 import { getActiveDirectory, getBufferSelection, selectBuffer } from './directoryStore/directoryPureHelpers'
@@ -149,8 +147,10 @@ export function fileBrowserListItemProps({
       target.draggable = isItemSelected || isCursor
     },
     onDragStart: async e => {
+      // Always use native drag (enables dragging to external apps)
+      e.preventDefault()
+
       const items = directoryHelpers.getSelectedItemsOrCurrentItem(index, directoryId) as RealDirectoryItem[]
-      const isOutsideDrag = e.metaKey || e.ctrlKey || e.shiftKey
 
       const dragItems = items.map(i => ({
         fullPath: directoryHelpers.getFullPathForItem(i.item, directoryId),
@@ -158,43 +158,15 @@ export function fileBrowserListItemProps({
         name: i.item.name,
       }))
 
-      if (isOutsideDrag) {
-        // e.preventDefault çağırmayınca başka uygulamaya taşıma yapılamıyor.
-        // e.preventDefault() çağırınca uygulama içinde taşıma yapılamıyor.
-        // Şu anda dışarı drag sadece metaKeyle başlarsa ve bırakırken metaKey kapatılırsa çalışıyor.
-        e.preventDefault()
+      // Start native drag (handles both in-app state and Electron native drag)
+      await fileDragDropHandlers.startNativeDrag(dragItems, directoryId, e)
 
-        const filePaths = items.map(i => directoryHelpers.getFullPathForItem(i.item, directoryId))
-
-        // Create ghost element for Electron native drag
-        const electronGhost = document.createElement('pre')
-        electronGhost.className = 'drag-ghost'
-        // electronGhost.style.maxWidth = DRAG_IMAGE_WIDTH + 'px'
-        // electronGhost.style.width = DRAG_IMAGE_WIDTH + 'px'
-        electronGhost.textContent = dragItems.map(i => i.name).join('\n')
-
-        // Start the native drag with custom ghost image
-        getWindowElectron().onDragStart({
-          files: filePaths,
-          image: await captureDivAsBase64(electronGhost, e),
-        })
-        electronGhost.remove()
-      } else {
-        // Create and set custom drag ghost image for both inside and outside drags
-        const ghost = document.createElement('pre')
-        ghost.className = 'drag-ghost'
-        ghost.textContent = dragItems.map(i => i.name).join('\n')
-
-        document.body.appendChild(ghost)
-        e.dataTransfer.setDragImage(ghost, 0, 0)
-        setTimeout(() => document.body.removeChild(ghost), 0)
-        e.dataTransfer.setData('application/x-mygui-file-drag', 'true')
-        // Store dragged items data for favorites/other drop targets
-        e.dataTransfer.setData('application/x-mygui-drag-items', JSON.stringify(dragItems))
-      }
-
-      // Handle drag start
+      // Also copy files to clipboard for paste operations
       await fileDragDropHandlers.handleRowDragStart(items, directoryId)
+    },
+    onDragEnd: () => {
+      // Clear active drag when drag ends
+      fileDragDropHandlers.clearActiveDrag()
     },
     onDragOver: e => {
       fileDragDropHandlers.handleRowDragOver(e, index, item.type === 'dir')

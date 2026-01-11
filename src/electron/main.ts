@@ -7,7 +7,6 @@ import { convertDocxToPdf } from './utils/docx-to-pdf.js'
 import { getFilesAndFoldersInDirectory, getFileInfoByPaths } from './utils/get-files-and-folders-in-directory.js'
 import { openFile } from './utils/open-file.js'
 import { expandHome } from './utils/expand-home.js'
-import { base64ImageToTempPath } from './utils/base64-image-to-temp-path.js'
 import { captureRect } from './utils/capture-rect.js'
 import { getFileContent } from './utils/get-file-content.js'
 import { deleteFiles } from './utils/delete-files.js'
@@ -164,16 +163,13 @@ app.on('ready', () => {
 
   ipcHandle('getFilesAndFoldersInDirectory', getFilesAndFoldersInDirectory)
   ipcHandle('openFile', openFile)
-  ipcHandle('onDragStart', async ({ files, image }, event) => {
+  ipcHandle('onDragStart', async ({ files, rect }, event) => {
+    const image = await captureRect(rect, event)
     event.sender.startDrag({
       files: files.map(file => expandHome(file)),
-      icon: base64ImageToTempPath(app, image),
+      icon: image,
       file: '',
     })
-  })
-
-  ipcHandle('captureRect', async (rect, event) => {
-    return captureRect(rect, event)
   })
 
   ipcHandle('readFilePreview', ({ filePath, allowBigSize, fullSize }) => {
