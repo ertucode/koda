@@ -1,11 +1,5 @@
 import electron from 'electron'
-import {
-  EventRequestMapping,
-  EventResponseMapping,
-  StringSearchOptions,
-  WindowElectron,
-  ConflictResolution,
-} from '../common/Contracts'
+import { EventRequestMapping, EventResponseMapping, StringSearchOptions, WindowElectron } from '../common/Contracts'
 import { ArchiveTypes } from '../common/ArchiveTypes'
 
 electron.contextBridge.exposeInMainWorld('electron', {
@@ -26,8 +20,6 @@ electron.contextBridge.exposeInMainWorld('electron', {
   getPreviewPreloadPath: () => ipcInvoke('getPreviewPreloadPath', undefined),
   getStartingDirectory: () => getArgv('--initial-path='),
   copyFiles: (filePaths: string[], cut: boolean) => ipcInvoke('copyFiles', { filePaths, cut }),
-  pasteFiles: (destinationDir: string, resolution?: ConflictResolution) =>
-    ipcInvoke('pasteFiles', { destinationDir, resolution }),
   fuzzyFileFinder: (directory: string, query: string) => ipcInvoke('fuzzyFileFinder', { directory, query }),
   searchStringRecursively: (options: StringSearchOptions) => ipcInvoke('searchStringRecursively', options),
   fuzzyFolderFinder: (directory: string, query: string) => ipcInvoke('fuzzyFolderFinder', { directory, query }),

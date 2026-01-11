@@ -387,7 +387,7 @@ describe('paste-files.ts', () => {
       const resolution = {
         globalStrategy: 'override' as const,
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, { resolution })
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -413,7 +413,7 @@ describe('paste-files.ts', () => {
       const resolution = {
         globalStrategy: 'autoName' as const,
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, { resolution })
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -442,7 +442,7 @@ describe('paste-files.ts', () => {
       const resolution = {
         globalStrategy: 'skip' as const,
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -479,7 +479,7 @@ describe('paste-files.ts', () => {
           },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -513,7 +513,7 @@ describe('paste-files.ts', () => {
           },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -548,7 +548,7 @@ describe('paste-files.ts', () => {
           },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -587,7 +587,7 @@ describe('paste-files.ts', () => {
           },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert - should auto-append number to custom name
       expect(result.needsResolution).toBe(false)
@@ -632,7 +632,7 @@ describe('paste-files.ts', () => {
       const resolution = {
         globalStrategy: 'override' as const,
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -676,7 +676,7 @@ describe('paste-files.ts', () => {
       // Get conflicts and resolve
       await pasteFiles(env.destDir)
       const resolution = { globalStrategy: 'override' as const }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       if (!result.needsResolution) {
@@ -730,7 +730,7 @@ describe('paste-files.ts', () => {
           },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       if (!result.needsResolution) {
@@ -796,7 +796,7 @@ describe('paste-files.ts', () => {
           },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert - should fail validation
       expect(result.needsResolution).toBe(false)
@@ -828,7 +828,7 @@ describe('paste-files.ts', () => {
           },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       if (!result.needsResolution) {
@@ -870,7 +870,7 @@ describe('paste-files.ts', () => {
       const resolution = {
         globalStrategy: 'invalid-strategy' as any,
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -901,7 +901,7 @@ describe('paste-files.ts', () => {
           },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -933,7 +933,7 @@ describe('paste-files.ts', () => {
           },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -972,7 +972,7 @@ describe('paste-files.ts', () => {
           },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -999,7 +999,7 @@ describe('paste-files.ts', () => {
       const resolution = {
         globalStrategy: 'skip' as const,
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert
       expect(result.needsResolution).toBe(false)
@@ -1031,7 +1031,7 @@ describe('paste-files.ts', () => {
       const resolution = {
         globalStrategy: 'skip' as const,
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert - should succeed (file3 was pasted)
       expect(result.needsResolution).toBe(false)
@@ -1064,7 +1064,7 @@ describe('paste-files.ts', () => {
           [file2DestPath]: { action: 'skip' as const },
         },
       }
-      const result = await pasteFiles(env.destDir, resolution)
+      const result = await pasteFiles(env.destDir, {resolution})
 
       // Assert - should fail (no files would be pasted)
       expect(result.needsResolution).toBe(false)
