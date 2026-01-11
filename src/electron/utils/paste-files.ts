@@ -1,7 +1,7 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { expandHome } from './expand-home.js'
-import { getClipboardState, clearClipboardState } from './copy-files.js'
+import { getClipboardState, clearClipboardState, ClipboardState } from './copy-files.js'
 import { GenericError, GenericResult } from '../../common/GenericError.js'
 import { Result } from '../../common/Result.js'
 import { TaskManager } from '../TaskManager.js'
@@ -544,6 +544,20 @@ async function executePasteWithResolutions(
   }
 }
 
+function getPathsResult(paths: string[] | undefined, clipboardState: ClipboardState | undefined | null) {
+  if (paths) {
+    if (paths.length === 0) {
+      return GenericError.Message('No files given')
+    }
+    return Result.Success({ filePaths: paths, isCut: clipboardState?.cut ?? true })
+  }
+
+  if (!clipboardState || clipboardState.filePaths.length === 0) {
+    return GenericError.Message('No files in clipboard')
+  }
+  return Result.Success({ filePaths: clipboardState.filePaths, isCut: clipboardState.cut })
+}
+
 export async function pasteFiles(
   destinationDir: string,
   opts?: { resolution?: ConflictResolution; paths?: string[] }
@@ -561,15 +575,15 @@ export async function pasteFiles(
       return { customPaste: 'image' }
     }
 
-    if (!clipboardState || clipboardState.filePaths.length === 0) {
+    const pathsResult = getPathsResult(opts?.paths, clipboardState)
+    if (!pathsResult.success) {
       return {
         needsResolution: false,
-        result: GenericError.Message('No files in clipboard'),
+        result: pathsResult,
       }
     }
 
-    const { cut: isCut } = clipboardState
-    const filePaths = paths ?? clipboardState.filePaths
+    const { isCut, filePaths } = pathsResult.data
     const isFromClipboard = paths === undefined
     const expandedDest = expandHome(destinationDir)
 
