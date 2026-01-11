@@ -198,8 +198,88 @@ export const PasteConflictDialog = ({
 
   if (!dialogOpen || !item?.conflictData) return null;
 
-  const { conflicts, exceedsLimit, totalConflicts } = item.conflictData;
+  const { conflicts, exceedsLimit, totalConflicts, totalCount } = item.conflictData;
 
+  // Simple single-conflict UI
+  if (totalCount === 1) {
+    const conflict = conflicts[0];
+    const action = perFileActions.get(conflict.destinationPath) || {
+      action: "customName" as PerFileAction,
+      customName: conflict.suggestedName,
+    };
+    const error = validationErrors.get(conflict.destinationPath);
+    const fileName = conflict.destinationPath.split("/").pop() || "";
+
+    const handleSinglePaste = () => {
+      if (!action.customName?.trim()) return;
+      const validation = validateCustomName(action.customName);
+      if (!validation.valid) return;
+
+      item.onResolve({
+        globalStrategy: "autoName",
+        perFileOverrides: {
+          [conflict.destinationPath]: {
+            action: "customName",
+            customName: action.customName,
+          },
+        },
+      });
+      onClose();
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSinglePaste();
+      }
+    };
+
+    return (
+      <Dialog
+        onClose={handleCancel}
+        title="File Already Exists"
+        style={{ width: "450px", maxWidth: "95vw" }}
+        footer={
+          <>
+            <Button onClick={handleCancel}>Cancel</Button>
+            <Button
+              onClick={handleSinglePaste}
+              disabled={!action.customName?.trim() || !!error}
+            >
+              Paste
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-base-content/70">
+            <span className="font-medium text-base-content">{fileName}</span>{" "}
+            already exists. Enter a new name:
+          </p>
+          <div className="form-control">
+            <input
+              type="text"
+              className={`input input-bordered w-full ${error ? "input-error" : ""}`}
+              value={action.customName || ""}
+              onChange={(e) => {
+                updatePerFileAction(
+                  conflict.destinationPath,
+                  "customName",
+                  e.target.value,
+                );
+              }}
+              onKeyDown={handleKeyDown}
+              autoFocus
+              placeholder="Enter new name"
+            />
+            {error && <span className="text-error text-xs mt-1">{error}</span>}
+          </div>
+        </div>
+      </Dialog>
+    );
+  }
+
+  // Multi-conflict UI (existing implementation)
   return (
     <Dialog
       onClose={handleCancel}
