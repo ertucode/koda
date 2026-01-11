@@ -2,11 +2,12 @@ import { createStore } from '@xstate/store'
 import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
 import { directoryHelpers, directoryStore } from './directoryStore/directory'
 import { clipboardHelpers } from './clipboardHelpers'
-import { getWindowElectron } from '@/getWindowElectron'
+import { getWindowElectron, homeDirectory } from '@/getWindowElectron'
 import { toast } from '@/lib/components/toast'
 import { DerivedDirectoryItem, DirectoryId, RealDirectoryItem } from './directoryStore/DirectoryBase'
 import { useSelector } from '@xstate/store/react'
 import { captureDivAsBase64 } from '@/lib/functions/captureDiv'
+import { PathHelpers } from '@common/PathHelpers'
 
 // Type for drag items (shared with components)
 export type DragItem = {
@@ -424,7 +425,7 @@ const getDraggedItems = () => {
   if (!dragState.items) {
     throw new Error('Dragged items not found')
   }
-  return dragState.items.map(i => i.fullPath!)
+  return dragState.items.map(i => PathHelpers.expandHome(homeDirectory, i.fullPath!))
 }
 
 export function useDragOverThisRow(item: DerivedDirectoryItem, index: number, directoryId: DirectoryId) {
