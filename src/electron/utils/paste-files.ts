@@ -9,6 +9,7 @@ import { formatFileSize } from '../../common/file-size.js'
 import { moveToTrash } from './move-to-trash.js'
 import { countFilesInPath } from './count-files-in-path.js'
 import { hasClipboardImage } from './create-image-from-clipboard.js'
+import { PasteFilesOptions } from '../../common/Contracts.js'
 
 /**
  * Paste file operations with conflict resolution and cancellation support
@@ -544,12 +545,15 @@ async function executePasteWithResolutions(
   }
 }
 
-function getPathsResult(paths: string[] | undefined, clipboardState: ClipboardState | undefined | null) {
-  if (paths) {
-    if (paths.length === 0) {
+function getPathsResult(
+  customFrom: PasteFilesOptions['customFrom'],
+  clipboardState: ClipboardState | undefined | null
+) {
+  if (customFrom) {
+    if (customFrom.paths.length === 0) {
       return GenericError.Message('No files given')
     }
-    return Result.Success({ filePaths: paths, isCut: clipboardState?.cut ?? true })
+    return Result.Success({ filePaths: customFrom.paths, isCut: customFrom.cut })
   }
 
   if (!clipboardState || clipboardState.filePaths.length === 0) {
@@ -558,11 +562,8 @@ function getPathsResult(paths: string[] | undefined, clipboardState: ClipboardSt
   return Result.Success({ filePaths: clipboardState.filePaths, isCut: clipboardState.cut })
 }
 
-export async function pasteFiles(
-  destinationDir: string,
-  opts?: { resolution?: ConflictResolution; paths?: string[] }
-): Promise<PasteResult> {
-  const { resolution, paths } = opts ?? {}
+export async function pasteFiles(destinationDir: string, opts?: PasteFilesOptions): Promise<PasteResult> {
+  const { resolution } = opts ?? {}
   let taskId: string | undefined = undefined
   try {
     // Get files from in-memory clipboard
@@ -575,7 +576,7 @@ export async function pasteFiles(
       return { customPaste: 'image' }
     }
 
-    const pathsResult = getPathsResult(opts?.paths, clipboardState)
+    const pathsResult = getPathsResult(opts?.customFrom, clipboardState)
     if (!pathsResult.success) {
       return {
         needsResolution: false,
@@ -584,7 +585,7 @@ export async function pasteFiles(
     }
 
     const { isCut, filePaths } = pathsResult.data
-    const isFromClipboard = paths === undefined
+    const isFromClipboard = opts?.customFrom === undefined
     const expandedDest = expandHome(destinationDir)
 
     // Verify destination exists and is a directory

@@ -94,6 +94,14 @@ export type PasteConflictInfo = {
   destSizeStr: string
 }
 
+export type PasteFilesOptions = {
+  resolution?: ConflictResolution
+  customFrom?: {
+    paths: string[]
+    cut: boolean
+  }
+}
+
 export type PasteConflictData = {
   conflicts: PasteConflictInfo[]
   exceedsLimit: boolean
@@ -251,7 +259,7 @@ export type EventRequestMapping = {
   }>
   copyFiles: { filePaths: string[]; cut: boolean }
   setClipboardCutMode: { cut: boolean }
-  pasteFiles: { destinationDir: string; opts?: { resolution?: ConflictResolution; paths?: string[] } }
+  pasteFiles: { destinationDir: string; opts?: PasteFilesOptions }
   fuzzyFileFinder: { directory: string; query: string }
   searchStringRecursively: StringSearchOptions
   replaceStringInFile: ReplaceInFileOptions
@@ -341,7 +349,7 @@ export type WindowElectron = {
   setClipboardCutMode: (cut: boolean) => Promise<void>
   pasteFiles: (
     destinationDir: string,
-    opts?: { resolution?: ConflictResolution; paths?: string[] }
+    opts?: PasteFilesOptions
   ) => Promise<
     | { needsResolution: true; conflictData: PasteConflictData }
     | {

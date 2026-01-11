@@ -282,14 +282,7 @@ export const fileDragDropHandlers = {
     const isCopy = e.altKey // Alt key means copy instead of move
 
     try {
-      // If Alt key is pressed, change clipboard to copy mode instead of cut
-      if (isCopy) {
-        await getWindowElectron().setClipboardCutMode(false)
-      }
-
-      // The files should already be in clipboard from onDragStart
-      // Use clipboardHelpers to handle the drop with conflict resolution
-      await clipboardHelpers.paste(directoryId)
+      await clipboardHelpers.paste(directoryId, { cut: !isCopy, paths: getDraggedItems() })
 
       // Activate the target directory
       directoryStore.send({
@@ -382,11 +375,6 @@ export const fileDragDropHandlers = {
       const isCopy = e.altKey
 
       try {
-        // If Alt key is pressed, change clipboard to copy mode instead of cut
-        if (isCopy) {
-          await getWindowElectron().setClipboardCutMode(false)
-        }
-
         // Navigate to the target folder first
         await directoryHelpers.cdFull(targetDir, directoryId)
         directoryStore.send({
@@ -396,7 +384,7 @@ export const fileDragDropHandlers = {
 
         // Now paste into this directory using clipboardHelpers
         // This will handle conflicts and reload automatically
-        await clipboardHelpers.paste(directoryId)
+        await clipboardHelpers.paste(directoryId, { cut: !isCopy, paths: getDraggedItems() })
       } catch (error) {
         toast.show({
           message: error instanceof Error ? error.message : 'Failed to drop files',
@@ -416,11 +404,7 @@ export const fileDragDropHandlers = {
       const isCopy = e.altKey
 
       try {
-        if (isCopy) {
-          await getWindowElectron().setClipboardCutMode(false)
-        }
-
-        await clipboardHelpers.paste(directoryId)
+        await clipboardHelpers.paste(directoryId, { cut: !isCopy, paths: getDraggedItems() })
 
         directoryStore.send({
           type: 'setActiveDirectoryId',
@@ -434,6 +418,13 @@ export const fileDragDropHandlers = {
       }
     }
   },
+}
+const getDraggedItems = () => {
+  const dragState = fileDragDropStore.getSnapshot().context
+  if (!dragState.items) {
+    throw new Error('Dragged items not found')
+  }
+  return dragState.items.map(i => i.fullPath!)
 }
 
 export function useDragOverThisRow(item: DerivedDirectoryItem, index: number, directoryId: DirectoryId) {

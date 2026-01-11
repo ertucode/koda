@@ -61,7 +61,7 @@ export const clipboardHelpers = {
     }
   },
 
-  paste: async (directoryId: DirectoryId | undefined, paths?: string[]) => {
+  paste: async (directoryId: DirectoryId | undefined, customFrom?: { paths: string[]; cut: boolean }) => {
     const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
 
     if (context.directory.type !== 'path') {
@@ -72,7 +72,7 @@ export const clipboardHelpers = {
     const directoryPath = context.directory.fullPath
 
     // First call without resolution to check for conflicts
-    const checkResult = await getWindowElectron().pasteFiles(directoryPath, { paths })
+    const checkResult = await getWindowElectron().pasteFiles(directoryPath, { customFrom })
 
     // Handle custom paste for image
     if ('customPaste' in checkResult) {
@@ -90,7 +90,7 @@ export const clipboardHelpers = {
           destinationDir: directoryPath,
           onResolve: async (resolution: ConflictResolution) => {
             // Execute paste with resolutions
-            const result = await getWindowElectron().pasteFiles(directoryPath, { resolution, paths })
+            const result = await getWindowElectron().pasteFiles(directoryPath, { customFrom, resolution })
 
             if ('customPaste' in result) {
               // Shouldn't happen when resolving, but handle it
