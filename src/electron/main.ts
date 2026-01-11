@@ -183,7 +183,7 @@ app.on('ready', () => {
   ipcHandle('setClipboardCutMode', async ({ cut }) => {
     setClipboardCutMode(cut)
   })
-  ipcHandle('pasteFiles', ({ destinationDir, resolution }) => pasteFiles(destinationDir, resolution))
+  ipcHandle('pasteFiles', ({ destinationDir, opts }) => pasteFiles(destinationDir, opts))
   ipcHandle('fuzzyFileFinder', ({ directory, query }) => fuzzyFileFinder(directory, query))
   ipcHandle('searchStringRecursively', options => searchStringRecursively(options))
   ipcHandle('replaceStringInFile', options => replaceStringInFile(options))

@@ -32,6 +32,7 @@ type FileDragDropContext = {
   dragToSelectStartPosition: { x: number; y: number } | null
   // Track active drag for in-app drops (since native drag doesn't use dataTransfer)
   activeDrag: ActiveDrag
+  items: GetFilesAndFoldersInDirectoryItem[] | null
 }
 
 // Create the store
@@ -46,6 +47,7 @@ export const fileDragDropStore = createStore({
     dragToSelectStartPosition: null,
     dragToSelectCurrentPosition: null,
     activeDrag: null,
+    items: null,
   } as FileDragDropContext,
   on: {
     setDragOverDirectory: (context, event: { directoryId: DirectoryId | null }) => ({
@@ -84,6 +86,10 @@ export const fileDragDropStore = createStore({
       ...context,
       activeDrag: event.activeDrag,
     }),
+    setDraggedItems: (context, event: { items: GetFilesAndFoldersInDirectoryItem[] | null }) => ({
+      ...context,
+      items: event.items,
+    }),
     reset: () => ({
       dragOverDirectoryId: null,
       dragOverRowIdx: null,
@@ -93,6 +99,7 @@ export const fileDragDropStore = createStore({
       dragToSelectWithMetaKey: false,
       dragToSelectStartPosition: null,
       activeDrag: null,
+      items: null,
     }),
   },
 })
@@ -201,14 +208,8 @@ export const fileDragDropHandlers = {
   },
 
   // Handle drag start on table rows (copies to clipboard for paste operations)
-  handleRowDragStart: async (items: RealDirectoryItem[], directoryId: DirectoryId) => {
-    // Copy files to clipboard (cut=true for move by default)
-    // The cut mode can be changed to false (copy) if Alt is pressed during drop
-    await clipboardHelpers.copy(
-      items.map(i => i.item),
-      true,
-      directoryId
-    )
+  handleRowDragStart: async (items: RealDirectoryItem[]) => {
+    fileDragDropStore.trigger.setDraggedItems({ items: items.map(i => i.item) })
   },
 
   // Handle drag over on the table container

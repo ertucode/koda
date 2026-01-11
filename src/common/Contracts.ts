@@ -251,7 +251,7 @@ export type EventRequestMapping = {
   }>
   copyFiles: { filePaths: string[]; cut: boolean }
   setClipboardCutMode: { cut: boolean }
-  pasteFiles: { destinationDir: string; resolution?: ConflictResolution }
+  pasteFiles: { destinationDir: string; opts?: { resolution?: ConflictResolution; paths?: string[] } }
   fuzzyFileFinder: { directory: string; query: string }
   searchStringRecursively: StringSearchOptions
   replaceStringInFile: ReplaceInFileOptions
@@ -341,7 +341,7 @@ export type WindowElectron = {
   setClipboardCutMode: (cut: boolean) => Promise<void>
   pasteFiles: (
     destinationDir: string,
-    resolution?: ConflictResolution
+    opts?: { resolution?: ConflictResolution; paths?: string[] }
   ) => Promise<
     | { needsResolution: true; conflictData: PasteConflictData }
     | {

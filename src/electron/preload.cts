@@ -40,8 +40,7 @@ electron.contextBridge.exposeInMainWorld('electron', {
     return getArgv('--initial-path=')
   },
   copyFiles: (filePaths: string[], cut: boolean) => ipcInvoke('copyFiles', { filePaths, cut }),
-  pasteFiles: (destinationDir: string, resolution?: ConflictResolution) =>
-    ipcInvoke('pasteFiles', { destinationDir, resolution }),
+  pasteFiles: (destinationDir: string, opts) => ipcInvoke('pasteFiles', { destinationDir, opts }),
   fuzzyFileFinder: (directory: string, query: string) => ipcInvoke('fuzzyFileFinder', { directory, query }),
   searchStringRecursively: (options: StringSearchOptions) => ipcInvoke('searchStringRecursively', options),
   replaceStringInFile: (options: ReplaceInFileOptions) => ipcInvoke('replaceStringInFile', options),

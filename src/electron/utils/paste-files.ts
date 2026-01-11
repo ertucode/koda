@@ -347,7 +347,8 @@ async function executePasteWithResolutions(
   resolution: ConflictResolution,
   taskId?: string,
   abortSignal?: AbortSignal,
-  totalFiles?: number
+  totalFiles?: number,
+  isFromClipboard?: boolean
 ): Promise<GenericResult<{ pastedItems: string[] }>> {
   const pastedItems: string[] = []
   const successfullyMovedPaths: string[] = []
@@ -530,7 +531,7 @@ async function executePasteWithResolutions(
 
     // Only clear clipboard if it was a cut operation AND all files were successfully pasted
     // If cancelled mid-operation, clipboard is preserved so user can retry
-    if (isCut && pastedItems.length === filePaths.length) {
+    if (isCut && pastedItems.length === filePaths.length && isFromClipboard) {
       clearClipboardState()
     }
 
@@ -543,7 +544,11 @@ async function executePasteWithResolutions(
   }
 }
 
-export async function pasteFiles(destinationDir: string, resolution?: ConflictResolution): Promise<PasteResult> {
+export async function pasteFiles(
+  destinationDir: string,
+  opts?: { resolution?: ConflictResolution; paths?: string[] }
+): Promise<PasteResult> {
+  const { resolution, paths } = opts ?? {}
   let taskId: string | undefined = undefined
   try {
     // Get files from in-memory clipboard
@@ -563,7 +568,9 @@ export async function pasteFiles(destinationDir: string, resolution?: ConflictRe
       }
     }
 
-    const { filePaths, cut: isCut } = clipboardState
+    const { cut: isCut } = clipboardState
+    const filePaths = paths ?? clipboardState.filePaths
+    const isFromClipboard = paths === undefined
     const expandedDest = expandHome(destinationDir)
 
     // Verify destination exists and is a directory
@@ -663,7 +670,7 @@ export async function pasteFiles(destinationDir: string, resolution?: ConflictRe
       }
 
       // Only clear clipboard if all files were successfully pasted
-      if (isCut && pastedItems.length === filePaths.length) {
+      if (isCut && pastedItems.length === filePaths.length && isFromClipboard) {
         clearClipboardState()
       }
 
@@ -694,7 +701,8 @@ export async function pasteFiles(destinationDir: string, resolution?: ConflictRe
         resolution,
         taskId,
         abortSignal,
-        totalFiles
+        totalFiles,
+        isFromClipboard
       )
 
       TaskManager.result(taskId, result)

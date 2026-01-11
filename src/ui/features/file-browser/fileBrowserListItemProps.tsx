@@ -167,7 +167,7 @@ export function fileBrowserListItemProps({
       await fileDragDropHandlers.startNativeDrag(dragItems, directoryId, e)
 
       // Also copy files to clipboard for paste operations
-      await fileDragDropHandlers.handleRowDragStart(items, directoryId)
+      await fileDragDropHandlers.handleRowDragStart(items)
     },
     onDragEnd: () => {
       // Clear active drag when drag ends
