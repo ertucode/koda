@@ -4,11 +4,12 @@ import { getSnapshotWithInitializedVim } from '../directoryStore/vimHelpers'
 
 export namespace VimShortcutHelper {
   export type Updater = (opts: VimEngine.CommandOpts) => VimEngine.State
-  export function createHandler(updater: Updater) {
+  export function createHandler(updater: Updater, additional?: () => void) {
     return (e: { preventDefault: () => void } | undefined) => {
       const [shouldRun, result] = VimShortcutHelper.shouldRun()
       if (!shouldRun) return
       e?.preventDefault()
+      additional?.()
 
       return initializedWithUpdater(result, updater)
     }

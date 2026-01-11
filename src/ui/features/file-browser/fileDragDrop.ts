@@ -295,15 +295,6 @@ export const fileDragDropHandlers = {
         type: 'setActiveDirectoryId',
         directoryId: directoryId,
       })
-
-      // Reload all OTHER directory panes to reflect changes
-      // The active directory will be reloaded by clipboardHelpers.paste
-      const allDirectories = directoryStore.getSnapshot().context.directoryOrder
-      for (const dirId of allDirectories) {
-        if (dirId !== directoryId) {
-          await directoryHelpers.reload(dirId)
-        }
-      }
     } catch (error) {
       toast.show({
         message: error instanceof Error ? error.message : 'Failed to drop files',
@@ -405,14 +396,6 @@ export const fileDragDropHandlers = {
         // Now paste into this directory using clipboardHelpers
         // This will handle conflicts and reload automatically
         await clipboardHelpers.paste(directoryId)
-
-        // Reload all OTHER directory panes to reflect changes
-        const allDirectories = directoryStore.getSnapshot().context.directoryOrder
-        for (const dirId of allDirectories) {
-          if (dirId !== directoryId) {
-            await directoryHelpers.reload(dirId)
-          }
-        }
       } catch (error) {
         toast.show({
           message: error instanceof Error ? error.message : 'Failed to drop files',
@@ -442,13 +425,6 @@ export const fileDragDropHandlers = {
           type: 'setActiveDirectoryId',
           directoryId: directoryId,
         })
-
-        const allDirectories = directoryStore.getSnapshot().context.directoryOrder
-        for (const dirId of allDirectories) {
-          if (dirId !== directoryId) {
-            await directoryHelpers.reload(dirId)
-          }
-        }
       } catch (error) {
         toast.show({
           message: error instanceof Error ? error.message : 'Failed to drop files',

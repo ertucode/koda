@@ -8,6 +8,7 @@ import { getSnapshotWithInitializedVim } from '../directoryStore/vimHelpers'
 import { confirmation } from '@/lib/components/confirmation'
 import { subscribeToStores } from '@/lib/functions/storeHelpers'
 import { VimFuzzy } from '@common/VimFuzzy'
+import { clipboardStore } from '../clipboardHelpers'
 
 const SHORTCUTS_KEY = 'vim'
 
@@ -130,7 +131,9 @@ export const VimShortcuts = {
         },
         {
           key: 'Escape',
-          handler: create(VimEngine.escInNormal),
+          handler: create(VimEngine.escInNormal, () => {
+            clipboardStore.trigger.clearClipboard()
+          }),
           label: '[VIM] Escape to reset selection',
         },
       ],
