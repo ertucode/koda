@@ -10,7 +10,6 @@
   - open dialog
 
 - paste conflict dialog should be simpler for one item
-- remove clipboard data when drag cancel (why are we using clipboard for it anyway)
 
 - revamp selection for mouse
 - mouse selection requirements

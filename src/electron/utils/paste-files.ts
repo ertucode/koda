@@ -49,6 +49,7 @@ export type PasteConflictData = {
   conflicts: PasteConflictInfo[]
   exceedsLimit: boolean
   totalConflicts: number
+  totalCount: number
 }
 
 export type ConflictResolution = {
@@ -209,6 +210,7 @@ async function findConflicts(
     conflicts,
     exceedsLimit: totalCount.value > limit,
     totalConflicts: totalCount.value,
+    totalCount: sourcePaths.length,
   }
 }
 

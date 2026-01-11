@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useEffect } from 'react'
 import { Layout, Actions, IJsonTabNode } from 'flexlayout-react'
 import { directoryStore } from '../file-browser/directoryStore/directory'
-import { layoutModel } from '../file-browser/initializeDirectory'
+import { LayoutDevMode, layoutModel } from '../file-browser/initializeDirectory'
 import { LayoutHelpers } from '../file-browser/utils/LayoutHelpers'
 
 // Component factory function
@@ -16,6 +16,8 @@ export const useSyncDirectoryStoreAndLayout = ({ layoutRef }: { layoutRef: React
 
     const directoryId = LayoutHelpers.getActiveDirectoryId()
     if (!directoryId) return
+
+    LayoutDevMode.onLayoutChange(layoutModel.toJson())
 
     const directoryIds = LayoutHelpers.getDirectoryIds()
     const directoryIdsInStore = directoryStore.getSnapshot().context.directoryOrder

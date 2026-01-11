@@ -49,16 +49,17 @@ app.on('open-file', (event, path) => {
   }
 })
 
-type WindowArgsWithoutHome = Omit<WindowArguments, 'homeDir' | 'asyncStorage'>
+type WindowArgsWithoutStatic = Omit<WindowArguments, 'homeDir' | 'asyncStorage' | 'isDev'>
 
 const homeDir = os.homedir()
 
-async function createWindow(args?: WindowArgsWithoutHome) {
+async function createWindow(args?: WindowArgsWithoutStatic) {
   const asyncStorageValues = await loadAsyncStorageValues()
   const windowArgs: WindowArguments = {
     ...args,
     homeDir,
     asyncStorage: asyncStorageValues,
+    isDev: process.env.NODE_ENV === 'development',
   }
   const { width, height } = screen.getPrimaryDisplay().workAreaSize
 

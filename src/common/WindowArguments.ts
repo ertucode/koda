@@ -9,6 +9,7 @@ export const WindowArguments = z.object({
   homeDir: z.string(),
   commands: CommandMetadata.array().optional(),
   asyncStorage: z.partialRecord(z.enum(Object.values(AsyncStorageKeys)), z.string().nullish()),
+  isDev: z.boolean(),
 })
 export type WindowArguments = z.infer<typeof WindowArguments>
 

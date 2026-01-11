@@ -2,7 +2,7 @@ import { IJsonModel, Model } from 'flexlayout-react'
 import { defaultPath } from './defaultPath'
 import { directoryStore } from './directoryStore/directory'
 import { DirectoryId } from './directoryStore/DirectoryBase'
-import { layoutStore, selectDefaultLayout } from './layoutStore'
+import { CustomLayout, CustomLayoutSchema, layoutStore, layoutStoreHelpers, selectDefaultLayout } from './layoutStore'
 import { windowArgs } from '@/getWindowElectron'
 import { saveToAsyncStorage } from './utils/asyncStorage'
 import { AsyncStorageKeys } from '@common/AsyncStorageKeys'
@@ -32,6 +32,49 @@ function initFromPaths(paths: string[]) {
   )
 
   return init(directoriesToInit, directoriesToInit[0].id, createDefaultLayout(directoriesToInit))
+}
+export namespace LayoutDevMode {
+  const KEY = '__dirs__'
+  export function getInitial(): CustomLayout | undefined {
+    if (!windowArgs.isDev) return
+
+    window.addEventListener('keydown', e => {
+      if (e.key === 'r' && e.metaKey && e.ctrlKey) {
+        sessionStorage.removeItem(KEY)
+        location.reload()
+      }
+    })
+
+    try {
+      const l = sessionStorage.getItem(KEY)
+      if (!l) return
+      return CustomLayoutSchema.parse(JSON.parse(l))
+    } catch {
+      return undefined
+    }
+  }
+
+  export function onLayoutChange(layoutJson: IJsonModel) {
+    if (!windowArgs.isDev) return
+
+    const snapshot = directoryStore.getSnapshot()
+    const directories = snapshot.context.directoryOrder.map(id => {
+      const directory = snapshot.context.directoriesById[id]
+      return {
+        id,
+        ...directory.directory,
+      }
+    })
+    const activeDirectoryId = snapshot.context.activeDirectoryId
+
+    const layout: CustomLayout = layoutStoreHelpers.createLayout(
+      Math.random().toString(),
+      layoutJson,
+      directories,
+      activeDirectoryId
+    )
+    sessionStorage.setItem(KEY, JSON.stringify(layout))
+  }
 }
 
 function createDefaultLayout(directories: InitDirectories) {
@@ -182,7 +225,7 @@ export const layoutJson = ((): IJsonModel => {
   // Otherwise, use the default layout from layoutStore
   const layoutStoreState = layoutStore.get()
   const defaultLayout = selectDefaultLayout(layoutStoreState)
-  const layoutToUse = defaultLayout || layoutStoreState.context.layouts[0]
+  const layoutToUse = LayoutDevMode.getInitial() || defaultLayout || layoutStoreState.context.layouts[0]
 
   // If we have a saved layout with directories, use it
   if (layoutToUse) {

@@ -106,6 +106,7 @@ export type PasteConflictData = {
   conflicts: PasteConflictInfo[]
   exceedsLimit: boolean
   totalConflicts: number
+  totalCount: number
 }
 
 export type ConflictResolution = {
