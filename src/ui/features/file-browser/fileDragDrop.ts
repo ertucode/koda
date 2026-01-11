@@ -312,33 +312,46 @@ export const fileDragDropHandlers = {
     }
   },
 
-  // Handle drag over on folder rows
-  handleRowDragOver: (e: React.DragEvent, idx: number, isFolder: boolean) => {
+  // Handle drag over on rows
+  // Always stops propagation and decides whether to highlight the folder row or the current directory
+  handleRowDragOver: (e: React.DragEvent, idx: number, isFolder: boolean, directoryId: DirectoryId) => {
     // Only handle file drags, ignore pane/tab drags
     if (!isFileDrag(e)) {
       return
     }
 
-    // Only allow dropping on folders
-    if (!isFolder) return
-
     e.preventDefault()
     e.stopPropagation()
-    fileDragDropStore.send({ type: 'setDragOverRowIdx', value: idx })
+
+    // Always set the directory for preview purposes
+    fileDragDropStore.send({ type: 'setDragOverDirectory', directoryId })
+
+    // Check if we're over a no-drag-to-select element (like the file/folder name)
+    const target = e.target as HTMLElement
+    const isOnNoDragToSelect = target.closest('[data-no-drag-to-select]') !== null
+
+    // If over a folder's no-drag-to-select zone, also highlight that folder row
+    if (isFolder && isOnNoDragToSelect) {
+      fileDragDropStore.send({ type: 'setDragOverRowIdx', value: idx })
+    } else {
+      // Otherwise, only highlight the directory (drop into current directory)
+      fileDragDropStore.send({ type: 'setDragOverRowIdx', value: null })
+    }
+
     // Set dropEffect based on Alt key
     e.dataTransfer.dropEffect = e.altKey ? 'copy' : 'move'
   },
 
-  // Handle drag leave on folder rows
-  handleRowDragLeave: (e: React.DragEvent, isFolder: boolean) => {
+  // Handle drag leave on rows
+  // Note: Since handleRowDragOver now handles all cases, this just needs to handle
+  // leaving the row entirely (going outside the table area)
+  handleRowDragLeave: (e: React.DragEvent) => {
     // Only handle file drags, ignore pane/tab drags
     if (!isFileDrag(e)) {
       return
     }
 
-    if (!isFolder) return
-
-    // Only clear if we're actually leaving the row
+    // Only clear if we're actually leaving the row entirely
     const target = e.currentTarget as HTMLElement
     const rect = target.getBoundingClientRect()
     const isOutside =
@@ -349,63 +362,117 @@ export const fileDragDropHandlers = {
     }
   },
 
-  // Handle drop on folder rows
+  // Handle drop on rows
+  // Drops into the folder if dragOverRowIdx is set (folder's no-drag-to-select zone), otherwise drops into current directory
   handleRowDrop: async (e: React.DragEvent, item: GetFilesAndFoldersInDirectoryItem, directoryId: DirectoryId) => {
     // Only handle file drags, ignore pane/tab drags
     if (!isFileDrag(e)) {
       return
     }
 
-    // Only allow dropping on folders
-    if (item.type !== 'dir') return
-
     e.preventDefault()
     e.stopPropagation()
+
+    // Check if we should drop into folder based on the drag state (set by handleRowDragOver)
+    const dragState = fileDragDropStore.getSnapshot().context
+    const shouldDropIntoFolder = dragState.dragOverRowIdx !== null && item.type === 'dir'
+
     fileDragDropStore.send({ type: 'setDragOverRowIdx', value: null })
+    fileDragDropStore.send({ type: 'setDragOverDirectory', directoryId: null })
 
-    const targetDir = item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId)
-    const isCopy = e.altKey
+    // Get directory info from store
+    const directory = directoryStore.getSnapshot().context.directoriesById[directoryId]?.directory
+    if (!directory) return
 
-    try {
-      // If Alt key is pressed, change clipboard to copy mode instead of cut
-      if (isCopy) {
-        await getWindowElectron().setClipboardCutMode(false)
-      }
+    if (shouldDropIntoFolder) {
+      // Drop into the folder
+      const targetDir = item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId)
+      const isCopy = e.altKey
 
-      // Navigate to the target folder first
-      await directoryHelpers.cdFull(targetDir, directoryId)
-      directoryStore.send({
-        type: 'setActiveDirectoryId',
-        directoryId: directoryId,
-      })
-
-      // Now paste into this directory using clipboardHelpers
-      // This will handle conflicts and reload automatically
-      await clipboardHelpers.paste(directoryId)
-
-      // Reload all OTHER directory panes to reflect changes
-      const allDirectories = directoryStore.getSnapshot().context.directoryOrder
-      for (const dirId of allDirectories) {
-        if (dirId !== directoryId) {
-          await directoryHelpers.reload(dirId)
+      try {
+        // If Alt key is pressed, change clipboard to copy mode instead of cut
+        if (isCopy) {
+          await getWindowElectron().setClipboardCutMode(false)
         }
+
+        // Navigate to the target folder first
+        await directoryHelpers.cdFull(targetDir, directoryId)
+        directoryStore.send({
+          type: 'setActiveDirectoryId',
+          directoryId: directoryId,
+        })
+
+        // Now paste into this directory using clipboardHelpers
+        // This will handle conflicts and reload automatically
+        await clipboardHelpers.paste(directoryId)
+
+        // Reload all OTHER directory panes to reflect changes
+        const allDirectories = directoryStore.getSnapshot().context.directoryOrder
+        for (const dirId of allDirectories) {
+          if (dirId !== directoryId) {
+            await directoryHelpers.reload(dirId)
+          }
+        }
+      } catch (error) {
+        toast.show({
+          message: error instanceof Error ? error.message : 'Failed to drop files',
+          severity: 'error',
+        })
       }
-    } catch (error) {
-      toast.show({
-        message: error instanceof Error ? error.message : 'Failed to drop files',
-        severity: 'error',
-      })
+    } else {
+      // Drop into the current directory (same logic as handleTableDrop)
+      if (directory.type !== 'path') {
+        toast.show({
+          message: 'Cannot drop files in tags view',
+          severity: 'error',
+        })
+        return
+      }
+
+      const isCopy = e.altKey
+
+      try {
+        if (isCopy) {
+          await getWindowElectron().setClipboardCutMode(false)
+        }
+
+        await clipboardHelpers.paste(directoryId)
+
+        directoryStore.send({
+          type: 'setActiveDirectoryId',
+          directoryId: directoryId,
+        })
+
+        const allDirectories = directoryStore.getSnapshot().context.directoryOrder
+        for (const dirId of allDirectories) {
+          if (dirId !== directoryId) {
+            await directoryHelpers.reload(dirId)
+          }
+        }
+      } catch (error) {
+        toast.show({
+          message: error instanceof Error ? error.message : 'Failed to drop files',
+          severity: 'error',
+        })
+      }
     }
   },
 }
 
 export function useDragOverThisRow(item: DerivedDirectoryItem, index: number, directoryId: DirectoryId) {
-  return useSelector(
-    fileDragDropStore,
-    s =>
+  return useSelector(fileDragDropStore, s => {
+    return (
       item.type === 'real' &&
       s.context.dragOverDirectoryId === directoryId &&
       s.context.dragOverRowIdx === index &&
       item.item.type === 'dir'
-  )
+    )
+  })
 }
+
+fileDragDropStore.inspect(o => {
+  if (o.type === '@xstate.snapshot' && o.snapshot.status === 'active') {
+    // @ts-ignore
+    console.log(o.snapshot.context)
+  }
+})

@@ -174,10 +174,10 @@ export function fileBrowserListItemProps({
       fileDragDropHandlers.clearActiveDrag()
     },
     onDragOver: e => {
-      fileDragDropHandlers.handleRowDragOver(e, index, item.type === 'dir')
+      fileDragDropHandlers.handleRowDragOver(e, index, item.type === 'dir', directoryId)
     },
     onDragLeave: e => {
-      fileDragDropHandlers.handleRowDragLeave(e, item.type === 'dir')
+      fileDragDropHandlers.handleRowDragLeave(e)
     },
     onDrop: async e => {
       await fileDragDropHandlers.handleRowDrop(e, item, directoryId)

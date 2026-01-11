@@ -1,5 +1,5 @@
 import { dialogActions, dialogStore } from './dialogStore'
-import { directoryHelpers, directoryStore, selectSelection } from './directoryStore/directory'
+import { directoryHelpers, directoryStore } from './directoryStore/directory'
 import { clipboardHelpers } from './clipboardHelpers'
 import { favoritesStore } from './favorites'
 import { layoutModel } from './initializeDirectory'
@@ -206,8 +206,6 @@ export const FileBrowserShortcuts = {
             }
 
             e?.preventDefault()
-            const s = selectSelection(undefined)(directoryStore.getSnapshot())
-            if (s.indexes.size === 0) return
             const itemsToCut = directorySelection.getSelectedRealsOrCurrentReal(undefined)
             if (!itemsToCut) return
             const itemsToCutMapped = itemsToCut.filter(i => i.type === 'real').map(i => i.item)

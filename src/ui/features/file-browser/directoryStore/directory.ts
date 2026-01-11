@@ -634,4 +634,3 @@ export const selectActiveVimBuffer =
     const fullPath = getFullPathForBuffer(activeDirectory.directory)
     return state.context.vim.buffers[fullPath]
   }
-directoryStore.inspect(console.log)

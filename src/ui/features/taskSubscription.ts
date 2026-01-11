@@ -106,6 +106,8 @@ export function subscribeToTasks() {
       for (const dir of affectedDirectories) {
         directoryHelpers.checkAndReloadDirectories(PathHelpers.expandHome(homeDirectory, dir), undefined)
       }
+    } else if (task.type === 'paste') {
+      // TODO: handle reload of previous and updated directories
     }
   })
 }
