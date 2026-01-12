@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, Ref, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Dialog } from '@/lib/components/dialog'
 import { Button } from '@/lib/components/button'
-import { useDialogStoreDialog } from '../dialogStore'
+import { dialogActions } from '../dialogStore'
 import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
 import {
   BatchRenameOptions,
@@ -12,7 +12,6 @@ import {
 } from '../utils/batchRenameEngine'
 import { useDefaultResultHandler } from '@/lib/hooks/useDefaultResultHandler'
 import { directoryHelpers, directoryStore } from '../directoryStore/directory'
-import { DialogForItem } from '@/lib/hooks/useDialogForItem'
 import { Result } from '@common/Result'
 import { GenericError } from '@common/GenericError'
 import z from 'zod'
@@ -130,8 +129,7 @@ const HistoryDialog = ({
   )
 }
 
-export const BatchRenameDialog = ({ ref }: { ref: Ref<DialogForItem<GetFilesAndFoldersInDirectoryItem[]>> }) => {
-  const { item: items, dialogOpen, onClose } = useDialogStoreDialog<GetFilesAndFoldersInDirectoryItem[]>(ref)
+export const BatchRenameDialog = ({ items }: { items: GetFilesAndFoldersInDirectoryItem[] }) => {
   const [templates, setTemplates] = useAsyncStorage('batchRenameTemplates', templateSchema, [])
   const [undoHistory, setUndoHistory] = useAsyncStorage('batchRenameUndoHistory', undoHistorySchema, [])
 
@@ -240,7 +238,7 @@ export const BatchRenameDialog = ({ ref }: { ref: Ref<DialogForItem<GetFilesAndF
 
       onResult(Result.Success(undefined), {
         success: () => {
-          onClose()
+          dialogActions.close()
         },
       })
     } catch (error) {
@@ -319,8 +317,6 @@ export const BatchRenameDialog = ({ ref }: { ref: Ref<DialogForItem<GetFilesAndF
     }
   }
 
-  if (!dialogOpen) return null
-
   return (
     <>
       <HistoryDialog
@@ -333,7 +329,7 @@ export const BatchRenameDialog = ({ ref }: { ref: Ref<DialogForItem<GetFilesAndF
         }}
       />
       <Dialog
-        onClose={onClose}
+        onClose={dialogActions.close}
         title="Batch Rename"
         style={{ width: '900px', maxWidth: '90vw' }}
         footer={

@@ -1,7 +1,6 @@
-import { useState, forwardRef, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Dialog } from '@/lib/components/dialog'
-import { DialogForItem } from '@/lib/hooks/useDialogForItem'
-import { useDialogStoreDialog } from '../dialogStore'
+import { dialogActions } from '../dialogStore'
 import { useSelector } from '@xstate/store/react'
 import { layoutStore, layoutStoreHelpers, selectLayouts, CustomLayout } from '../layoutStore'
 import { LayoutPreview } from './LayoutPreview'
@@ -214,23 +213,18 @@ function LayoutCard({
   )
 }
 
-export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(function CustomLayoutsDialog(_props, ref) {
-  const { dialogOpen, onClose } = useDialogStoreDialog<{}>(ref)
+export const CustomLayoutsDialog = function CustomLayoutsDialog() {
   const layouts = useSelector(layoutStore, selectLayouts)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [currentLayoutJson, setCurrentLayoutJson] = useState<IJsonModel | null>(null)
 
   useEffect(() => {
-    if (dialogOpen) {
-      // Load current layout when dialog opens
-      import('../initializeDirectory').then(({ layoutModel }) => {
-        setCurrentLayoutJson(layoutModel.toJson())
-      })
-    }
-  }, [dialogOpen])
-
-  if (!dialogOpen) return null
+    // Load current layout when dialog opens
+    import('../initializeDirectory').then(({ layoutModel }) => {
+      setCurrentLayoutJson(layoutModel.toJson())
+    })
+  }, [])
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index)
@@ -382,7 +376,12 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(function Cu
   })
 
   return (
-    <Dialog onClose={onClose} title="Custom Layouts" className="max-w-[90vw] w-full" style={{ height: '80vh' }}>
+    <Dialog
+      onClose={dialogActions.close}
+      title="Custom Layouts"
+      className="max-w-[90vw] w-full"
+      style={{ height: '80vh' }}
+    >
       <div className="flex flex-col h-full gap-4">
         <div className="flex-1 flex gap-4 overflow-auto">
           {columns.map((column, colIndex) => (
@@ -429,4 +428,4 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(function Cu
       </div>
     </Dialog>
   )
-})
+}

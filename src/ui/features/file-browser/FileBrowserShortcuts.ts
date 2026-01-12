@@ -13,6 +13,11 @@ import { subscribeToStores } from '@/lib/functions/storeHelpers'
 import { confirmation } from '@/lib/components/confirmation'
 import { getCursorLine, getActiveDirectory } from './directoryStore/directoryPureHelpers'
 import { VimShortcutHelper } from './vim/VimShortcutHelper'
+import { FinderDialog } from './components/FinderDialog'
+import { CommandPalette } from './components/CommandPalette'
+import { CustomLayoutsDialog } from './components/CustomLayoutsDialog'
+import { NewItemDialog } from './components/NewItemDialog'
+import { BatchRenameDialog } from './components/BatchRenameDialog'
 
 const SHORTCUTS_KEY = 'file-browser'
 
@@ -74,7 +79,12 @@ export const FileBrowserShortcuts = {
           key: { key: 'p', ctrlKey: true },
           handler: e => {
             e?.preventDefault()
-            dialogActions.open('finder', { initialTab: 'files' })
+            dialogActions.open({
+              component: FinderDialog,
+              props: {
+                initialTab: 'files',
+              },
+            })
           },
           label: 'Find file',
         },
@@ -82,7 +92,10 @@ export const FileBrowserShortcuts = {
           key: { key: 'k', ctrlKey: true, metaKey: true },
           handler: e => {
             e?.preventDefault()
-            dialogActions.open('commandPalette', {})
+            dialogActions.open({
+              component: CommandPalette,
+              props: {},
+            })
           },
           label: 'Show keyboard shortcuts',
         },
@@ -90,7 +103,10 @@ export const FileBrowserShortcuts = {
           key: { key: 'l', ctrlKey: true, metaKey: true },
           handler: e => {
             e?.preventDefault()
-            dialogActions.open('customLayouts', {})
+            dialogActions.open({
+              component: CustomLayoutsDialog,
+              props: {},
+            })
           },
           label: 'Manage custom layouts',
         },
@@ -98,7 +114,12 @@ export const FileBrowserShortcuts = {
           key: { key: 's', ctrlKey: true },
           handler: e => {
             e?.preventDefault()
-            dialogActions.open('finder', { initialTab: 'strings' })
+            dialogActions.open({
+              component: FinderDialog,
+              props: {
+                initialTab: 'strings',
+              },
+            })
           },
           label: 'Find string',
         },
@@ -106,7 +127,12 @@ export const FileBrowserShortcuts = {
           key: { key: 'f', ctrlKey: true },
           handler: e => {
             e?.preventDefault()
-            dialogActions.open('finder', { initialTab: 'folders' })
+            dialogActions.open({
+              component: FinderDialog,
+              props: {
+                initialTab: 'folders',
+              },
+            })
           },
           label: 'Find folder',
         },
@@ -151,7 +177,10 @@ export const FileBrowserShortcuts = {
           key: { key: 'n', ctrlKey: true },
           handler: e => {
             e?.preventDefault()
-            dialogActions.open('newItem', {})
+            dialogActions.open({
+              component: NewItemDialog,
+              props: undefined,
+            })
           },
           label: 'Create new item',
         },
@@ -173,7 +202,12 @@ export const FileBrowserShortcuts = {
             const itemsToRename = directorySelection.getSelectedRealsOrCurrentReal(undefined)
             if (!itemsToRename) return
             const itemsToRenameMapped = itemsToRename.filter(i => i.type === 'real').map(i => i.item)
-            dialogActions.open('batchRename', itemsToRenameMapped)
+            dialogActions.open({
+              component: BatchRenameDialog,
+              props: {
+                items: itemsToRenameMapped,
+              },
+            })
           },
           enabledIn: () => true,
           label: 'Batch rename selected items',
@@ -354,9 +388,9 @@ export const FileBrowserShortcuts = {
 
     subscription = subscribeToStores(
       [dialogStore, confirmation],
-      ([dialog, confirmation]) => [!dialog.openDialog, confirmation.isOpen],
+      ([dialog, confirmation]) => [!dialog.state, confirmation.isOpen],
       ([dialog, confirmation]) => {
-        const enabled = !dialog.openDialog && !confirmation.isOpen
+        const enabled = !dialog.state && !confirmation.isOpen
         GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, enabled)
       }
     )

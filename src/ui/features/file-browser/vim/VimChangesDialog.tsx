@@ -1,4 +1,4 @@
-import { useState, Ref, forwardRef, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Dialog } from '@/lib/components/dialog'
 import { Button } from '@/lib/components/button'
 import { VimEngine } from '@common/VimEngine'
@@ -12,8 +12,7 @@ import {
   CopyIcon,
   AlertTriangleIcon,
 } from 'lucide-react'
-import { useDialogStoreDialog } from '../dialogStore'
-import { DialogForItem } from '@/lib/hooks/useDialogForItem'
+import { dialogActions } from '../dialogStore'
 import { getWindowElectron } from '@/getWindowElectron'
 import { Typescript } from '@common/Typescript'
 
@@ -27,13 +26,8 @@ type DirectoryChange = {
   destinations?: Array<{ directory: string; name: string }> // For multi-destination display
 }
 
-export const VimChangesDialog = forwardRef(function VimChangesDialog(
-  _props: {},
-  ref: Ref<DialogForItem<{ changes: VimEngine.Change[] }>>
-) {
-  const { dialogOpen, item, onClose } = useDialogStoreDialog(ref)
-
-  const changes = item?.changes ?? []
+export const VimChangesDialog = function VimChangesDialog(props: { changes: VimEngine.Change[] }) {
+  const changes = props?.changes ?? []
   const changesWithIds: ChangeWithId[] = changes.map((change, idx) => ({
     ...change,
     id: `${change.type}-${idx}`,
@@ -299,7 +293,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
     const result = await getWindowElectron().applyVimChanges(selectedChanges)
 
     if (result.success) {
-      onClose()
+      dialogActions.close()
     } else {
       // Error handling - could show a toast or alert
       console.error('Failed to apply changes:', result.error)
@@ -594,8 +588,6 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
 
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  if (!dialogOpen) return null
-
   return (
     <Dialog
       title={
@@ -606,10 +598,10 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
           </Button>
         </div>
       }
-      onClose={onClose}
+      onClose={dialogActions.close}
       footer={
         <>
-          <Button onClick={onClose} className="btn-ghost">
+          <Button onClick={dialogActions.close} className="btn-ghost">
             Cancel
           </Button>
           <Button ref={buttonRef} onClick={handleApply}>
@@ -711,4 +703,4 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
       </div>
     </Dialog>
   )
-})
+}

@@ -38,6 +38,11 @@ import { CommandHelpers } from './CommandHelpers'
 import { checkGlob } from '@/lib/functions/checkGlob'
 import { DerivedDirectoryItem, RealDirectoryItem } from './directoryStore/DirectoryBase'
 import { getActiveDirectory, getBufferSelection } from './directoryStore/directoryPureHelpers'
+import { RenameDialog } from './components/RenameDialog'
+import { BatchRenameDialog } from './components/BatchRenameDialog'
+import { NewItemDialog } from './components/NewItemDialog'
+import { ArchiveDialog } from './components/ArchiveDialog'
+import { UnarchiveDialog } from './components/UnarchiveDialog'
 
 export const FileTableRowContextMenu = ({
   item: i,
@@ -139,7 +144,10 @@ export const FileTableRowContextMenu = ({
 
   const renameItem: ContextMenuItem = {
     onClick: () => {
-      dialogActions.open('rename', item)
+      dialogActions.open({
+        component: RenameDialog,
+        props: item,
+      })
       close()
     },
     view: <TextWithIcon icon={PencilIcon}>Rename</TextWithIcon>,
@@ -149,7 +157,12 @@ export const FileTableRowContextMenu = ({
     isSelected && selectionIndexes.size > 1
       ? {
           onClick: () => {
-            dialogActions.open('batchRename', selectedItems)
+            dialogActions.open({
+              component: BatchRenameDialog,
+              props: {
+                items: selectedItems,
+              },
+            })
             close()
           },
           view: <TextWithIcon icon={PencilLineIcon}>Batch Rename ({selectionIndexes.size} items)</TextWithIcon>,
@@ -158,7 +171,10 @@ export const FileTableRowContextMenu = ({
 
   const newFileItem: ContextMenuItem = {
     onClick: () => {
-      dialogActions.open('newItem', {})
+      dialogActions.open({
+        component: NewItemDialog,
+        props: undefined,
+      })
       close()
     },
     view: <TextWithIcon icon={FilePlusIcon}>New File or Folder</TextWithIcon>,
@@ -205,7 +221,13 @@ export const FileTableRowContextMenu = ({
           suggestedName = singleItem.name
         }
       }
-      dialogActions.open('archive', { filePaths, suggestedName })
+      dialogActions.open({
+        component: ArchiveDialog,
+        props: {
+          filePaths,
+          suggestedName,
+        },
+      })
       close()
     },
     view: (
@@ -221,7 +243,14 @@ export const FileTableRowContextMenu = ({
   const unarchiveItem: ContextMenuItem | null = unarchiveMetadata
     ? {
         onClick: () => {
-          dialogActions.open('unarchive', unarchiveMetadata)
+          dialogActions.open({
+            component: UnarchiveDialog,
+            props: {
+              archiveFilePath: unarchiveMetadata.archiveFilePath,
+              suggestedName: unarchiveMetadata.suggestedName,
+              archiveType: unarchiveMetadata.archiveType,
+            },
+          })
           close()
         },
         view: <TextWithIcon icon={FolderInputIcon}>Extract Archive</TextWithIcon>,

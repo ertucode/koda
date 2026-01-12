@@ -4,7 +4,6 @@ import { BottomToolbar } from '../file-browser/components/BottomToolbar'
 import { CustomTitleBar } from '../file-browser/components/CustomTitleBar'
 import { DragRectangle } from '../file-browser/components/DragRectangle'
 import { FileBrowserShortcuts } from '../file-browser/FileBrowserShortcuts'
-import { useDialogStoreRenderer } from '../file-browser/dialogStore'
 import { layoutModel } from '../file-browser/initializeDirectory'
 import { layoutFactory } from './layoutFactory'
 import { onRenderTab } from './onRenderTab'
@@ -14,10 +13,10 @@ import { LayoutHelpers } from '../file-browser/utils/LayoutHelpers'
 import { SettingsShortcuts } from '../file-browser/SettingsShortcuts'
 import { VimShortcuts } from '../file-browser/vim/VimShortcuts'
 import { WindowStoreShortcuts } from '../windowStore'
+import { DialogStoreRenderer } from '../file-browser/dialogStore'
 
 export const FlexLayoutManager: React.FC = () => {
   const layoutRef = useRef<Layout>(null)
-  const dialogs = useDialogStoreRenderer()
 
   useEffect(() => {
     FileBrowserShortcuts.init()
@@ -34,7 +33,7 @@ export const FlexLayoutManager: React.FC = () => {
 
   return (
     <div className="flex flex-col items-stretch h-full overflow-hidden">
-      {dialogs.RenderOutside}
+      <DialogStoreRenderer />
       <SettingsShortcuts />
       <CustomTitleBar />
       <div className="flex-1 min-w-0 min-h-0 relative">

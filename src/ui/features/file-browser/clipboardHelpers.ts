@@ -8,6 +8,8 @@ import { GenericError } from '@common/GenericError'
 import type { GetFilesAndFoldersInDirectoryItem, ConflictResolution } from '@common/Contracts'
 import { getActiveDirectory } from './directoryStore/directoryPureHelpers'
 import { createStore } from '@xstate/store'
+import { CreateImageDialog } from './components/CreateImageDialog'
+import { PasteConflictDialog } from './components/PasteConflictDialog'
 
 // Store for tracking clipboard state in the UI
 type ClipboardState = {
@@ -77,7 +79,10 @@ export const clipboardHelpers = {
     // Handle custom paste for image
     if ('customPaste' in checkResult) {
       if (checkResult.customPaste === 'image') {
-        dialogActions.open('createImage', {})
+        dialogActions.open({
+          component: CreateImageDialog,
+          props: {},
+        })
       }
       return
     }
@@ -85,41 +90,44 @@ export const clipboardHelpers = {
     if (checkResult.needsResolution) {
       // Show conflict dialog
       return new Promise<void>(resolve => {
-        dialogActions.open('pasteConflict', {
-          conflictData: checkResult.conflictData,
-          destinationDir: directoryPath,
-          onResolve: async (resolution: ConflictResolution) => {
-            // Execute paste with resolutions
-            const result = await getWindowElectron().pasteFiles(directoryPath, { customFrom, resolution })
+        dialogActions.open({
+          component: PasteConflictDialog,
+          props: {
+            conflictData: checkResult.conflictData,
+            destinationDir: directoryPath,
+            onResolve: async (resolution: ConflictResolution) => {
+              // Execute paste with resolutions
+              const result = await getWindowElectron().pasteFiles(directoryPath, { customFrom, resolution })
 
-            if ('customPaste' in result) {
-              // Shouldn't happen when resolving, but handle it
+              if ('customPaste' in result) {
+                // Shouldn't happen when resolving, but handle it
+                dialogActions.close()
+                resolve()
+                return
+              }
+
+              if (!result.needsResolution) {
+                if (result.result.success) {
+                  // Select first pasted item
+                  if (result.result.data?.pastedItems && result.result.data.pastedItems.length > 0) {
+                    directoryHelpers.setPendingSelection(result.result.data.pastedItems[0], directoryId)
+                  }
+                  // Clear clipboard state after successful paste (cut items are moved)
+                  if (clipboardStore.getSnapshot().context.isCut) {
+                    clipboardStore.send({ type: 'clearClipboard' })
+                  }
+                  await directoryHelpers.reload(context.directoryId)
+                } else {
+                  toast.show(result.result)
+                }
+              }
               dialogActions.close()
               resolve()
-              return
-            }
-
-            if (!result.needsResolution) {
-              if (result.result.success) {
-                // Select first pasted item
-                if (result.result.data?.pastedItems && result.result.data.pastedItems.length > 0) {
-                  directoryHelpers.setPendingSelection(result.result.data.pastedItems[0], directoryId)
-                }
-                // Clear clipboard state after successful paste (cut items are moved)
-                if (clipboardStore.getSnapshot().context.isCut) {
-                  clipboardStore.send({ type: 'clearClipboard' })
-                }
-                await directoryHelpers.reload(context.directoryId)
-              } else {
-                toast.show(result.result)
-              }
-            }
-            dialogActions.close()
-            resolve()
-          },
-          onCancel: () => {
-            dialogActions.close()
-            resolve()
+            },
+            onCancel: () => {
+              dialogActions.close()
+              resolve()
+            },
           },
         })
       })

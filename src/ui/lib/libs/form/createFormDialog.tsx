@@ -1,15 +1,14 @@
 import { useForm, UseFormProps, UseFormReturn } from 'react-hook-form'
 import { arktypeResolver } from '@hookform/resolvers/arktype'
-import { ComponentType, ReactNode, Ref, useEffect, useMemo } from 'react'
+import { ComponentType, ReactNode, useEffect, useMemo } from 'react'
 import { FormFieldConfig, FormFieldFromConfigWrapper } from '../form/FormFieldFromConfig'
 import { ResultHandlerResult, useDefaultResultHandler } from '@/lib/hooks/useDefaultResultHandler'
 import { ZodType } from 'zod'
 import { Dialog } from '@/lib/components/dialog'
-import { DialogForItem } from '@/lib/hooks/useDialogForItem'
 import { Button } from '@/lib/components/button'
-import { useDialogStoreDialog } from '@/features/file-browser/dialogStore'
 import { clsx } from '@/lib/functions/clsx'
 import { useTrigger } from '@/lib/hooks/useTrigger'
+import { dialogActions } from '@/features/file-browser/dialogStore'
 
 export type CreateFormDialogOpts<TItem, TRequest extends Record<string, any>> = {
   schema: ZodType<TRequest>
@@ -47,11 +46,11 @@ export type CreateFormDialogOpts<TItem, TRequest extends Record<string, any>> = 
   itemEffect?: (item: TItem | undefined) => void
 }
 
-export type FormDialogProps<TItem> = [TItem] extends [never]
-  ? { ref?: undefined }
-  : {
-      ref: Ref<DialogForItem<TItem>>
-    }
+export type FormDialogFormProps<TItem, TForm extends Record<string, any>> = CreateFormDialogOpts<TItem, TForm> & {
+  item: TItem | undefined
+}
+
+export type FormDialogProps<TItem> = TItem | undefined
 
 const defaultOnSuccessBehavior = {
   resetForm: true,
@@ -59,21 +58,16 @@ const defaultOnSuccessBehavior = {
 }
 
 export function createFormDialog<TItem, TForm extends Record<string, any>>(opts: CreateFormDialogOpts<TItem, TForm>) {
-  return function ({ ref }: FormDialogProps<TItem>) {
-    const dialog = useDialogStoreDialog(ref)
-
-    return <FormDialogForm<TItem, TForm> dialog={dialog} {...opts} />
+  return function (props: FormDialogProps<TItem>) {
+    return <FormDialogForm<TItem, TForm> {...opts} item={props} />
   }
 }
 
-export function FormDialogForm<TItem, TForm extends Record<string, any>>(
-  opts: CreateFormDialogOpts<TItem, TForm> & {
-    dialog: ReturnType<typeof useDialogStoreDialog<TItem>>
-  }
-) {
+export function FormDialogForm<TItem, TForm extends Record<string, any>>(opts: FormDialogFormProps<TItem, TForm>) {
   const formId = opts.formId ?? 'dialog-form'
-  const { item, dialogOpen, onClose } = opts.dialog
+  const onClose = dialogActions.close
   const [trigger, triggerValue] = useTrigger()
+  const { item } = opts
 
   const formParams = useMemo(() => opts.getFormParams(item), [item, triggerValue])
   const hookForm = useForm<TForm>({
@@ -163,24 +157,22 @@ export function FormDialogForm<TItem, TForm extends Record<string, any>>(
           <dialogButtonOpts.icon className="h-5 w-5" /> {dialogButtonOpts.label}
         </button>
       )}
-      {dialogOpen && (
-        <Dialog
-          onClose={onClose}
-          style={opts.dialogContentStyle}
-          title={text.title}
-          className={clsx('max-w-100 w-100', opts.dialogClassName)}
-          footer={
-            <>
-              {opts.extraButtons?.(formId)}
-              <Button pending={isSubmitting} form={formId} type="submit" icon={text.buttonIcon}>
-                {text.buttonLabel}
-              </Button>
-            </>
-          }
-        >
-          {content}
-        </Dialog>
-      )}
+      <Dialog
+        onClose={onClose}
+        style={opts.dialogContentStyle}
+        title={text.title}
+        className={clsx('max-w-100 w-100', opts.dialogClassName)}
+        footer={
+          <>
+            {opts.extraButtons?.(formId)}
+            <Button pending={isSubmitting} form={formId} type="submit" icon={text.buttonIcon}>
+              {text.buttonLabel}
+            </Button>
+          </>
+        }
+      >
+        {content}
+      </Dialog>
     </>
   )
 }

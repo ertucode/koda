@@ -10,12 +10,11 @@ import { useDebounce } from '@/lib/hooks/useDebounce'
 import { PathHelpers } from '@common/PathHelpers'
 
 type FileFinderTabProps = {
-  isOpen: boolean
   onClose: () => void
   showPreview: boolean
 }
 
-export function FileFinderTab({ isOpen, onClose, showPreview }: FileFinderTabProps) {
+export function FileFinderTab({ onClose, showPreview }: FileFinderTabProps) {
   const activeDirectoryId = useSelector(directoryStore, s => s.context.activeDirectoryId)
   const directory = useSelector(directoryStore, selectDirectory(activeDirectoryId))
   const [query, setQuery] = useState('')
@@ -29,8 +28,6 @@ export function FileFinderTab({ isOpen, onClose, showPreview }: FileFinderTabPro
 
   // Load files when dialog opens or query changes
   useEffect(() => {
-    if (!isOpen) return
-
     const searchFiles = async () => {
       setIsLoading(true)
       setError(null)
@@ -51,17 +48,15 @@ export function FileFinderTab({ isOpen, onClose, showPreview }: FileFinderTabPro
     }
 
     searchFiles()
-  }, [isOpen, directory, query])
+  }, [directory, query])
 
   // Reset and focus when dialog opens
   useEffect(() => {
-    if (isOpen) {
-      setQuery('')
-      setSelectedIndex(0)
-      setError(null)
-      setTimeout(() => inputRef.current?.focus(), 50)
-    }
-  }, [isOpen])
+    setQuery('')
+    setSelectedIndex(0)
+    setError(null)
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }, [])
 
   // Scroll selected item into view
   useEffect(() => {

@@ -9,6 +9,7 @@ import { confirmation } from '@/lib/components/confirmation'
 import { subscribeToStores } from '@/lib/functions/storeHelpers'
 import { VimFuzzy } from '@common/VimFuzzy'
 import { clipboardStore } from '../clipboardHelpers'
+import { VimChangesDialog } from './VimChangesDialog'
 
 const SHORTCUTS_KEY = 'vim'
 
@@ -83,7 +84,12 @@ export const VimShortcuts = {
 
             if (changes.length === 0) return
 
-            dialogActions.open('vimChanges', { changes })
+            dialogActions.open({
+              component: VimChangesDialog,
+              props: {
+                changes,
+              },
+            })
           },
           label: '[VIM] Save',
         },
@@ -141,9 +147,9 @@ export const VimShortcuts = {
     })
     subscription = subscribeToStores(
       [dialogStore, confirmation],
-      ([dialog, confirmation]) => [!dialog.openDialog, confirmation.isOpen],
+      ([dialog, confirmation]) => [!dialog.state, confirmation.isOpen],
       ([dialog, confirmation]) => {
-        const enabled = !dialog.openDialog && !confirmation.isOpen
+        const enabled = !dialog.state && !confirmation.isOpen
         GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, enabled)
       }
     )

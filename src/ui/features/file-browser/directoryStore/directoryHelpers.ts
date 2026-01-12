@@ -29,6 +29,9 @@ import { ArchiveHelpers } from '@common/ArchiveHelpers'
 import { confirmation } from '@/lib/components/confirmation'
 import { Tasks } from '@common/Tasks'
 import { Brands } from '@common/Brands'
+import { UnarchiveDialog } from '../components/UnarchiveDialog'
+import { MultiFileTagsDialog } from '../components/MultiFileTagsDialog'
+import { AssignTagsDialog } from '../components/AssignTagsDialog'
 
 export const cd = async (newDirectory: DirectoryInfo, isNew: boolean, drectoryId: DirectoryId | undefined) => {
   const context = getActiveDirectory(directoryStore.getSnapshot().context, drectoryId)
@@ -353,7 +356,10 @@ export const directoryHelpers = {
       }
       const unarchiveMetadata = ArchiveHelpers.getUnarchiveMetadata(fullPath)
       if (unarchiveMetadata) {
-        dialogActions.open('unarchive', unarchiveMetadata)
+        dialogActions.open({
+          component: UnarchiveDialog,
+          props: unarchiveMetadata,
+        })
         return
       }
 
@@ -455,10 +461,18 @@ export const directoryHelpers = {
     })
     if (selectedItems.length > 1) {
       // Multiple files selected - use grid dialog
-      dialogActions.open('multiFileTags', selectedItems)
+      dialogActions.open({
+        component: MultiFileTagsDialog,
+        props: {
+          fullPaths: selectedItems,
+        },
+      })
     } else {
       // Single file - use standard dialog
-      dialogActions.open('assignTags', fullPath)
+      dialogActions.open({
+        component: AssignTagsDialog,
+        props: { fullPath },
+      })
     }
   },
 

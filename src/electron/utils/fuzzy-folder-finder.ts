@@ -109,8 +109,8 @@ function listFoldersRecursively(target: string, signal?: AbortSignal): Promise<G
     const isHomeDir = expandedTarget === os.homedir()
 
     const args = [
-      // '--type',
-      // 'd', // directories only
+      '--type',
+      'd', // directories only
       '--follow',
       '--exclude',
       '.git',

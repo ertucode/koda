@@ -8,12 +8,11 @@ import { directoryStore, directoryHelpers, selectDirectory } from '../directoryS
 import { useDebounce } from '@/lib/hooks/useDebounce'
 
 type FolderFinderTabProps = {
-  isOpen: boolean
   onClose: () => void
   showPreview: boolean
 }
 
-export function FolderFinderTab({ isOpen, onClose, showPreview }: FolderFinderTabProps) {
+export function FolderFinderTab({ onClose, showPreview }: FolderFinderTabProps) {
   const activeDirectoryId = useSelector(directoryStore, s => s.context.activeDirectoryId)
   const directory = useSelector(directoryStore, selectDirectory(activeDirectoryId))
   const [query, setQuery] = useState('')
@@ -29,8 +28,6 @@ export function FolderFinderTab({ isOpen, onClose, showPreview }: FolderFinderTa
 
   // Load folders when dialog opens or query changes
   useEffect(() => {
-    if (!isOpen) return
-
     const searchFolders = async () => {
       setIsLoading(true)
       setError(null)
@@ -51,11 +48,11 @@ export function FolderFinderTab({ isOpen, onClose, showPreview }: FolderFinderTa
     }
 
     searchFolders()
-  }, [isOpen, directory, query])
+  }, [directory, query])
 
   // Load folder contents when selection changes
   useEffect(() => {
-    if (!isOpen || !showPreview) return
+    if (!showPreview) return
 
     const selectedFolder = filteredFolders[selectedIndex]
     if (!selectedFolder) {
@@ -83,18 +80,16 @@ export function FolderFinderTab({ isOpen, onClose, showPreview }: FolderFinderTa
     }
 
     loadContents()
-  }, [isOpen, showPreview, filteredFolders, selectedIndex])
+  }, [showPreview, filteredFolders, selectedIndex])
 
   // Reset and focus when dialog opens
   useEffect(() => {
-    if (isOpen) {
-      setQuery('')
-      setSelectedIndex(0)
-      setError(null)
-      setFolderContents([])
-      setTimeout(() => inputRef.current?.focus(), 50)
-    }
-  }, [isOpen])
+    setQuery('')
+    setSelectedIndex(0)
+    setError(null)
+    setFolderContents([])
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }, [])
 
   // Scroll selected item into view
   useEffect(() => {
