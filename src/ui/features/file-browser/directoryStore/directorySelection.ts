@@ -412,10 +412,8 @@ export const directorySelection = {
         key: { key: 'G', shiftKey: true },
         handler: e => {
           const { state, filteredData } = getCursorPosition()
-          directoryStore.send({
-            type: 'setSelection',
-            indexes: new Set([filteredData.length - 1]),
-            last: filteredData.length - 1,
+          directoryStore.trigger.setCursor({
+            cursor: { line: filteredData.length - 1 },
             directoryId: state.directoryId,
           })
           e?.preventDefault()
@@ -444,7 +442,7 @@ export const directorySelection = {
         // Go to the top (like vim gg)
         sequence: ['g', 'g'],
         handler: e => {
-          directorySelection.select(0, e, undefined)
+          directoryStore.trigger.setCursor({ cursor: { line: 0 }, directoryId: undefined })
           e?.preventDefault()
         },
         label: 'Go to first item',
