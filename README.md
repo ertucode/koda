@@ -9,6 +9,9 @@
 
   - open dialog
 
+- drag selection does not work opposite side when off container
+- column config storage bozuk
+
 # AMBITIOUS TODO
 
 - Plugin system

@@ -128,14 +128,15 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
     const destination = task.metadata.destination;
 
     return (
-      <div className="mt-2 space-y-1.5 text-xs">
+      <div className="mt-2 space-y-1.5 text-xs overflow-hidden">
         <div className="flex items-center gap-1.5 text-base-content/70">
           <FileIcon className="h-3 w-3 flex-shrink-0" />
-          <span className="font-medium">Source:</span>
-          <div className="dropdown dropdown-hover">
+          <span className="font-medium flex-shrink-0">Source:</span>
+          <div className="dropdown dropdown-hover overflow-hidden">
             <div
               tabIndex={0}
               className="truncate cursor-pointer hover:text-primary transition-colors"
+              title={sourceCount === 1 ? task.metadata.source[0] : undefined}
             >
               {sourceCount === 1
                 ? formatPath(task.metadata.source[0])
@@ -149,7 +150,7 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
                 {task.metadata.source.map((sourcePath, index) => (
                   <div
                     key={index}
-                    className="text-xs cursor-pointer hover:text-primary transition-colors p-1 hover:bg-base-200 rounded"
+                    className="text-xs cursor-pointer hover:text-primary transition-colors p-1 hover:bg-base-200 rounded break-all"
                     onClick={() => handleNavigateToPath(sourcePath)}
                   >
                     {sourcePath}
@@ -161,7 +162,7 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
         </div>
         <div className="flex items-center gap-1.5 text-base-content/70">
           <Archive className="h-3 w-3 flex-shrink-0" />
-          <span className="font-medium">Output:</span>
+          <span className="font-medium flex-shrink-0">Output:</span>
           <span className="truncate" title={destination}>
             {formatPath(destination)}
           </span>
@@ -175,14 +176,15 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
     const destination = task.metadata.destination;
 
     return (
-      <div className="mt-2 space-y-1.5 text-xs">
+      <div className="mt-2 space-y-1.5 text-xs overflow-hidden">
         <div className="flex items-center gap-1.5 text-base-content/70">
           <Archive className="h-3 w-3 flex-shrink-0" />
-          <span className="font-medium">Archive:</span>
-          <div className="dropdown dropdown-hover">
+          <span className="font-medium flex-shrink-0">Archive:</span>
+          <div className="dropdown dropdown-hover overflow-hidden">
             <div
               tabIndex={0}
               className="truncate cursor-pointer hover:text-primary transition-colors"
+              title={source}
             >
               {formatPath(source)}
             </div>
@@ -191,7 +193,7 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
               className="dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box border border-base-300 max-w-md"
             >
               <div
-                className="text-xs cursor-pointer hover:text-primary transition-colors p-1 hover:bg-base-200 rounded"
+                className="text-xs cursor-pointer hover:text-primary transition-colors p-1 hover:bg-base-200 rounded break-all"
                 onClick={() => handleNavigateToPath(source)}
               >
                 {source}
@@ -201,7 +203,7 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
         </div>
         <div className="flex items-center gap-1.5 text-base-content/70">
           <FolderIcon className="h-3 w-3 flex-shrink-0" />
-          <span className="font-medium">Extract to:</span>
+          <span className="font-medium flex-shrink-0">Extract to:</span>
           <span className="truncate" title={destination}>
             {formatPath(destination)}
           </span>
