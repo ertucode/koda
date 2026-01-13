@@ -18,7 +18,7 @@ import { useDirectoryContext } from '@/features/file-browser/DirectoryContext'
 import { createColumns } from './config/columns'
 import { tagsStore, selectFileTags } from './tags'
 import { useDebounce } from '@/lib/hooks/useDebounce'
-import { fileDragDropStore, useDragOverThisRow } from './fileDragDrop'
+import { useDragOverThisRow } from './fileDragDrop'
 import { DerivedDirectoryItem, DirectoryId } from './directoryStore/DirectoryBase'
 import { directoryDerivedStores } from './directoryStore/directorySubscriptions'
 import { FileGridView } from './components/fileGridView/FileGridView'
@@ -130,11 +130,6 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
 
   const headerContextMenu = useContextMenu<null>()
 
-  const isDragOver = useSelector(
-    fileDragDropStore,
-    s => s.context.dragOverDirectoryId === directoryId && s.context.dragOverRowIdx == null
-  )
-
   const viewMode = useSelector(directoryStore, selectViewMode(directoryId))
 
   const error = useSelector(directoryStore, selectError(directoryId))
@@ -179,11 +174,9 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
 
       <div
         className={clsx('relative h-full w-full min-h-0 overflow-auto rounded-none border-none')}
+        data-scroll-container
         {...fileBrowserListContainerProps({ directoryId, directory })}
       >
-        {isDragOver && (
-          <div className="absolute inset-0 pointer-events-none border border-blue-500/70 bg-blue-500/5 z-50 border-dashed border-3"></div>
-        )}
         <VimCursor />
         <VimFuzzyHighlight />
         <LoadingOverlay />

@@ -146,6 +146,7 @@ export const FileGridView = memo(function FileGridView() {
 
       <div
         data-list-id={directoryId}
+        data-scroll-container
         className={clsx('h-full overflow-auto p-4', isDragOver && 'ring-2 ring-primary ring-inset')}
         {...fileBrowserListContainerProps({ directoryId, directory })}
       >

@@ -33,7 +33,16 @@ export function fileBrowserListItemProps({
       const isOnNoDragToSelect = target.closest('[data-no-drag-to-select]') !== null
       if (isOnNoDragToSelect) return
 
-      fileDragDropHandlers.startDragToSelect(index, directoryId, e.metaKey, { x: e.clientX, y: e.clientY })
+      // Find the scroll container for auto-scroll support (the div with overflow-auto)
+      const scrollContainer = target.closest('[data-scroll-container]') as HTMLElement | null
+
+      fileDragDropHandlers.startDragToSelect(
+        index,
+        directoryId,
+        e.metaKey,
+        { x: e.clientX, y: e.clientY },
+        scrollContainer,
+      )
     },
     onMouseEnter: () => {
       const dragState = fileDragDropStore.getSnapshot()

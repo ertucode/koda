@@ -134,13 +134,199 @@ const isFileDrag = (e: React.DragEvent): boolean => {
   return false
 }
 
+// Auto-scroll state for drag-to-select
+let autoScrollState: {
+  container: HTMLElement | null
+  animationFrameId: number | null
+  lastMouseX: number
+  lastMouseY: number
+} = {
+  container: null,
+  animationFrameId: null,
+  lastMouseX: 0,
+  lastMouseY: 0,
+}
+
+// Constants for auto-scroll behavior
+const AUTO_SCROLL_EDGE_THRESHOLD = 50 // Distance from edge to start scrolling when inside (px)
+const AUTO_SCROLL_MAX_SPEED = 40 // Maximum scroll speed (px per frame)
+const AUTO_SCROLL_OUTSIDE_MULTIPLIER = 10 // Speed multiplier for distance outside container
+
+// Calculate scroll speed based on distance
+// When inside edge zone: closer to edge = faster (0 at threshold, max at edge)
+// When outside: speed increases with distance from edge
+const calculateScrollSpeed = (distanceFromEdge: number, isOutside: boolean): number => {
+  if (!isOutside && distanceFromEdge >= AUTO_SCROLL_EDGE_THRESHOLD) return 0
+  const totalDist = isOutside
+    ? distanceFromEdge + AUTO_SCROLL_EDGE_THRESHOLD
+    : AUTO_SCROLL_EDGE_THRESHOLD - distanceFromEdge
+  return Math.min(AUTO_SCROLL_MAX_SPEED, (totalDist / AUTO_SCROLL_EDGE_THRESHOLD) * AUTO_SCROLL_OUTSIDE_MULTIPLIER)
+}
+
+// Auto-scroll animation loop
+const autoScrollLoop = () => {
+  const { container, lastMouseY } = autoScrollState
+  if (!container) return
+
+  const rect = container.getBoundingClientRect()
+  let scrollDelta = 0
+
+  if (lastMouseY < rect.top) {
+    // Mouse is above container - scroll up
+    const distanceOutside = rect.top - lastMouseY
+    scrollDelta = -calculateScrollSpeed(distanceOutside, true)
+  } else if (lastMouseY > rect.bottom) {
+    // Mouse is below container - scroll down
+    const distanceOutside = lastMouseY - rect.bottom
+    scrollDelta = calculateScrollSpeed(distanceOutside, true)
+  } else if (lastMouseY < rect.top + AUTO_SCROLL_EDGE_THRESHOLD) {
+    // Mouse is near top edge inside container
+    const distanceFromEdge = lastMouseY - rect.top
+    scrollDelta = -calculateScrollSpeed(distanceFromEdge, false)
+  } else if (lastMouseY > rect.bottom - AUTO_SCROLL_EDGE_THRESHOLD) {
+    // Mouse is near bottom edge inside container
+    const distanceFromEdge = rect.bottom - lastMouseY
+    scrollDelta = calculateScrollSpeed(distanceFromEdge, false)
+  }
+
+  if (scrollDelta !== 0) {
+    container.scrollTop += scrollDelta
+    // Update selection after scrolling since visible items changed
+    updateSelectionFromMousePosition()
+  }
+
+  // Continue the loop while drag-to-select is active
+  const dragState = fileDragDropStore.getSnapshot()
+  if (dragState.context.isDragToSelect) {
+    autoScrollState.animationFrameId = requestAnimationFrame(autoScrollLoop)
+  }
+}
+
+// Global mouse move handler for auto-scroll during drag-to-select
+const handleGlobalMouseMove = (e: MouseEvent) => {
+  autoScrollState.lastMouseX = e.clientX
+  autoScrollState.lastMouseY = e.clientY
+
+  // Update selection based on mouse position
+  updateSelectionFromMousePosition()
+}
+
 // Global mouse up handler for drag-to-select
 const handleGlobalMouseUp = () => {
   const dragState = fileDragDropStore.getSnapshot()
   if (dragState.context.isDragToSelect) {
     fileDragDropStore.send({ type: 'endDragToSelect' })
     document.body.removeEventListener('mouseup', handleGlobalMouseUp)
+    document.body.removeEventListener('mousemove', handleGlobalMouseMove)
+
+    // Stop auto-scroll
+    if (autoScrollState.animationFrameId !== null) {
+      cancelAnimationFrame(autoScrollState.animationFrameId)
+    }
+    autoScrollState = {
+      container: null,
+      animationFrameId: null,
+      lastMouseX: 0,
+      lastMouseY: 0,
+    }
   }
+}
+
+// Find the row index at a given Y position within the container
+const findRowIndexAtPosition = (container: HTMLElement, mouseY: number, directoryId: DirectoryId): number | null => {
+  const listElement =
+    container.getAttribute('data-list-id') === directoryId
+      ? container
+      : container.querySelector(`[data-list-id="${directoryId}"]`)
+  if (!listElement) return null
+
+  const items = listElement.querySelectorAll('[data-list-item]')
+  if (items.length === 0) return null
+
+  const containerRect = container.getBoundingClientRect()
+
+  // If mouse is above container, return first visible item
+  if (mouseY < containerRect.top) {
+    // Find the first item that's at least partially visible
+    for (let i = 0; i < items.length; i++) {
+      const rect = (items[i] as HTMLElement).getBoundingClientRect()
+      if (rect.bottom > containerRect.top) {
+        return i
+      }
+    }
+    return 0
+  }
+
+  // If mouse is below container, return last visible item
+  if (mouseY > containerRect.bottom) {
+    // Find the last item that's at least partially visible
+    for (let i = items.length - 1; i >= 0; i--) {
+      const rect = (items[i] as HTMLElement).getBoundingClientRect()
+      if (rect.top < containerRect.bottom) {
+        return i
+      }
+    }
+    return items.length - 1
+  }
+
+  // Mouse is inside container, find the item at this Y position
+  for (let i = 0; i < items.length; i++) {
+    const rect = (items[i] as HTMLElement).getBoundingClientRect()
+    if (mouseY >= rect.top && mouseY <= rect.bottom) {
+      return i
+    }
+  }
+
+  // If between items or past all items, find closest
+  let closestIdx = 0
+  let closestDistance = Infinity
+
+  items.forEach((item, idx) => {
+    const rect = (item as HTMLElement).getBoundingClientRect()
+    const itemCenterY = rect.top + rect.height / 2
+    const distance = Math.abs(mouseY - itemCenterY)
+    if (distance < closestDistance) {
+      closestDistance = distance
+      closestIdx = idx
+    }
+  })
+
+  return closestIdx
+}
+
+// Update selection based on current mouse position (called during drag and scroll)
+const updateSelectionFromMousePosition = () => {
+  const { container, lastMouseY } = autoScrollState
+  if (!container) return
+
+  const dragState = fileDragDropStore.getSnapshot()
+  if (!dragState.context.isDragToSelect || !dragState.context.dragToSelectDirectoryId) return
+
+  const directoryId = dragState.context.dragToSelectDirectoryId
+  const startIdx = dragState.context.dragToSelectStartIdx!
+
+  const currentIdx = findRowIndexAtPosition(container, lastMouseY, directoryId)
+  if (currentIdx === null) return
+
+  const state = directoryStore.getSnapshot()
+  const directory = state.context.directoriesById[directoryId]
+  if (!directory) return
+
+  // Create selection range from start to current (linear selection for simplicity during scroll)
+  const minIdx = Math.min(startIdx, currentIdx)
+  const maxIdx = Math.max(startIdx, currentIdx)
+  const newIndexes = new Set<number>()
+
+  for (let i = minIdx; i <= maxIdx; i++) {
+    newIndexes.add(i)
+  }
+
+  directoryStore.send({
+    type: 'setSelection',
+    indexes: newIndexes,
+    last: currentIdx,
+    directoryId,
+  })
 }
 
 // Handler functions
@@ -150,7 +336,8 @@ export const fileDragDropHandlers = {
     startIdx: number,
     directoryId: DirectoryId,
     withMetaKey: boolean = false,
-    startPosition: { x: number; y: number }
+    startPosition: { x: number; y: number },
+    scrollContainer?: HTMLElement | null
   ) => {
     fileDragDropStore.send({
       type: 'startDragToSelect',
@@ -161,12 +348,37 @@ export const fileDragDropHandlers = {
     })
     // Add global mouseup listener to handle release anywhere
     document.body.addEventListener('mouseup', handleGlobalMouseUp)
+
+    // Set up auto-scroll if container is provided
+    if (scrollContainer) {
+      autoScrollState = {
+        container: scrollContainer,
+        animationFrameId: null,
+        lastMouseX: startPosition.x,
+        lastMouseY: startPosition.y,
+      }
+      document.body.addEventListener('mousemove', handleGlobalMouseMove)
+      // Start the auto-scroll loop
+      autoScrollState.animationFrameId = requestAnimationFrame(autoScrollLoop)
+    }
   },
 
   // End drag-to-select mode
   endDragToSelect: () => {
     fileDragDropStore.send({ type: 'endDragToSelect' })
     document.body.removeEventListener('mouseup', handleGlobalMouseUp)
+    document.body.removeEventListener('mousemove', handleGlobalMouseMove)
+
+    // Stop auto-scroll
+    if (autoScrollState.animationFrameId !== null) {
+      cancelAnimationFrame(autoScrollState.animationFrameId)
+    }
+    autoScrollState = {
+      container: null,
+      animationFrameId: null,
+      lastMouseX: 0,
+      lastMouseY: 0,
+    }
   },
 
   // Start native drag - always uses Electron's native drag for outside-app compatibility
@@ -418,6 +630,10 @@ export const fileDragDropHandlers = {
         })
       }
     }
+  },
+  isDragToSelect: () => {
+    const dragState = fileDragDropStore.getSnapshot().context
+    return dragState.isDragToSelect
   },
 }
 const getDraggedItems = () => {
