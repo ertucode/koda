@@ -36,6 +36,7 @@ import { getWindowElectron, windowArgs } from '@/getWindowElectron'
 import { useState, useEffect } from 'react'
 import { ApplicationInfo } from '@common/Contracts'
 import { ArchiveHelpers } from '@common/ArchiveHelpers'
+import { supportsBase64Copy } from '@common/Base64Helpers'
 import { CommandHelpers } from './CommandHelpers'
 import { checkGlob } from '@/lib/functions/checkGlob'
 import { DerivedDirectoryItem, RealDirectoryItem } from './directoryStore/DirectoryBase'
@@ -364,9 +365,9 @@ export const FileTableRowContextMenu = ({
       }
     : null
 
-  // Copy as Base64 item for PDF files
-  const isPdf = item.type === 'file' && item.name.toLowerCase().endsWith('.pdf')
-  const copyAsBase64Item: ContextMenuItem | null = isPdf
+  // Copy as Base64 item for supported file types
+  const copyAsBase64Item: ContextMenuItem | null =
+    item.type === 'file' && supportsBase64Copy(item.name)
     ? {
         onClick: async () => {
           const result = await getWindowElectron().readFileAsBase64(fullPath)
