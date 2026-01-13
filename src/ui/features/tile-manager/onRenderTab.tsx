@@ -15,6 +15,8 @@ import { setDefaultPath } from '../file-browser/defaultPath'
 import { dialogActions } from '../file-browser/dialogStore'
 import { LayoutUtils } from '../file-browser/utils/LayoutUtils'
 import { AssignTagsDialog } from '../file-browser/components/AssignTagsDialog'
+import { useRef, useCallback } from 'react'
+import { fileDragDropStore } from '../file-browser/fileDragDrop'
 
 export const onRenderTab = (node: TabNode, renderValues: ITabRenderValues) => {
   const component = node.getComponent()
@@ -53,6 +55,15 @@ export const onRenderTab = (node: TabNode, renderValues: ITabRenderValues) => {
   }
 }
 
+// Delay before switching to a tab when dragging files over it (ms)
+const TAB_SWITCH_DELAY = 100
+
+// Helper to check if there's an active file drag from our app
+const hasActiveFileDrag = (): boolean => {
+  const activeDrag = fileDragDropStore.getSnapshot().context.activeDrag
+  return activeDrag !== null
+}
+
 function DirectoryTabContent({
   node,
   directoryId,
@@ -65,6 +76,67 @@ function DirectoryTabContent({
   parentIsActive: boolean
 }) {
   const contextMenu = useContextMenu<DirectoryId>()
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearHoverTimer = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = null
+    }
+  }, [])
+
+  const handleDragEnter = useCallback(
+    (e: React.DragEvent) => {
+      // Only respond to our app's file drags (check store state)
+      if (!hasActiveFileDrag()) {
+        return
+      }
+
+      e.preventDefault()
+      // Don't stopPropagation - flexlayout needs events for tab reordering
+
+      // If this tab is already selected, no need to switch
+      if (isSelected) {
+        clearHoverTimer()
+        return
+      }
+
+      // Start timer to switch to this tab if not already running
+      if (!hoverTimerRef.current) {
+        hoverTimerRef.current = setTimeout(() => {
+          layoutModel.doAction(Actions.selectTab(node.getId()))
+          hoverTimerRef.current = null
+        }, TAB_SWITCH_DELAY)
+      }
+    },
+    [node, directoryId, isSelected, clearHoverTimer]
+  )
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    // Only respond to our app's file drags
+    if (!hasActiveFileDrag()) {
+      return
+    }
+    e.preventDefault()
+    // Don't stopPropagation - flexlayout needs events for tab reordering
+  }, [])
+
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent) => {
+      // Only clear timer if actually leaving this element (not entering a child)
+      const relatedTarget = e.relatedTarget as Node | null
+      if (relatedTarget && e.currentTarget.contains(relatedTarget)) {
+        return
+      }
+      clearHoverTimer()
+    },
+    [clearHoverTimer]
+  )
+
+  const handleDrop = useCallback(() => {
+    // Let the drop propagate to the file browser, but clear our timer
+    clearHoverTimer()
+  }, [clearHoverTimer])
 
   return (
     <>
@@ -76,6 +148,10 @@ function DirectoryTabContent({
           'dir-marker'
         )}
         onContextMenu={e => contextMenu.onRightClick(e, directoryId)}
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <DirectoryIcon directoryId={directoryId} />
         <DirectoryTabLabel directoryId={directoryId} />
