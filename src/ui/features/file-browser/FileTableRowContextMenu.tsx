@@ -21,6 +21,8 @@ import {
   ExternalLinkIcon,
   TerminalIcon,
   BoxSelectIcon,
+  FileTextIcon,
+  EyeIcon,
 } from 'lucide-react'
 import { setDefaultPath } from './defaultPath'
 import { dialogActions } from './dialogStore'
@@ -43,6 +45,7 @@ import { BatchRenameDialog } from './components/BatchRenameDialog'
 import { NewItemDialog } from './components/NewItemDialog'
 import { ArchiveDialog } from './components/ArchiveDialog'
 import { UnarchiveDialog } from './components/UnarchiveDialog'
+import { Base64PreviewDialog } from './components/Base64PreviewDialog'
 
 export const FileTableRowContextMenu = ({
   item: i,
@@ -361,6 +364,45 @@ export const FileTableRowContextMenu = ({
       }
     : null
 
+  // Copy as Base64 item for PDF files
+  const isPdf = item.type === 'file' && item.name.toLowerCase().endsWith('.pdf')
+  const copyAsBase64Item: ContextMenuItem | null = isPdf
+    ? {
+        onClick: async () => {
+          const result = await getWindowElectron().readFileAsBase64(fullPath)
+          if (result.success) {
+            const base64 = result.data.base64
+            await navigator.clipboard.writeText(base64)
+            toast.show({
+              severity: 'success',
+              message: (
+                <div className="flex items-center gap-2">
+                  <span>Copied to clipboard</span>
+                  <button
+                    className="btn btn-xs btn-ghost"
+                    onClick={() => {
+                      dialogActions.open({
+                        component: Base64PreviewDialog,
+                        props: { base64, fileName: item.name },
+                      })
+                    }}
+                  >
+                    <EyeIcon className="size-3" />
+                    Show
+                  </button>
+                </div>
+              ),
+              timeout: 8000,
+            })
+          } else {
+            toast.show(result)
+          }
+          close()
+        },
+        view: <TextWithIcon icon={FileTextIcon}>Copy as Base64</TextWithIcon>,
+      }
+    : null
+
   if (item.type === 'dir') {
     const openDirectoryInNewTab: ContextMenuItem = {
       onClick: () => {
@@ -434,6 +476,7 @@ export const FileTableRowContextMenu = ({
     newFileItem,
     { isSeparator: true },
     copyPathItem,
+    copyAsBase64Item,
     { isSeparator: true },
     commandItem,
     selectItem,

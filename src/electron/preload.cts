@@ -32,6 +32,9 @@ electron.contextBridge.exposeInMainWorld('electron', {
   createFileOrFolder: (parentDir: string, name: string) => ipcInvoke('createFileOrFolder', { parentDir, name }),
   createImageFromClipboard: (parentDir: string, name: string) =>
     ipcInvoke('createImageFromClipboard', { parentDir, name }),
+  createPdfFromClipboard: (parentDir: string, name: string) =>
+    ipcInvoke('createPdfFromClipboard', { parentDir, name }),
+  readFileAsBase64: (filePath: string) => ipcInvoke('readFileAsBase64', { filePath }),
   hasClipboardImage: () => ipcInvoke('hasClipboardImage', undefined),
   setClipboardCutMode: (cut: boolean) => ipcInvoke('setClipboardCutMode', { cut }),
   renameFileOrFolder: (fullPath: string, newName: string) => ipcInvoke('renameFileOrFolder', { fullPath, newName }),

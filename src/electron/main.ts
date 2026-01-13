@@ -11,6 +11,8 @@ import { getFileContent } from './utils/get-file-content.js'
 import { deleteFiles } from './utils/delete-files.js'
 import { createFileOrFolder } from './utils/create-file-or-folder.js'
 import { createImageFromClipboard, hasClipboardImage } from './utils/create-image-from-clipboard.js'
+import { createPdfFromClipboard } from './utils/create-pdf-from-clipboard.js'
+import { readFileAsBase64 } from './utils/read-file-as-base64.js'
 import { renameFileOrFolder } from './utils/rename-file-or-folder.js'
 import { batchRenameFiles } from './utils/batch-rename-files.js'
 import { copyFiles, setClipboardCutMode } from './utils/copy-files.js'
@@ -176,6 +178,8 @@ app.on('ready', () => {
   ipcHandle('deleteFiles', deleteFiles)
   ipcHandle('createFileOrFolder', ({ parentDir, name }) => createFileOrFolder(parentDir, name))
   ipcHandle('createImageFromClipboard', ({ parentDir, name }) => createImageFromClipboard(parentDir, name))
+  ipcHandle('createPdfFromClipboard', ({ parentDir, name }) => createPdfFromClipboard(parentDir, name))
+  ipcHandle('readFileAsBase64', ({ filePath }) => readFileAsBase64(filePath))
   ipcHandle('hasClipboardImage', async () => hasClipboardImage())
   ipcHandle('renameFileOrFolder', ({ fullPath, newName }) => renameFileOrFolder(fullPath, newName))
   ipcHandle('batchRenameFiles', items => batchRenameFiles(items))

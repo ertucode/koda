@@ -140,6 +140,8 @@ export type EventResponseMapping = {
   applyVimChanges: Promise<GenericResult<void>>
   createFileOrFolder: Promise<GenericResult<{ path: string }>>
   createImageFromClipboard: Promise<GenericResult<{ path: string }>>
+  createPdfFromClipboard: Promise<GenericResult<{ path: string }>>
+  readFileAsBase64: Promise<GenericResult<{ base64: string }>>
   hasClipboardImage: Promise<boolean>
   renameFileOrFolder: Promise<GenericResult<{ newPath: string }>>
   batchRenameFiles: Promise<GenericResult<{ renamedPaths: Array<{ oldPath: string; newPath: string }> }>>
@@ -152,7 +154,7 @@ export type EventResponseMapping = {
         needsResolution: false
         result: GenericResult<{ pastedItems: string[] }>
       }
-    | { customPaste: 'image' }
+    | { customPaste: 'image' | 'base64pdf' }
   >
   fuzzyFileFinder: Promise<GenericResult<string[]>>
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>
@@ -249,6 +251,13 @@ export type EventRequestMapping = {
     parentDir: string
     name: string
   }
+  createPdfFromClipboard: {
+    parentDir: string
+    name: string
+  }
+  readFileAsBase64: {
+    filePath: string
+  }
   hasClipboardImage: void
   renameFileOrFolder: {
     fullPath: string
@@ -339,6 +348,8 @@ export type WindowElectron = {
   applyVimChanges: (changes: VimEngine.Change[]) => Promise<GenericResult<void>>
   createFileOrFolder: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
   createImageFromClipboard: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
+  createPdfFromClipboard: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
+  readFileAsBase64: (filePath: string) => Promise<GenericResult<{ base64: string }>>
   hasClipboardImage: () => Promise<boolean>
   renameFileOrFolder: (fullPath: string, newName: string) => Promise<GenericResult<{ newPath: string }>>
   batchRenameFiles: (
@@ -357,7 +368,7 @@ export type WindowElectron = {
         needsResolution: false
         result: GenericResult<{ pastedItems: string[] }>
       }
-    | { customPaste: 'image' }
+    | { customPaste: 'image' | 'base64pdf' }
   >
   fuzzyFileFinder: (directory: string, query: string) => Promise<GenericResult<string[]>>
   searchStringRecursively: (options: StringSearchOptions) => Promise<GenericResult<StringSearchResult[]>>
