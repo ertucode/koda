@@ -18,6 +18,9 @@ import { CommandPalette } from './components/CommandPalette'
 import { CustomLayoutsDialog } from './components/CustomLayoutsDialog'
 import { NewItemDialog } from './components/NewItemDialog'
 import { BatchRenameDialog } from './components/BatchRenameDialog'
+import { CreateFromClipboardDialog } from './components/CreateFromClipboardDialog'
+import { getWindowElectron } from '@/getWindowElectron'
+import { toast } from '@/lib/components/toast'
 
 const SHORTCUTS_KEY = 'file-browser'
 
@@ -262,6 +265,27 @@ export const FileBrowserShortcuts = {
           },
           enabledIn: () => true,
           label: 'Paste items',
+        },
+        {
+          key: { key: 'v', metaKey: true, shiftKey: true },
+          handler: async e => {
+            e?.preventDefault()
+            const customPasteType = await getWindowElectron().getCustomPasteType()
+            if (!customPasteType) {
+              toast.show({
+                severity: 'info',
+                message: 'No pasteable data in clipboard',
+              })
+              return
+            }
+
+            dialogActions.open({
+              component: CreateFromClipboardDialog,
+              props: { pasteType: customPasteType },
+            })
+          },
+          enabledIn: () => true,
+          label: 'Paste image, base64 data, or text from clipboard',
         },
         {
           key: { key: 'v', metaKey: true, ctrlKey: true },

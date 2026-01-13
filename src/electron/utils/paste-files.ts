@@ -8,8 +8,6 @@ import { TaskManager } from '../TaskManager.js'
 import { formatFileSize } from '../../common/file-size.js'
 import { moveToTrash } from './move-to-trash.js'
 import { countFilesInPath } from './count-files-in-path.js'
-import { hasClipboardImage } from './create-image-from-clipboard.js'
-import { hasClipboardPdf } from './create-pdf-from-clipboard.js'
 import { PasteFilesOptions } from '../../common/Contracts.js'
 
 /**
@@ -69,7 +67,6 @@ export type PasteResult =
       needsResolution: false
       result: GenericResult<{ pastedItems: string[] }>
     }
-  | { customPaste: 'image' | 'base64pdf' }
 
 async function copyRecursive(src: string, dest: string, onFileCopied?: () => void) {
   const stats = await fs.stat(src)
@@ -571,20 +568,6 @@ export async function pasteFiles(destinationDir: string, opts?: PasteFilesOption
   try {
     // Get files from in-memory clipboard
     const clipboardState = getClipboardState()
-
-    const hasImage = hasClipboardImage()
-    const hasPdf = hasClipboardPdf()
-
-    // Do PDF pasting if 20+ seconds have elapsed since last clipboard state update
-    // Check PDF first since it's detected via clipboard text (more specific)
-    if (hasPdf && (!clipboardState || Date.now() - clipboardState.timestamp >= 20000)) {
-      return { customPaste: 'base64pdf' }
-    }
-
-    // Do image pasting if 20+ seconds have elapsed since last clipboard state update
-    if (hasImage && (!clipboardState || Date.now() - clipboardState.timestamp >= 20000)) {
-      return { customPaste: 'image' }
-    }
 
     const pathsResult = getPathsResult(opts?.customFrom, clipboardState)
     if (!pathsResult.success) {

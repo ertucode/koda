@@ -7,6 +7,7 @@ import {
   ReplaceInMultipleFilesOptions,
   WindowElectron,
   ConflictResolution,
+  CreateFromClipboardType,
 } from '../common/Contracts'
 import { TaskEvents } from '../common/Tasks'
 import { ArchiveTypes } from '../common/ArchiveTypes'
@@ -30,12 +31,11 @@ electron.contextBridge.exposeInMainWorld('electron', {
   deleteFiles: (filePaths: string[], clientMetadata: any) => ipcInvoke('deleteFiles', { filePaths, clientMetadata }),
   applyVimChanges: (changes: any) => ipcInvoke('applyVimChanges', changes),
   createFileOrFolder: (parentDir: string, name: string) => ipcInvoke('createFileOrFolder', { parentDir, name }),
-  createImageFromClipboard: (parentDir: string, name: string) =>
-    ipcInvoke('createImageFromClipboard', { parentDir, name }),
-  createPdfFromClipboard: (parentDir: string, name: string) =>
-    ipcInvoke('createPdfFromClipboard', { parentDir, name }),
+  createFromClipboard: (filePath: string, type: CreateFromClipboardType) =>
+    ipcInvoke('createFromClipboard', { filePath, type }),
   readFileAsBase64: (filePath: string) => ipcInvoke('readFileAsBase64', { filePath }),
   hasClipboardImage: () => ipcInvoke('hasClipboardImage', undefined),
+  getCustomPasteType: () => ipcInvoke('getCustomPasteType', undefined),
   setClipboardCutMode: (cut: boolean) => ipcInvoke('setClipboardCutMode', { cut }),
   renameFileOrFolder: (fullPath: string, newName: string) => ipcInvoke('renameFileOrFolder', { fullPath, newName }),
   getPreviewPreloadPath: () => ipcInvoke('getPreviewPreloadPath', undefined),

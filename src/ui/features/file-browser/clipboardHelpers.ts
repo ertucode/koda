@@ -8,8 +8,6 @@ import { GenericError } from '@common/GenericError'
 import type { GetFilesAndFoldersInDirectoryItem, ConflictResolution } from '@common/Contracts'
 import { getActiveDirectory } from './directoryStore/directoryPureHelpers'
 import { createStore } from '@xstate/store'
-import { CreateImageDialog } from './components/CreateImageDialog'
-import { CreatePdfDialog } from './components/CreatePdfDialog'
 import { PasteConflictDialog } from './components/PasteConflictDialog'
 
 // Store for tracking clipboard state in the UI
@@ -77,22 +75,6 @@ export const clipboardHelpers = {
     // First call without resolution to check for conflicts
     const checkResult = await getWindowElectron().pasteFiles(directoryPath, { customFrom })
 
-    // Handle custom paste for image or PDF
-    if ('customPaste' in checkResult) {
-      if (checkResult.customPaste === 'image') {
-        dialogActions.open({
-          component: CreateImageDialog,
-          props: {},
-        })
-      } else if (checkResult.customPaste === 'base64pdf') {
-        dialogActions.open({
-          component: CreatePdfDialog,
-          props: {},
-        })
-      }
-      return
-    }
-
     if (checkResult.needsResolution) {
       // Show conflict dialog
       return new Promise<void>(resolve => {
@@ -104,13 +86,6 @@ export const clipboardHelpers = {
             onResolve: async (resolution: ConflictResolution) => {
               // Execute paste with resolutions
               const result = await getWindowElectron().pasteFiles(directoryPath, { customFrom, resolution })
-
-              if ('customPaste' in result) {
-                // Shouldn't happen when resolving, but handle it
-                dialogActions.close()
-                resolve()
-                return
-              }
 
               if (!result.needsResolution) {
                 if (result.result.success) {

@@ -5,6 +5,16 @@ import { GenericEvent } from './GenericEvent.js'
 import { VimEngine } from './VimEngine.js'
 import { type AsyncStorageKey } from './AsyncStorageKeys.js'
 
+export type Base64Type = 'pdf' | 'png' | 'jpg' | 'gif' | 'webp' | 'mp3' | 'mp4' | 'zip' | 'docx' | 'unknown'
+
+export type CustomPasteType =
+  | { type: 'image' }
+  | { type: 'base64'; base64Type: Base64Type }
+  | { type: 'text' }
+  | null
+
+export type CreateFromClipboardType = 'image' | 'base64' | 'text'
+
 export type ContextLine = {
   lineNumber: number
   content: string
@@ -139,10 +149,10 @@ export type EventResponseMapping = {
   deleteFiles: Promise<GenericResult<void>>
   applyVimChanges: Promise<GenericResult<void>>
   createFileOrFolder: Promise<GenericResult<{ path: string }>>
-  createImageFromClipboard: Promise<GenericResult<{ path: string }>>
-  createPdfFromClipboard: Promise<GenericResult<{ path: string }>>
+  createFromClipboard: Promise<GenericResult<{ path: string }>>
   readFileAsBase64: Promise<GenericResult<{ base64: string }>>
   hasClipboardImage: Promise<boolean>
+  getCustomPasteType: Promise<CustomPasteType>
   renameFileOrFolder: Promise<GenericResult<{ newPath: string }>>
   batchRenameFiles: Promise<GenericResult<{ renamedPaths: Array<{ oldPath: string; newPath: string }> }>>
   getPreviewPreloadPath: string
@@ -154,7 +164,6 @@ export type EventResponseMapping = {
         needsResolution: false
         result: GenericResult<{ pastedItems: string[] }>
       }
-    | { customPaste: 'image' | 'base64pdf' }
   >
   fuzzyFileFinder: Promise<GenericResult<string[]>>
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>
@@ -247,18 +256,15 @@ export type EventRequestMapping = {
     parentDir: string
     name: string
   }
-  createImageFromClipboard: {
-    parentDir: string
-    name: string
-  }
-  createPdfFromClipboard: {
-    parentDir: string
-    name: string
+  createFromClipboard: {
+    filePath: string
+    type: CreateFromClipboardType
   }
   readFileAsBase64: {
     filePath: string
   }
   hasClipboardImage: void
+  getCustomPasteType: void
   renameFileOrFolder: {
     fullPath: string
     newName: string
@@ -347,10 +353,10 @@ export type WindowElectron = {
   deleteFiles: (filePaths: string[], clientMetadata: Tasks.ClientMetadata) => Promise<GenericResult<void>>
   applyVimChanges: (changes: VimEngine.Change[]) => Promise<GenericResult<void>>
   createFileOrFolder: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
-  createImageFromClipboard: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
-  createPdfFromClipboard: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
+  createFromClipboard: (filePath: string, type: CreateFromClipboardType) => Promise<GenericResult<{ path: string }>>
   readFileAsBase64: (filePath: string) => Promise<GenericResult<{ base64: string }>>
   hasClipboardImage: () => Promise<boolean>
+  getCustomPasteType: () => Promise<CustomPasteType>
   renameFileOrFolder: (fullPath: string, newName: string) => Promise<GenericResult<{ newPath: string }>>
   batchRenameFiles: (
     items: Array<{ fullPath: string; newName: string }>
@@ -368,7 +374,6 @@ export type WindowElectron = {
         needsResolution: false
         result: GenericResult<{ pastedItems: string[] }>
       }
-    | { customPaste: 'image' | 'base64pdf' }
   >
   fuzzyFileFinder: (directory: string, query: string) => Promise<GenericResult<string[]>>
   searchStringRecursively: (options: StringSearchOptions) => Promise<GenericResult<StringSearchResult[]>>

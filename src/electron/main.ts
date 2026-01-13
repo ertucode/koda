@@ -10,8 +10,9 @@ import { captureRect } from './utils/capture-rect.js'
 import { getFileContent } from './utils/get-file-content.js'
 import { deleteFiles } from './utils/delete-files.js'
 import { createFileOrFolder } from './utils/create-file-or-folder.js'
-import { createImageFromClipboard, hasClipboardImage } from './utils/create-image-from-clipboard.js'
-import { createPdfFromClipboard } from './utils/create-pdf-from-clipboard.js'
+import { hasClipboardImage } from './utils/create-image-from-clipboard.js'
+import { createFromClipboard } from './utils/create-from-clipboard.js'
+import { getCustomPasteType } from './utils/get-custom-paste-type.js'
 import { readFileAsBase64 } from './utils/read-file-as-base64.js'
 import { renameFileOrFolder } from './utils/rename-file-or-folder.js'
 import { batchRenameFiles } from './utils/batch-rename-files.js'
@@ -177,10 +178,10 @@ app.on('ready', () => {
   })
   ipcHandle('deleteFiles', deleteFiles)
   ipcHandle('createFileOrFolder', ({ parentDir, name }) => createFileOrFolder(parentDir, name))
-  ipcHandle('createImageFromClipboard', ({ parentDir, name }) => createImageFromClipboard(parentDir, name))
-  ipcHandle('createPdfFromClipboard', ({ parentDir, name }) => createPdfFromClipboard(parentDir, name))
+  ipcHandle('createFromClipboard', ({ filePath, type }) => createFromClipboard(filePath, type))
   ipcHandle('readFileAsBase64', ({ filePath }) => readFileAsBase64(filePath))
   ipcHandle('hasClipboardImage', async () => hasClipboardImage())
+  ipcHandle('getCustomPasteType', async () => getCustomPasteType())
   ipcHandle('renameFileOrFolder', ({ fullPath, newName }) => renameFileOrFolder(fullPath, newName))
   ipcHandle('batchRenameFiles', items => batchRenameFiles(items))
   ipcHandle('getPreviewPreloadPath', () => getPreviewPreloadPath())

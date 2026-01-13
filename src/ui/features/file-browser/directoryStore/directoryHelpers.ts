@@ -204,54 +204,6 @@ export const directoryHelpers = {
     }
   },
 
-  createImageFromClipboard: async (name: string, directoryId: DirectoryId): Promise<ResultHandlerResult> => {
-    const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
-    if (context.directory.type !== 'path') {
-      return GenericError.Message('Cannot create image in tags view')
-    }
-
-    try {
-      const result = await getWindowElectron().createImageFromClipboard(context.directory.fullPath, name)
-      if (result.success) {
-        loadDirectoryInfo(context.directory, directoryId).then(() => {
-          directoryStore.send({
-            type: 'setPendingSelection',
-            name: name,
-            directoryId,
-          })
-        })
-      }
-      return result
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      return GenericError.Message(errorMessage)
-    }
-  },
-
-  createPdfFromClipboard: async (name: string, directoryId: DirectoryId): Promise<ResultHandlerResult> => {
-    const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
-    if (context.directory.type !== 'path') {
-      return GenericError.Message('Cannot create PDF in tags view')
-    }
-
-    try {
-      const result = await getWindowElectron().createPdfFromClipboard(context.directory.fullPath, name)
-      if (result.success) {
-        loadDirectoryInfo(context.directory, directoryId).then(() => {
-          directoryStore.send({
-            type: 'setPendingSelection',
-            name: name,
-            directoryId,
-          })
-        })
-      }
-      return result
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred'
-      return GenericError.Message(errorMessage)
-    }
-  },
-
   renameItem: async (
     item: GetFilesAndFoldersInDirectoryItem,
     newName: string,
