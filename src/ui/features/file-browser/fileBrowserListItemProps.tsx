@@ -5,6 +5,7 @@ import { directoryHelpers } from './directoryStore/directoryHelpers'
 import { perDirectoryDataHelpers } from './directoryStore/perDirectoryData'
 import { getBufferSelection, selectBuffer } from './directoryStore/directoryPureHelpers'
 import { fileDragDropHandlers, fileDragDropStore } from './fileDragDrop'
+import { findRowIndexAtPosition } from './fileDragDrop'
 
 export function fileBrowserListItemProps({
   item: i,
@@ -37,7 +38,6 @@ export function fileBrowserListItemProps({
       const scrollContainer = target.closest('[data-scroll-container]') as HTMLElement | null
 
       fileDragDropHandlers.startDragToSelect(
-        index,
         directoryId,
         e.metaKey,
         { x: e.clientX, y: e.clientY },
@@ -48,8 +48,11 @@ export function fileBrowserListItemProps({
       const dragState = fileDragDropStore.getSnapshot()
 
       // If we're in drag-to-select mode for this directory, update the selection
-      if (dragState.context.isDragToSelect && dragState.context.dragToSelectDirectoryId === directoryId) {
-        const startIdx = dragState.context.dragToSelectStartIdx!
+      if (dragState.context.isDragToSelect && dragState.context.dragToSelectDirectoryId === directoryId && dragState.context.dragToSelectStartPosition) {
+        const scrollContainer = document.querySelector('[data-scroll-container]') as HTMLElement | null
+        if (!scrollContainer) return
+        const startIdx = findRowIndexAtPosition(scrollContainer, dragState.context.dragToSelectStartPosition.y, directoryId)
+        if (startIdx === null) return
         const currentIdx = index
 
         const state = directoryStore.getSnapshot()

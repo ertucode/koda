@@ -77,7 +77,6 @@ export function fileBrowserListContainerProps({
       const scrollContainer = e.currentTarget as HTMLElement;
 
       fileDragDropHandlers.startDragToSelect(
-        startIdx,
         directoryId,
         e.metaKey,
         { x: e.clientX, y: e.clientY },

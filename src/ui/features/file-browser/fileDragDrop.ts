@@ -27,7 +27,6 @@ type FileDragDropContext = {
   dragOverDirectoryId: DirectoryId | null
   dragOverRowIdx: number | null
   isDragToSelect: boolean
-  dragToSelectStartIdx: number | null
   dragToSelectDirectoryId: DirectoryId | null
   dragToSelectWithMetaKey: boolean
   dragToSelectStartPosition: { x: number; y: number } | null
@@ -42,11 +41,9 @@ export const fileDragDropStore = createStore({
     dragOverDirectoryId: null,
     dragOverRowIdx: null,
     isDragToSelect: false,
-    dragToSelectStartIdx: null,
     dragToSelectDirectoryId: null,
     dragToSelectWithMetaKey: false,
     dragToSelectStartPosition: null,
-    dragToSelectCurrentPosition: null,
     activeDrag: null,
     items: null,
   } as FileDragDropContext,
@@ -62,7 +59,6 @@ export const fileDragDropStore = createStore({
     startDragToSelect: (
       context,
       event: {
-        startIdx: number
         directoryId: DirectoryId
         withMetaKey: boolean
         startPosition: { x: number; y: number }
@@ -70,15 +66,20 @@ export const fileDragDropStore = createStore({
     ) => ({
       ...context,
       isDragToSelect: true,
-      dragToSelectStartIdx: event.startIdx,
       dragToSelectDirectoryId: event.directoryId,
       dragToSelectWithMetaKey: event.withMetaKey,
       dragToSelectStartPosition: event.startPosition,
     }),
+    adjustStartPosition: (context, event: { deltaY: number }) => ({
+      ...context,
+      dragToSelectStartPosition: context.dragToSelectStartPosition ? {
+        ...context.dragToSelectStartPosition,
+        y: context.dragToSelectStartPosition.y + event.deltaY
+      } : null,
+    }),
     endDragToSelect: context => ({
       ...context,
       isDragToSelect: false,
-      dragToSelectStartIdx: null,
       dragToSelectDirectoryId: null,
       dragToSelectWithMetaKey: false,
       dragToSelectStartPosition: null,
@@ -95,7 +96,6 @@ export const fileDragDropStore = createStore({
       dragOverDirectoryId: null,
       dragOverRowIdx: null,
       isDragToSelect: false,
-      dragToSelectStartIdx: null,
       dragToSelectDirectoryId: null,
       dragToSelectWithMetaKey: false,
       dragToSelectStartPosition: null,
@@ -190,7 +190,13 @@ const autoScrollLoop = () => {
   }
 
   if (scrollDelta !== 0) {
+    const prevScrollTop = container.scrollTop
     container.scrollTop += scrollDelta
+    const actualScrollDelta = container.scrollTop - prevScrollTop
+    if (actualScrollDelta !== 0) {
+      // Adjust start position to keep visual selection consistent
+      fileDragDropStore.send({ type: 'adjustStartPosition', deltaY: -actualScrollDelta })
+    }
     // Update selection after scrolling since visible items changed
     updateSelectionFromMousePosition()
   }
@@ -233,7 +239,7 @@ const handleGlobalMouseUp = () => {
 }
 
 // Find the row index at a given Y position within the container
-const findRowIndexAtPosition = (container: HTMLElement, mouseY: number, directoryId: DirectoryId): number | null => {
+export const findRowIndexAtPosition = (container: HTMLElement, mouseY: number, directoryId: DirectoryId): number | null => {
   const listElement =
     container.getAttribute('data-list-id') === directoryId
       ? container
@@ -300,10 +306,11 @@ const updateSelectionFromMousePosition = () => {
   if (!container) return
 
   const dragState = fileDragDropStore.getSnapshot()
-  if (!dragState.context.isDragToSelect || !dragState.context.dragToSelectDirectoryId) return
+  if (!dragState.context.isDragToSelect || !dragState.context.dragToSelectDirectoryId || !dragState.context.dragToSelectStartPosition) return
 
   const directoryId = dragState.context.dragToSelectDirectoryId
-  const startIdx = dragState.context.dragToSelectStartIdx!
+  const startIdx = findRowIndexAtPosition(container, dragState.context.dragToSelectStartPosition.y, directoryId)
+  if (startIdx === null) return
 
   const currentIdx = findRowIndexAtPosition(container, lastMouseY, directoryId)
   if (currentIdx === null) return
@@ -333,7 +340,6 @@ const updateSelectionFromMousePosition = () => {
 export const fileDragDropHandlers = {
   // Start drag-to-select mode
   startDragToSelect: (
-    startIdx: number,
     directoryId: DirectoryId,
     withMetaKey: boolean = false,
     startPosition: { x: number; y: number },
@@ -341,7 +347,6 @@ export const fileDragDropHandlers = {
   ) => {
     fileDragDropStore.send({
       type: 'startDragToSelect',
-      startIdx,
       directoryId,
       withMetaKey,
       startPosition,

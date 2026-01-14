@@ -4,15 +4,17 @@ import { DirectoryId } from '../directoryStore/DirectoryBase'
 import { FileBrowserTable } from '../FileBrowserTable'
 import { FuzzyInput } from './FuzzyInput'
 import { fileDragDropStore } from '../fileDragDrop'
+import { DragRectangle } from './DragRectangle'
 
 export function DirectoryTablePane({ directoryId }: { directoryId: DirectoryId }) {
   return (
-    <div className="relative flex flex-col min-h-0 min-w-0 h-full">
+    <div className="relative flex flex-col min-h-0 min-w-0 h-full overflow-hidden">
       <DragOverlay directoryId={directoryId} />
       <FuzzyInput directoryId={directoryId} />
       <DirectoryContextProvider directoryId={directoryId}>
         <FileBrowserTable />
       </DirectoryContextProvider>
+      <DragRectangle directoryId={directoryId} />
     </div>
   )
 }

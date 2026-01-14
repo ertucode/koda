@@ -2,7 +2,7 @@ import React, { useRef, ComponentProps, useEffect } from 'react'
 import { Layout } from 'flexlayout-react'
 import { BottomToolbar } from '../file-browser/components/BottomToolbar'
 import { CustomTitleBar } from '../file-browser/components/CustomTitleBar'
-import { DragRectangle } from '../file-browser/components/DragRectangle'
+
 import { FileBrowserShortcuts } from '../file-browser/FileBrowserShortcuts'
 import { layoutModel } from '../file-browser/initializeDirectory'
 import { layoutFactory } from './layoutFactory'
@@ -48,7 +48,6 @@ export const FlexLayoutManager: React.FC = () => {
         />
       </div>
       <BottomToolbar />
-      <DragRectangle />
     </div>
   )
 }
