@@ -1,4 +1,4 @@
-import { getWindowElectron, windowArgs } from '@/getWindowElectron'
+import { loadFromAsyncStorage, saveToAsyncStorage } from '@/features/file-browser/utils/asyncStorage'
 import { AsyncStorageKey } from '@common/AsyncStorageKeys'
 import { useState } from 'react'
 import { ZodType } from 'zod'
@@ -12,8 +12,7 @@ export function useAsyncStorage<T>(
   const [storedValue, setStoredValue] = useState<T>(() => {
     if (overrideValue) return overrideValue
     try {
-      const item = windowArgs.asyncStorage[key]
-      return item ? schema.parse(JSON.parse(item)) : initialValue
+      return loadFromAsyncStorage(key, schema, initialValue)
     } catch (error) {
       console.error(error)
       return initialValue
@@ -24,7 +23,7 @@ export function useAsyncStorage<T>(
     setStoredValue(storedValue => {
       try {
         const valueToStore = value instanceof Function ? value(storedValue) : value
-        getWindowElectron().setAsyncStorageValue(key, JSON.stringify(valueToStore))
+        saveToAsyncStorage(key, schema, valueToStore)
         return valueToStore
       } catch (error) {
         console.error(error)

@@ -1,7 +1,7 @@
 import { getWindowElectron, windowArgs } from '@/getWindowElectron'
 import { toast } from '@/lib/components/toast'
 import { CommandMetadata } from '@common/Command'
-import { dialogStore } from './dialogStore'
+import { dialogActions } from './dialogStore'
 import { PathHelpers } from '@common/PathHelpers'
 import { GenericError } from '@common/GenericError'
 import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
@@ -12,7 +12,7 @@ export namespace CommandHelpers {
   export async function runCommand(script: CommandMetadata, fullPath: string, item: GetFilesAndFoldersInDirectoryItem) {
     try {
       if (script.parameters?.length) {
-        dialogStore.trigger.openDialog({
+        dialogActions.open({
           component: RunCommandDialog,
           props: {
             command: script,

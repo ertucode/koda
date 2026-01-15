@@ -1,4 +1,3 @@
-import { getWindowElectron, windowArgs } from '@/getWindowElectron'
 import { AsyncStorageKey } from '@common/AsyncStorageKeys'
 import { debounce } from '@common/debounce'
 import { z } from 'zod'
@@ -12,8 +11,10 @@ import { z } from 'zod'
  */
 export const loadFromAsyncStorage = <T>(key: AsyncStorageKey, schema: z.ZodType<T>, defaultValue: T): T => {
   try {
-    const item = windowArgs.asyncStorage[key]
+    const item = localStorage.getItem(key)
     if (!item) return defaultValue
+    const safeParsed = schema.safeParse(item) // string icin
+    if (safeParsed.success) return safeParsed.data
     const parsed = JSON.parse(item)
     return schema.parse(parsed)
   } catch {
@@ -30,7 +31,7 @@ export const loadFromAsyncStorage = <T>(key: AsyncStorageKey, schema: z.ZodType<
 export const saveToAsyncStorage = async <T>(key: AsyncStorageKey, schema: z.ZodType<T>, value: T): Promise<void> => {
   try {
     const validated = schema.parse(value)
-    await getWindowElectron().setAsyncStorageValue(key, typeof value === 'string' ? value : JSON.stringify(validated))
+    localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(validated))
   } catch {
     // Ignore validation errors
   }

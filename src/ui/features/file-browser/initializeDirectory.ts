@@ -4,7 +4,7 @@ import { directoryStore } from './directoryStore/directory'
 import { DirectoryId } from './directoryStore/DirectoryBase'
 import { CustomLayout, CustomLayoutSchema, layoutStore, layoutStoreHelpers, selectDefaultLayout } from './layoutStore'
 import { windowArgs } from '@/getWindowElectron'
-import { saveToAsyncStorage } from './utils/asyncStorage'
+import { loadFromAsyncStorage, saveToAsyncStorage } from './utils/asyncStorage'
 import { AsyncStorageKeys } from '@common/AsyncStorageKeys'
 import z from 'zod'
 
@@ -202,7 +202,7 @@ export const layoutJson = ((): IJsonModel => {
     return initFromPaths([windowArgs.initialPath])
   }
   // First, check if there's an applied layout in asyncStorage (from CustomLayoutsDialog)
-  const appliedLayoutStr = windowArgs.asyncStorage.oneTimeLayoutModel
+  const appliedLayoutStr = loadFromAsyncStorage(AsyncStorageKeys.oneTimeLayoutModel, z.string(), null)
   if (appliedLayoutStr) {
     try {
       const appliedLayout = JSON.parse(appliedLayoutStr)

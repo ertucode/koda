@@ -9,8 +9,9 @@ import { TrashIcon, StarIcon, GripVerticalIcon, SaveIcon, PencilIcon, CheckIcon,
 import { confirmation } from '@/lib/components/confirmation'
 import { toast } from '@/lib/components/toast'
 import { IJsonModel } from 'flexlayout-react'
-import { getWindowElectron } from '@/getWindowElectron'
 import { AsyncStorageKeys } from '@common/AsyncStorageKeys'
+import { saveToAsyncStorage } from '../utils/asyncStorage'
+import z from 'zod'
 
 interface LayoutCardProps {
   layout?: CustomLayout
@@ -328,7 +329,8 @@ export const CustomLayoutsDialog = function CustomLayoutsDialog() {
             directories: layout.directories,
             activeDirectoryId: layout.activeDirectoryId,
           }
-          await getWindowElectron().setAsyncStorageValue(AsyncStorageKeys.oneTimeLayoutModel, JSON.stringify(storage))
+
+          saveToAsyncStorage(AsyncStorageKeys.oneTimeLayoutModel, z.any(), JSON.stringify(storage))
 
           toast.show({
             title: 'Reloading...',

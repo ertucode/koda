@@ -1,5 +1,3 @@
-import { Ref } from 'react'
-import { DialogForItem, useDialogForItem } from '@/lib/hooks/useDialogForItem'
 import { CommandMetadata } from '@common/Command'
 import { FormDialogForm } from '@/lib/libs/form/createFormDialog'
 import z from 'zod'
@@ -16,17 +14,14 @@ type Item = {
   fileType: 'dir' | 'file'
 }
 
-export const RunCommandDialog = ({ ref }: { ref: Ref<DialogForItem<Item>> }) => {
-  const dialog = useDialogForItem(ref)
-
-  const parameters = dialog.item?.command.parameters
+export const RunCommandDialog = (item: Item) => {
+  const parameters = item?.command.parameters
 
   if (!parameters?.length) return undefined
-  if (!dialog.dialogOpen) return undefined
 
   return (
     <FormDialogForm
-      item={dialog.item}
+      item={item}
       onNonErrorBehavior={{ closeDialog: true }}
       dialogClassName="max-w-screen w-200"
       schema={z.record(z.string(), z.string())}

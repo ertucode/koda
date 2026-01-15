@@ -19,7 +19,8 @@ const initialContext: DialogStoreContext = { state: null }
 export const dialogStore = createStore({
   context: initialContext,
   on: {
-    openDialog: (_context: DialogStoreContext, event: DialogState<any>) => ({
+    // Dont use. is not typesafe
+    ___openDialog: (_context: DialogStoreContext, event: DialogState<any>) => ({
       state: event,
     }),
 
@@ -31,7 +32,7 @@ export const dialogStore = createStore({
 export const dialogActions = {
   open: function <T extends ComponentType<any>>(state: DialogState<T>) {
     dialogStore.send({
-      type: 'openDialog',
+      type: '___openDialog',
       ...state,
     })
   },

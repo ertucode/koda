@@ -35,7 +35,6 @@ import { runCommand } from './utils/run-command.js'
 import { getServerConfig } from './server-config.js'
 import { getAudioMetadata } from './utils/get-audio-metadata.js'
 import { applyVimChanges } from './utils/apply-vim-changes.js'
-import { loadAsyncStorageValues, setAsyncStorageValue } from './utils/asyncStorage.js'
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined
@@ -57,11 +56,9 @@ type WindowArgsWithoutStatic = Omit<WindowArguments, 'homeDir' | 'asyncStorage' 
 const homeDir = os.homedir()
 
 async function createWindow(args?: WindowArgsWithoutStatic) {
-  const asyncStorageValues = await loadAsyncStorageValues()
   const windowArgs: WindowArguments = {
     ...args,
     homeDir,
-    asyncStorage: asyncStorageValues,
     isDev: process.env.NODE_ENV === 'development',
   }
   const { width, height } = screen.getPrimaryDisplay().workAreaSize
@@ -305,10 +302,6 @@ app.on('ready', () => {
       })
     })
   }
-
-  ipcHandle('setAsyncStorageValue', async ({ key, value }) => {
-    await setAsyncStorageValue(key, value)
-  })
 
   ipcHandle('openSelectAppWindow', ({ initialPath }) => openSelectAppWindow(initialPath))
 

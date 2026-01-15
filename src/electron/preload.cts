@@ -6,13 +6,11 @@ import {
   ReplaceInFileOptions,
   ReplaceInMultipleFilesOptions,
   WindowElectron,
-  ConflictResolution,
   CreateFromClipboardType,
 } from '../common/Contracts'
 import { TaskEvents } from '../common/Tasks'
 import { ArchiveTypes } from '../common/ArchiveTypes'
 import { GenericEvent } from '../common/GenericEvent'
-import { AsyncStorageKey } from '../common/AsyncStorageKeys'
 
 electron.contextBridge.exposeInMainWorld('electron', {
   isSelectAppMode: () => getArgv('--mode=') === 'select-app',
@@ -101,8 +99,6 @@ electron.contextBridge.exposeInMainWorld('electron', {
   setCompactWindowSize: () => ipcInvoke('setCompactWindowSize', undefined),
   restoreWindowSize: () => ipcInvoke('restoreWindowSize', undefined),
   getIsCompactWindowSize: () => ipcInvoke('getIsCompactWindowSize', undefined),
-  setAsyncStorageValue: (key: AsyncStorageKey, value: $Maybe<string>) =>
-    ipcInvoke('setAsyncStorageValue', { key, value }),
 } satisfies WindowElectron)
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

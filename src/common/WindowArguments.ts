@@ -1,14 +1,12 @@
 import z from 'zod'
 import { fromBase64, toBase64 } from './base64.js'
 import { CommandMetadata } from './Command.js'
-import { AsyncStorageKeys } from './AsyncStorageKeys.js'
 
 export const WindowArguments = z.object({
   initialPath: z.string().optional(),
   mode: z.enum(['select-app']).optional(),
   homeDir: z.string(),
   commands: CommandMetadata.array().optional(),
-  asyncStorage: z.partialRecord(z.enum(Object.values(AsyncStorageKeys)), z.string().nullish()),
   isDev: z.boolean(),
 })
 export type WindowArguments = z.infer<typeof WindowArguments>

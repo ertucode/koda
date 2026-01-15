@@ -7,11 +7,7 @@ import { type AsyncStorageKey } from './AsyncStorageKeys.js'
 
 export type Base64Type = 'pdf' | 'png' | 'jpg' | 'gif' | 'webp' | 'mp3' | 'mp4' | 'zip' | 'docx' | 'unknown'
 
-export type CustomPasteType =
-  | { type: 'image' }
-  | { type: 'base64'; base64Type: Base64Type }
-  | { type: 'text' }
-  | null
+export type CustomPasteType = { type: 'image' } | { type: 'base64'; base64Type: Base64Type } | { type: 'text' } | null
 
 export type CreateFromClipboardType = 'image' | 'base64' | 'text'
 
@@ -419,5 +415,4 @@ export type WindowElectron = {
   setCompactWindowSize: () => Promise<void>
   restoreWindowSize: () => Promise<void>
   getIsCompactWindowSize: () => Promise<boolean>
-  setAsyncStorageValue: (key: AsyncStorageKey, value: $Maybe<string>) => Promise<void>
 }
