@@ -355,7 +355,7 @@ export const FileBrowserShortcuts = {
 
             layoutModel.doAction(Actions.maximizeToggle(activeTabSet.getId()))
           },
-          label: 'Maximize/Minimize',
+          label: 'Maximize/Minimize Preview',
         },
         {
           key: { key: 'w', metaKey: true },
