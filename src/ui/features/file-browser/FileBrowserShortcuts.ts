@@ -21,6 +21,7 @@ import { BatchRenameDialog } from './components/BatchRenameDialog'
 import { CreateFromClipboardDialog } from './components/CreateFromClipboardDialog'
 import { getWindowElectron } from '@/getWindowElectron'
 import { toast } from '@/lib/components/toast'
+import { TableItemFinder } from '@/lib/libs/table/TableItemFinder'
 
 const SHORTCUTS_KEY = 'file-browser'
 
@@ -68,10 +69,11 @@ export const FileBrowserShortcuts = {
             const cursorLine = getCursorLine(snapshot.context, active)
             if (cursorLine == null) return
             const data = getFilteredData()
-            const element = document.querySelector(`[data-cursor="${active.directoryId}"]`) as HTMLElement
+            const found = TableItemFinder.findItem(active.directoryId, cursorLine)
+            if (!found) return
             directoryStore.trigger.showContextMenu({
               directoryId: active.directoryId,
-              element: element as HTMLElement,
+              element: found.row as HTMLElement,
               index: cursorLine,
               item: data[cursorLine],
             })

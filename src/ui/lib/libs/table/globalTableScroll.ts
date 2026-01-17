@@ -4,22 +4,18 @@
  */
 
 import { fileDragDropHandlers } from '@/features/file-browser/fileDragDrop'
+import { TableItemFinder } from './TableItemFinder'
+import { DirectoryId } from '@/features/file-browser/directoryStore/DirectoryBase'
 
-export function scrollRowIntoViewIfNeeded(tableId: string, rowIndex: number, block: ScrollLogicalPosition = 'nearest') {
+export function scrollRowIntoViewIfNeeded(
+  tableId: DirectoryId,
+  rowIndex: number,
+  block: ScrollLogicalPosition = 'nearest'
+) {
   if (fileDragDropHandlers.isDragToSelect()) return
-  const tbody = document.querySelector(`[data-list-id="${tableId}"]`) as HTMLTableElement | null
-
-  if (!tbody) {
-    console.warn(`Container with id "${tableId}" not found`)
-    return
-  }
-
-  const row = tbody.querySelector(`[data-list-item]:nth-child(${rowIndex + 1})`) as HTMLElement | null
-
-  if (!row) {
-    console.warn(`Row at index ${rowIndex} not found in table "${tableId}"`)
-    return
-  }
+  const found = TableItemFinder.findItem(tableId, rowIndex)
+  if (!found) return
+  const { tbody, row } = found
 
   const scrollContainer = tbody.closest('.overflow-auto') as HTMLElement | null
 

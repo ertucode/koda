@@ -6,10 +6,7 @@
 # TODO
 
 - for archives, navgate to it on double click. show unarchive button on the name part
-
   - open dialog
-
-- column config storage bozuk
 
 # AMBITIOUS TODO
 
