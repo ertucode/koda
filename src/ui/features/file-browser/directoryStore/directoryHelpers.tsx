@@ -367,10 +367,20 @@ export const directoryHelpers = {
 
     const paths = items.map(item => item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId))
 
-    const message =
-      items.length === 1
-        ? `Are you sure you want to delete "${items[0].name}"?`
-        : `Are you sure you want to delete ${items.length} items?`
+    const message = (
+      <div>
+        <p className="mb-2">
+          Are you sure you want to delete {items.length === 1 ? 'this item' : `these ${items.length} items`}?
+        </p>
+        <ul className="list-disc pl-5 max-h-[200px] overflow-y-auto">
+          {items.map((item, index) => (
+            <li key={index} className="truncate">
+              {item.name}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
 
     confirmation.trigger.confirm({
       title: 'Confirm Delete',
