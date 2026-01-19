@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
 import archiver from "archiver";
-import extract from "extract-zip";
+import yauzl from "yauzl";
+import { pipeline } from "stream/promises";
 import AdmZip from "adm-zip";
 import { PathHelpers } from "../../../common/PathHelpers.js";
 import { Archive } from "./Archive.js";
@@ -10,6 +11,19 @@ import { GenericError } from "../../../common/GenericError.js";
 import { getSizeForPath } from "../get-directory-size.js";
 import { ArchiveTypes } from "../../../common/ArchiveTypes.js";
 import { expandHome } from "../expand-home.js";
+
+function openZip(
+  zipPath: string,
+  options: yauzl.Options,
+): Promise<yauzl.ZipFile> {
+  return new Promise((resolve, reject) => {
+    yauzl.open(zipPath, options, (err, zipfile) => {
+      if (err) reject(err);
+      else if (zipfile) resolve(zipfile);
+      else reject(new Error("Failed to open zip file"));
+    });
+  });
+}
 
 export namespace Zip {
   export function archive(
@@ -146,7 +160,6 @@ export namespace Zip {
         destination, // folder
         progressCallback,
         abortSignal,
-        extractWithoutPaths = false,
       } = opts;
 
       let settled = false;
@@ -194,28 +207,129 @@ export namespace Zip {
       abortSignal.addEventListener("abort", cancel, { once: true });
 
       // -----------------
-      // EXTRACT
+      // EXTRACT using yauzl with streaming
       // -----------------
       try {
         const fullPath = path.resolve(source);
         const fullOutputDir = path.resolve(destination);
 
-        // Extract normally - if extractWithoutPaths is true, the caller
-        // (start-archive-task.ts) will handle moving files from temp folder
-        await extract(fullPath, {
-          dir: fullOutputDir,
-          onEntry: (entry, zipFile) => {
-            // Check if extraction was aborted
+        // Use yauzl with decodeStrings: false to get raw buffers,
+        // then manually decode as UTF-8 and normalize to NFC.
+        // This properly handles Turkish/Unicode characters in filenames.
+        const zipfile = await openZip(fullPath, {
+          lazyEntries: true,
+          decodeStrings: false,
+        });
+
+        await new Promise<void>((resolveExtract, rejectExtract) => {
+          let entriesRead = 0;
+
+          zipfile.on("error", (err: Error) => {
+            aborted = true;
+            rejectExtract(err);
+          });
+
+          zipfile.on("close", () => {
+            if (!aborted) {
+              resolveExtract();
+            }
+          });
+
+          zipfile.on("entry", async (entry: yauzl.Entry) => {
             if (aborted) {
-              throw new Error("Unarchive cancelled");
+              zipfile.close();
+              return;
             }
 
-            // Track progress based on entries (files) processed
-            if (progressCallback && zipFile.entryCount > 0) {
-              const progress = (zipFile.entriesRead / zipFile.entryCount) * 100;
+            entriesRead++;
+
+            // Track progress
+            if (progressCallback && zipfile.entryCount > 0) {
+              const progress = (entriesRead / zipfile.entryCount) * 100;
               progressCallback(progress);
             }
-          },
+
+            // Decode filename: entry.fileName is a Buffer when decodeStrings: false
+            // Decode as UTF-8 and normalize to NFC (macOS uses NFD decomposed form)
+            const fileName = (entry.fileName as unknown as Buffer)
+              .toString("utf8")
+              .normalize("NFC");
+
+            // Skip __MACOSX metadata folders
+            if (fileName.startsWith("__MACOSX/")) {
+              zipfile.readEntry();
+              return;
+            }
+
+            const destPath = path.join(fullOutputDir, fileName);
+            const destDir = path.dirname(destPath);
+
+            try {
+              // Create directory structure
+              await fs.promises.mkdir(destDir, { recursive: true });
+
+              // Security check: ensure we're not extracting outside destination
+              const canonicalDestDir = await fs.promises.realpath(destDir);
+              const relativeDestDir = path.relative(
+                fullOutputDir,
+                canonicalDestDir,
+              );
+
+              if (relativeDestDir.split(path.sep).includes("..")) {
+                throw new Error(
+                  `Out of bound path "${canonicalDestDir}" found while processing file ${fileName}`,
+                );
+              }
+
+              // Check if entry is a directory
+              if (fileName.endsWith("/")) {
+                // Directory entry - just create it
+                await fs.promises.mkdir(destPath, { recursive: true });
+                zipfile.readEntry();
+              } else {
+                // File entry - extract it with streaming
+                zipfile.openReadStream(
+                  entry,
+                  (err: Error | null, readStream?: NodeJS.ReadableStream) => {
+                    if (err) {
+                      aborted = true;
+                      zipfile.close();
+                      rejectExtract(err);
+                      return;
+                    }
+
+                    if (!readStream) {
+                      aborted = true;
+                      zipfile.close();
+                      rejectExtract(new Error("Failed to open read stream"));
+                      return;
+                    }
+
+                    const writeStream = fs.createWriteStream(destPath);
+
+                    pipeline(readStream, writeStream)
+                      .then(() => {
+                        if (!aborted) {
+                          zipfile.readEntry();
+                        }
+                      })
+                      .catch((pipeErr: Error) => {
+                        aborted = true;
+                        zipfile.close();
+                        rejectExtract(pipeErr);
+                      });
+                  },
+                );
+              }
+            } catch (err) {
+              aborted = true;
+              zipfile.close();
+              rejectExtract(err as Error);
+            }
+          });
+
+          // Start reading entries
+          zipfile.readEntry();
         });
 
         // Ensure we reach 100% on completion
