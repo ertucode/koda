@@ -38,7 +38,7 @@ export namespace CommandHelpers {
   export async function runCommandWithParameters(
     command: CommandMetadata,
     fullPath: string,
-    parameters: Record<string, string>
+    parameters: Record<string, string | boolean>
   ): Promise<ResultHandlerResult> {
     try {
       getWindowElectron().runCommand({
