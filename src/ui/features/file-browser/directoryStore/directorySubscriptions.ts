@@ -114,8 +114,12 @@ export function setupSubscriptions(directoryId: DirectoryId) {
 
   subscriptions.push(
     subscribeToStores(
-      [directoryStore, fileBrowserSettingsStore],
-      ([d, settings]) => [d.directoriesById[directoryId]?.directoryData, settings.settings],
+      [directoryStore, fileBrowserSettingsStore, columnPreferencesStore],
+      ([d, settings, columnPrefs]) => [
+        d.directoriesById[directoryId]?.directoryData,
+        settings.settings,
+        JSON.stringify(resolveSortFromStores(d.directoriesById[directoryId], columnPrefs)),
+      ],
       ([d]) => {
         const items = getFilteredDirectoryData()
         if (!items) return

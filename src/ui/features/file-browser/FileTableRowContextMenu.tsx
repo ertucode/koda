@@ -368,41 +368,41 @@ export const FileTableRowContextMenu = ({
   // Copy as Base64 item for supported file types
   const copyAsBase64Item: ContextMenuItem | null =
     item.type === 'file' && supportsBase64Copy(item.name)
-    ? {
-        onClick: async () => {
-          const result = await getWindowElectron().readFileAsBase64(fullPath)
-          if (result.success) {
-            const base64 = result.data.base64
-            await navigator.clipboard.writeText(base64)
-            toast.show({
-              severity: 'success',
-              message: (
-                <div className="flex items-center gap-2">
-                  <span>Copied to clipboard</span>
-                  <button
-                    className="btn btn-xs btn-ghost"
-                    onClick={() => {
-                      dialogActions.open({
-                        component: Base64PreviewDialog,
-                        props: { base64, fileName: item.name },
-                      })
-                    }}
-                  >
-                    <EyeIcon className="size-3" />
-                    Show
-                  </button>
-                </div>
-              ),
-              timeout: 8000,
-            })
-          } else {
-            toast.show(result)
-          }
-          close()
-        },
-        view: <TextWithIcon icon={FileTextIcon}>Copy as Base64</TextWithIcon>,
-      }
-    : null
+      ? {
+          onClick: async () => {
+            const result = await getWindowElectron().readFileAsBase64(fullPath)
+            if (result.success) {
+              const base64 = result.data.base64
+              await navigator.clipboard.writeText(base64)
+              toast.show({
+                severity: 'success',
+                message: (
+                  <div className="flex items-center gap-2">
+                    <span>Copied to clipboard</span>
+                    <button
+                      className="btn btn-xs btn-ghost"
+                      onClick={() => {
+                        dialogActions.open({
+                          component: Base64PreviewDialog,
+                          props: { base64, fileName: item.name },
+                        })
+                      }}
+                    >
+                      <EyeIcon className="size-3" />
+                      Show
+                    </button>
+                  </div>
+                ),
+                timeout: 8000,
+              })
+            } else {
+              toast.show(result)
+            }
+            close()
+          },
+          view: <TextWithIcon icon={FileTextIcon}>Copy as Base64</TextWithIcon>,
+        }
+      : null
 
   if (item.type === 'dir') {
     const openDirectoryInNewTab: ContextMenuItem = {
