@@ -30,6 +30,15 @@ export function FileBrowserOptionsSection() {
         />
         Folders on top
       </label>
+      <label className="label text-xs">
+        <input
+          type="checkbox"
+          className="checkbox checkbox-xs"
+          checked={settings.trashForDelete}
+          onChange={() => fileBrowserSettingsHelpers.toggleTrashForDelete()}
+        />
+        Use trash for delete
+      </label>
       <select
         className="select select-sm select-bordered w-32"
         value={settings.fileTypeFilter ?? "all"}
