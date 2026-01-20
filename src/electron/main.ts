@@ -8,7 +8,7 @@ import { openFile } from './utils/open-file.js'
 import { expandHome } from './utils/expand-home.js'
 import { captureRect } from './utils/capture-rect.js'
 import { getFileContent } from './utils/get-file-content.js'
-import { deleteFilesSafe } from './utils/delete-files.js'
+import { deleteFiles, deleteFilesSafe } from './utils/delete-files.js'
 import { createFileOrFolder } from './utils/create-file-or-folder.js'
 import { hasClipboardImage } from './utils/create-image-from-clipboard.js'
 import { createFromClipboard } from './utils/create-from-clipboard.js'
@@ -173,7 +173,13 @@ app.on('ready', () => {
   ipcHandle('readFilePreview', ({ filePath, allowBigSize, fullSize }) => {
     return getFileContent(filePath, allowBigSize, fullSize)
   })
-  ipcHandle('deleteFiles', deleteFilesSafe)
+  ipcHandle('deleteFiles', opts => {
+    if (opts.isSafe) {
+      return deleteFilesSafe(opts)
+    } else {
+      return deleteFiles(opts)
+    }
+  })
   ipcHandle('createFileOrFolder', ({ parentDir, name }) => createFileOrFolder(parentDir, name))
   ipcHandle('createFromClipboard', ({ filePath, type }) => createFromClipboard(filePath, type))
   ipcHandle('readFileAsBase64', ({ filePath }) => readFileAsBase64(filePath))

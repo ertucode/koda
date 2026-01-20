@@ -391,7 +391,8 @@ export const directoryHelpers = {
           // Delete all selected files/folders
           const result = await getWindowElectron().deleteFiles(
             paths,
-            directoryHelpers.getClientMetadata(activeDirectory)
+            directoryHelpers.getClientMetadata(activeDirectory),
+            fileBrowserSettingsStore.getSnapshot().context.settings.trashForDelete
           )
 
           if (!result.success) {

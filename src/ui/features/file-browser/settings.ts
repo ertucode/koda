@@ -22,6 +22,7 @@ export type FileCategoryFilter = z.infer<typeof fileCategoryFilter>
 
 const SettingsSchema = z.object({
   showDotFiles: z.boolean(),
+  trashForDelete: z.boolean().default(true),
   foldersOnTop: z.boolean(),
   fileTypeFilter: fileCategoryFilter.optional(),
 })
@@ -30,6 +31,7 @@ export type FileBrowserSettings = z.infer<typeof SettingsSchema>
 
 const defaultSettings: FileBrowserSettings = {
   showDotFiles: false,
+  trashForDelete: true,
   foldersOnTop: true,
   fileTypeFilter: 'all',
 }
@@ -58,6 +60,14 @@ export const fileBrowserSettingsStore = createStore({
       },
     }),
 
+    toggleTrashForDelete: context => ({
+      ...context,
+      settings: {
+        ...context.settings,
+        trashForDelete: !context.settings.trashForDelete,
+      },
+    }),
+
     setFileTypeFilter: (context, event: { filter: FileCategoryFilter }) => ({
       ...context,
       settings: {
@@ -83,6 +93,8 @@ export const fileBrowserSettingsHelpers = {
   toggleShowDotFiles: () => fileBrowserSettingsStore.send({ type: 'toggleShowDotFiles' }),
 
   toggleFoldersOnTop: () => fileBrowserSettingsStore.send({ type: 'toggleFoldersOnTop' }),
+
+  toggleTrashForDelete: () => fileBrowserSettingsStore.send({ type: 'toggleTrashForDelete' }),
 
   setFileTypeFilter: (filter: FileCategoryFilter) =>
     fileBrowserSettingsStore.send({ type: 'setFileTypeFilter', filter }),

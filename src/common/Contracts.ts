@@ -246,7 +246,7 @@ export type EventRequestMapping = {
     allowBigSize?: boolean
     fullSize?: boolean
   }
-  deleteFiles: { filePaths: string[]; clientMetadata: Tasks.ClientMetadata }
+  deleteFiles: { filePaths: string[]; clientMetadata: Tasks.ClientMetadata; isSafe: boolean }
   applyVimChanges: VimEngine.Change[]
   createFileOrFolder: {
     parentDir: string
@@ -346,7 +346,11 @@ export type WindowElectron = {
     | { error: string }
     | { error: 'FILE_TOO_LARGE' }
   >
-  deleteFiles: (filePaths: string[], clientMetadata: Tasks.ClientMetadata) => Promise<GenericResult<void>>
+  deleteFiles: (
+    filePaths: string[],
+    clientMetadata: Tasks.ClientMetadata,
+    isSafe: boolean
+  ) => Promise<GenericResult<void>>
   applyVimChanges: (changes: VimEngine.Change[]) => Promise<GenericResult<void>>
   createFileOrFolder: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
   createFromClipboard: (filePath: string, type: CreateFromClipboardType) => Promise<GenericResult<{ path: string }>>

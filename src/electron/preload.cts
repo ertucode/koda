@@ -26,7 +26,8 @@ electron.contextBridge.exposeInMainWorld('electron', {
   getWindowArgs: () => getArgv('--window-args=')!,
   readFilePreview: (filePath: string, allowBigSize?: boolean, fullSize?: boolean) =>
     ipcInvoke('readFilePreview', { filePath, allowBigSize, fullSize }),
-  deleteFiles: (filePaths: string[], clientMetadata: any) => ipcInvoke('deleteFiles', { filePaths, clientMetadata }),
+  deleteFiles: (filePaths: string[], clientMetadata: any, isSafe: boolean) =>
+    ipcInvoke('deleteFiles', { filePaths, clientMetadata, isSafe }),
   applyVimChanges: (changes: any) => ipcInvoke('applyVimChanges', changes),
   createFileOrFolder: (parentDir: string, name: string) => ipcInvoke('createFileOrFolder', { parentDir, name }),
   createFromClipboard: (filePath: string, type: CreateFromClipboardType) =>
