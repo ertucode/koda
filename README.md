@@ -7,6 +7,8 @@
 
 - for archives, navgate to it on double click. show unarchive button on the name part
   - open dialog
+- ctrl+f -> same named folder in diff places
+- goup Geri dönünce scroll olmuyor
 
 # AMBITIOUS TODO
 
