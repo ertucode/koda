@@ -200,7 +200,9 @@ app.on('ready', () => {
   ipcHandle('fuzzyFolderFinder', ({ directory, query }) => fuzzyFolderFinder(directory, query))
   ipcHandle('getFileInfoByPaths', getFileInfoByPaths)
   ipcHandle('readArchiveContents', ({ archivePath, archiveType }) => Archive.readContents(archiveType, archivePath))
-  ipcHandle('getDirectorySizes', ({ parentPath, specificDirName }) => getDirectorySizes(parentPath, specificDirName))
+  ipcHandle('getDirectorySizes', ({ parentPath, specificDirName, knownSizes }) =>
+    getDirectorySizes(parentPath, specificDirName, knownSizes)
+  )
   ipcHandle('generateVideoThumbnail', filePath => generateVideoThumbnail(filePath))
   ipcHandle('generateAppIcon', filePath => generateAppIcon(filePath))
   ipcHandle('getAudioMetadata', filePath => getAudioMetadata(filePath))
