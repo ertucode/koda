@@ -281,7 +281,11 @@ export type EventRequestMapping = {
     archivePath: string
     archiveType: ArchiveTypes.ArchiveType
   }
-  getDirectorySizes: { parentPath: string; specificDirName?: string }
+  getDirectorySizes: {
+    parentPath: string
+    specificDirName?: string
+    knownSizes?: { name: string; modifiedTimestamp: number; size: number }[]
+  }
   generateVideoThumbnail: string
   generateAppIcon: string
   getAudioMetadata: string
@@ -385,7 +389,11 @@ export type WindowElectron = {
     archivePath: string,
     archiveType: ArchiveTypes.ArchiveType
   ) => Promise<GenericResult<ArchiveEntry[]>>
-  getDirectorySizes: (parentPath: string, specificDirName?: string) => Promise<Record<string, number>>
+  getDirectorySizes: (
+    parentPath: string,
+    specificDirName?: string,
+    knownSizes?: { name: string; modifiedTimestamp: number; size: number }[]
+  ) => Promise<Record<string, number>>
   generateVideoThumbnail: (filePath: string) => Promise<string>
   generateAppIcon: (filePath: string) => Promise<string>
   getAudioMetadata: (filePath: string) => Promise<AudioMetadata | { error: string }>

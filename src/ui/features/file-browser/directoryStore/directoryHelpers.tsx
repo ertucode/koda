@@ -32,6 +32,7 @@ import { Brands } from '@common/Brands'
 import { UnarchiveDialog } from '../components/UnarchiveDialog'
 import { MultiFileTagsDialog } from '../components/MultiFileTagsDialog'
 import { AssignTagsDialog } from '../components/AssignTagsDialog'
+import { directorySizeCache } from '../directorySizeCache'
 
 export const cd = async (newDirectory: DirectoryInfo, isNew: boolean, drectoryId: DirectoryId | undefined) => {
   const context = getActiveDirectory(directoryStore.getSnapshot().context, drectoryId)
@@ -567,15 +568,42 @@ export const directoryHelpers = {
 
     directoryLoadingHelpers.startLoading(context.directoryId)
     try {
-      const sizes = await getWindowElectron().getDirectorySizes(context.directory.fullPath, specificDirName)
+      // Build knownSizes from cache to avoid recalculating unchanged directories
+      const knownSizes: { name: string; modifiedTimestamp: number; size: number }[] = []
+      for (const item of context.directoryData) {
+        if (item.type === 'dir' && item.fullPath && item.modifiedTimestamp != null) {
+          const cached = directorySizeCache.getRaw(item.fullPath)
+          if (cached) {
+            knownSizes.push({
+              name: item.name,
+              modifiedTimestamp: cached.modifiedTimestamp,
+              size: cached.size,
+            })
+          }
+        }
+      }
 
-      // Update the directory data with the new sizes
+      const sizes = await getWindowElectron().getDirectorySizes(
+        context.directory.fullPath,
+        specificDirName,
+        knownSizes.length > 0 ? knownSizes : undefined
+      )
+
+      // Update the directory data with the new sizes and cache them
       const updatedData = context.directoryData.map(item => {
         if (item.type === 'dir' && sizes[item.name] !== undefined) {
+          const size = sizes[item.name]
+          const sizeStr = formatBytes(size)
+
+          // Cache the size for this directory
+          if (item.fullPath && item.modifiedTimestamp != null) {
+            directorySizeCache.set(item.fullPath, item.modifiedTimestamp, size, sizeStr)
+          }
+
           return {
             ...item,
-            size: sizes[item.name],
-            sizeStr: formatBytes(sizes[item.name]),
+            size,
+            sizeStr,
           }
         }
         return item
