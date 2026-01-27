@@ -9,7 +9,7 @@
   - open dialog
 - ctrl+f -> same named folder in diff places
 - goup Geri dönünce scroll olmuyor
-- cache directory sizes by update date on the frontend
+- cache directory sizes by update date on the frontend (sending cache to backend does not work)
 
 # AMBITIOUS TODO
 
