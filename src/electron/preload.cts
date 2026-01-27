@@ -52,8 +52,8 @@ electron.contextBridge.exposeInMainWorld('electron', {
   getFileInfoByPaths: (filePaths: string[]) => ipcInvoke('getFileInfoByPaths', filePaths),
   readArchiveContents: (archivePath: string, archiveType: ArchiveTypes.ArchiveType) =>
     ipcInvoke('readArchiveContents', { archivePath, archiveType }),
-  getDirectorySizes: (parentPath: string, specificDirName?: string) =>
-    ipcInvoke('getDirectorySizes', { parentPath, specificDirName }),
+  getDirectorySizes: (parentPath: string, specificDirName, knownSizes) =>
+    ipcInvoke('getDirectorySizes', { parentPath, specificDirName, knownSizes }),
   generateVideoThumbnail: (filePath: string) => ipcInvoke('generateVideoThumbnail', filePath),
   generateAppIcon: (filePath: string) => ipcInvoke('generateAppIcon', filePath),
   batchRenameFiles: (
