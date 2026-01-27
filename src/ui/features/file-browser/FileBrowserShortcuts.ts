@@ -87,11 +87,12 @@ export const FileBrowserShortcuts = {
             dialogActions.open({
               component: FinderDialog,
               props: {
-                initialTab: 'files',
+                initialTab: 'find',
+                initialType: 'all',
               },
             })
           },
-          label: 'Find file',
+          label: 'Find all (files and folders)',
         },
         {
           key: { key: 'k', ctrlKey: true, metaKey: true },
@@ -135,11 +136,12 @@ export const FileBrowserShortcuts = {
             dialogActions.open({
               component: FinderDialog,
               props: {
-                initialTab: 'folders',
+                initialTab: 'find',
+                initialType: 'file',
               },
             })
           },
-          label: 'Find folder',
+          label: 'Find file',
         },
         {
           key: { key: 'o', ctrlKey: true },

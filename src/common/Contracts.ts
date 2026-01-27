@@ -161,11 +161,10 @@ export type EventResponseMapping = {
         result: GenericResult<{ pastedItems: string[] }>
       }
   >
-  fuzzyFileFinder: Promise<GenericResult<string[]>>
+  fuzzyPathFinder: Promise<GenericResult<PathFinderResult[]>>
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>
   replaceStringInFile: Promise<GenericResult<ReplaceResult>>
   replaceStringInMultipleFiles: Promise<GenericResult<ReplaceResult[]>>
-  fuzzyFolderFinder: Promise<GenericResult<string[]>>
   readArchiveContents: Promise<GenericResult<ArchiveEntry[]>>
   getDirectorySizes: Promise<Record<string, number>>
   generateVideoThumbnail: Promise<string>
@@ -232,6 +231,24 @@ export type ReplaceInMultipleFilesOptions = {
   caseSensitive?: boolean
 }
 
+export type PathFinderType = 'file' | 'folder' | 'all'
+
+export type PathFinderOptions = {
+  type: PathFinderType
+  maxDepth: number // 0 = unlimited
+  respectGitIgnore: boolean // default: true
+  ignoreHidden: boolean // default: true (hide hidden files/folders)
+  ignoreVcs: boolean // default: true (hide .git directory)
+  extensions?: string[] // e.g., ['ts', 'tsx', 'json']
+  excludePatterns?: string[] // e.g., ['node_modules', 'dist']
+  caseSensitive?: boolean // default: false
+}
+
+export type PathFinderResult = {
+  path: string
+  type: 'file' | 'folder'
+}
+
 export type EventRequestMapping = {
   docxToPdf: string
   getFilesAndFoldersInDirectory: string
@@ -272,11 +289,10 @@ export type EventRequestMapping = {
   copyFiles: { filePaths: string[]; cut: boolean }
   setClipboardCutMode: { cut: boolean }
   pasteFiles: { destinationDir: string; opts?: PasteFilesOptions }
-  fuzzyFileFinder: { directory: string; query: string }
+  fuzzyPathFinder: { directory: string; query: string; options: PathFinderOptions }
   searchStringRecursively: StringSearchOptions
   replaceStringInFile: ReplaceInFileOptions
   replaceStringInMultipleFiles: ReplaceInMultipleFilesOptions
-  fuzzyFolderFinder: { directory: string; query: string }
   readArchiveContents: {
     archivePath: string
     archiveType: ArchiveTypes.ArchiveType
@@ -379,11 +395,14 @@ export type WindowElectron = {
         result: GenericResult<{ pastedItems: string[] }>
       }
   >
-  fuzzyFileFinder: (directory: string, query: string) => Promise<GenericResult<string[]>>
+  fuzzyPathFinder: (
+    directory: string,
+    query: string,
+    options: PathFinderOptions
+  ) => Promise<GenericResult<PathFinderResult[]>>
   searchStringRecursively: (options: StringSearchOptions) => Promise<GenericResult<StringSearchResult[]>>
   replaceStringInFile: (options: ReplaceInFileOptions) => Promise<GenericResult<ReplaceResult>>
   replaceStringInMultipleFiles: (options: ReplaceInMultipleFilesOptions) => Promise<GenericResult<ReplaceResult[]>>
-  fuzzyFolderFinder: (directory: string, query: string) => Promise<GenericResult<string[]>>
   getFileInfoByPaths: (filePaths: string[]) => Promise<GetFilesAndFoldersInDirectoryItem[]>
   readArchiveContents: (
     archivePath: string,
