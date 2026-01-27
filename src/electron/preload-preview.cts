@@ -1,5 +1,11 @@
 import electron from 'electron'
-import { EventRequestMapping, EventResponseMapping, StringSearchOptions, WindowElectron } from '../common/Contracts'
+import {
+  EventRequestMapping,
+  EventResponseMapping,
+  StringSearchOptions,
+  WindowElectron,
+  PathFinderOptions,
+} from '../common/Contracts'
 import { ArchiveTypes } from '../common/ArchiveTypes'
 
 electron.contextBridge.exposeInMainWorld('electron', {
@@ -19,9 +25,9 @@ electron.contextBridge.exposeInMainWorld('electron', {
   getPreviewPreloadPath: () => ipcInvoke('getPreviewPreloadPath', undefined),
   getStartingDirectory: () => getArgv('--initial-path='),
   copyFiles: (filePaths: string[], cut: boolean) => ipcInvoke('copyFiles', { filePaths, cut }),
-  fuzzyFileFinder: (directory: string, query: string) => ipcInvoke('fuzzyFileFinder', { directory, query }),
+  fuzzyPathFinder: (directory: string, query: string, options: PathFinderOptions) =>
+    ipcInvoke('fuzzyPathFinder', { directory, query, options }),
   searchStringRecursively: (options: StringSearchOptions) => ipcInvoke('searchStringRecursively', options),
-  fuzzyFolderFinder: (directory: string, query: string) => ipcInvoke('fuzzyFolderFinder', { directory, query }),
   readArchiveContents: (archivePath: string, archiveType: ArchiveTypes.ArchiveType) =>
     ipcInvoke('readArchiveContents', { archivePath, archiveType }),
   getAudioMetadata: (filePath: string) => ipcInvoke('getAudioMetadata', filePath),

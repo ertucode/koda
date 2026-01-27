@@ -1,24 +1,28 @@
 import { useState, useEffect, ReactNode } from 'react'
 import { useShortcuts } from '@/lib/hooks/useShortcuts'
 import { Dialog } from '@/lib/components/dialog'
-import { FileIcon, SearchIcon, FolderIcon } from 'lucide-react'
-import { FileFinderTab } from './FileFinderTab'
+import { SearchIcon, FolderSearchIcon } from 'lucide-react'
+import { PathFinderTab } from './PathFinderTab'
 import { StringFinderTab } from './StringFinderTab'
-import { FolderFinderTab } from './FolderFinderTab'
 import { dialogActions } from '../dialogStore'
+import { PathFinderType } from '@common/Contracts'
 
-export type FinderTab = 'files' | 'folders' | 'strings'
+export type FinderTab = 'find' | 'strings'
+export type FinderDialogProps = {
+  initialTab?: FinderTab
+  initialType?: PathFinderType
+}
 
 const MIN_WIDTH_FOR_PREVIEW = 900
 
-export const FinderDialog = function FinderDialog(props: { initialTab?: FinderTab }) {
-  const [activeTab, setActiveTab] = useState<FinderTab>('files')
+export const FinderDialog = function FinderDialog(props: FinderDialogProps) {
+  const [activeTab, setActiveTab] = useState<FinderTab>('find')
   const [showPreview, setShowPreview] = useState(window.innerWidth >= MIN_WIDTH_FOR_PREVIEW)
 
   // Reset tab to initial when dialog opens
   useEffect(() => {
     if (props.initialTab) {
-      setActiveTab(props.initialTab ?? 'files')
+      setActiveTab(props.initialTab ?? 'find')
     }
   }, [props.initialTab])
 
@@ -38,22 +42,13 @@ export const FinderDialog = function FinderDialog(props: { initialTab?: FinderTa
       key: { key: '1', metaKey: true },
       handler: e => {
         e?.preventDefault()
-        setActiveTab('files')
+        setActiveTab('find')
       },
       enabledIn: () => true,
-      label: 'Switch to Find File tab',
+      label: 'Switch to Find tab',
     },
     {
       key: { key: '2', metaKey: true },
-      handler: e => {
-        e?.preventDefault()
-        setActiveTab('folders')
-      },
-      enabledIn: () => true,
-      label: 'Switch to Find Folder tab',
-    },
-    {
-      key: { key: '3', metaKey: true },
       handler: e => {
         e?.preventDefault()
         setActiveTab('strings')
@@ -79,22 +74,16 @@ export const FinderDialog = function FinderDialog(props: { initialTab?: FinderTa
     keys: string
   }[] = [
     {
-      id: 'files',
-      label: 'Find File',
-      icon: <FileIcon className="w-4 h-4" />,
+      id: 'find',
+      label: 'Find',
+      icon: <FolderSearchIcon className="w-4 h-4" />,
       keys: '⌘ 1',
-    },
-    {
-      id: 'folders',
-      label: 'Find Folder',
-      icon: <FolderIcon className="w-4 h-4" />,
-      keys: '⌘ 2',
     },
     {
       id: 'strings',
       label: 'Search in Files',
       icon: <SearchIcon className="w-4 h-4" />,
-      keys: '⌘ 3',
+      keys: '⌘ 2',
     },
   ]
 
@@ -117,8 +106,9 @@ export const FinderDialog = function FinderDialog(props: { initialTab?: FinderTa
 
         {/* Tab Content */}
         <div className="flex-1 min-h-0 overflow-visible">
-          {activeTab === 'files' && <FileFinderTab onClose={dialogActions.close} showPreview={showPreview} />}
-          {activeTab === 'folders' && <FolderFinderTab onClose={dialogActions.close} showPreview={showPreview} />}
+          {activeTab === 'find' && (
+            <PathFinderTab onClose={dialogActions.close} showPreview={showPreview} initialType={props.initialType} />
+          )}
           {activeTab === 'strings' && <StringFinderTab onClose={dialogActions.close} />}
         </div>
       </div>

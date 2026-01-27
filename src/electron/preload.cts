@@ -7,6 +7,7 @@ import {
   ReplaceInMultipleFilesOptions,
   WindowElectron,
   CreateFromClipboardType,
+  PathFinderOptions,
 } from '../common/Contracts'
 import { TaskEvents } from '../common/Tasks'
 import { ArchiveTypes } from '../common/ArchiveTypes'
@@ -43,12 +44,12 @@ electron.contextBridge.exposeInMainWorld('electron', {
   },
   copyFiles: (filePaths: string[], cut: boolean) => ipcInvoke('copyFiles', { filePaths, cut }),
   pasteFiles: (destinationDir: string, opts) => ipcInvoke('pasteFiles', { destinationDir, opts }),
-  fuzzyFileFinder: (directory: string, query: string) => ipcInvoke('fuzzyFileFinder', { directory, query }),
+  fuzzyPathFinder: (directory: string, query: string, options: PathFinderOptions) =>
+    ipcInvoke('fuzzyPathFinder', { directory, query, options }),
   searchStringRecursively: (options: StringSearchOptions) => ipcInvoke('searchStringRecursively', options),
   replaceStringInFile: (options: ReplaceInFileOptions) => ipcInvoke('replaceStringInFile', options),
   replaceStringInMultipleFiles: (options: ReplaceInMultipleFilesOptions) =>
     ipcInvoke('replaceStringInMultipleFiles', options),
-  fuzzyFolderFinder: (directory: string, query: string) => ipcInvoke('fuzzyFolderFinder', { directory, query }),
   getFileInfoByPaths: (filePaths: string[]) => ipcInvoke('getFileInfoByPaths', filePaths),
   readArchiveContents: (archivePath: string, archiveType: ArchiveTypes.ArchiveType) =>
     ipcInvoke('readArchiveContents', { archivePath, archiveType }),

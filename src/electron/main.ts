@@ -18,10 +18,9 @@ import { renameFileOrFolder } from './utils/rename-file-or-folder.js'
 import { batchRenameFiles } from './utils/batch-rename-files.js'
 import { copyFiles, setClipboardCutMode } from './utils/copy-files.js'
 import { pasteFiles } from './utils/paste-files.js'
-import { fuzzyFileFinder } from './utils/fuzzy-file-finder.js'
+import { fuzzyPathFinder } from './utils/fuzzy-path-finder.js'
 import { searchStringRecursively } from './utils/search-string-recursively.js'
 import { replaceStringInFile, replaceStringInMultipleFiles } from './utils/replace-string-in-files.js'
-import { fuzzyFolderFinder } from './utils/fuzzy-folder-finder.js'
 import { getDirectorySizes } from './utils/get-directory-size.js'
 import { generateVideoThumbnail } from './utils/generate-video-thumbnail.js'
 import { generateAppIcon } from './utils/generate-app-icon.js'
@@ -193,11 +192,10 @@ app.on('ready', () => {
     setClipboardCutMode(cut)
   })
   ipcHandle('pasteFiles', ({ destinationDir, opts }) => pasteFiles(destinationDir, opts))
-  ipcHandle('fuzzyFileFinder', ({ directory, query }) => fuzzyFileFinder(directory, query))
+  ipcHandle('fuzzyPathFinder', ({ directory, query, options }) => fuzzyPathFinder(directory, query, options))
   ipcHandle('searchStringRecursively', options => searchStringRecursively(options))
   ipcHandle('replaceStringInFile', options => replaceStringInFile(options))
   ipcHandle('replaceStringInMultipleFiles', options => replaceStringInMultipleFiles(options))
-  ipcHandle('fuzzyFolderFinder', ({ directory, query }) => fuzzyFolderFinder(directory, query))
   ipcHandle('getFileInfoByPaths', getFileInfoByPaths)
   ipcHandle('readArchiveContents', ({ archivePath, archiveType }) => Archive.readContents(archiveType, archivePath))
   ipcHandle('getDirectorySizes', ({ parentPath, specificDirName, knownSizes }) =>
