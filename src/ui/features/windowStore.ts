@@ -90,3 +90,8 @@ export const WindowStoreShortcuts = {
     GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, false)
   },
 }
+
+export const commands = [
+  { code: { code: 'F1', metaKey: true }, command: 'window_toggle_always_on_top_compact', label: '[Window] Toggle Always On Top and Compact' },
+  { code: { code: 'F2', metaKey: true }, command: 'window_toggle_compact_size', label: '[Window] Toggle Compact Window Size' },
+]
