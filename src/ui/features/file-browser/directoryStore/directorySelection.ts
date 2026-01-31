@@ -1,4 +1,4 @@
-import { SequenceShortcut, ShortcutWithHandler } from '@/lib/hooks/useShortcuts'
+import { ShortcutWithHandler } from '@/lib/hooks/useShortcuts'
 import { createResetSelection, directoryStore } from './directory'
 import { DirectoryId } from './DirectoryBase'
 import { getActiveDirectory, getBufferSelection, getFullPathForBuffer, selectBuffer } from './directoryPureHelpers'
@@ -433,19 +433,6 @@ export const directorySelection = {
         key: { key: 'u', ctrlKey: true },
         handler: throttle(e => moveCursor(-10, 'replace', e), THROTTLE_DELAY),
         label: 'Page up',
-      },
-    ]
-  },
-  getSelectionSequenceShortcuts: (): SequenceShortcut[] => {
-    return [
-      {
-        // Go to the top (like vim gg)
-        sequence: ['g', 'g'],
-        handler: e => {
-          directoryStore.trigger.setCursor({ cursor: { line: 0 }, directoryId: undefined })
-          e?.preventDefault()
-        },
-        label: 'Go to first item',
       },
     ]
   },

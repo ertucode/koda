@@ -22,6 +22,7 @@ import { CreateFromClipboardDialog } from './components/CreateFromClipboardDialo
 import { getWindowElectron } from '@/getWindowElectron'
 import { toast } from '@/lib/components/toast'
 import { TableItemFinder } from '@/lib/libs/table/TableItemFinder'
+import { fileBrowserSettingsStore } from './settings'
 
 const SHORTCUTS_KEY = 'file-browser'
 
@@ -424,7 +425,24 @@ export const FileBrowserShortcuts = {
         })),
       ],
       enabled: true,
-      sequences: directorySelection.getSelectionSequenceShortcuts(),
+      sequences: [
+        {
+          // Go to the top (like vim gg)
+          sequence: ['g', 'g'],
+          handler: e => {
+            directoryStore.trigger.setCursor({ cursor: { line: 0 }, directoryId: undefined })
+            e?.preventDefault()
+          },
+          label: 'Go to first item',
+        },
+        {
+          sequence: ['g', '.'],
+          handler: () => {
+            fileBrowserSettingsStore.trigger.toggleShowDotFiles()
+          },
+          label: 'Toggle show dot files',
+        },
+      ],
     })
 
     subscription = subscribeToStores(

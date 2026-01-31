@@ -7,7 +7,13 @@
 
 - for archives, navgate to it on double click. show unarchive button on the name part
   - open dialog
-- fix open in new tab
+- Shortcut system
+  - Define commands
+  - Define default keymaps for commands
+  - Define custom keymaps for commands
+  - Active state
+    - Everything always defined, and set enabled/disabled?
+    - Or remove and add?
 
 # AMBITIOUS TODO
 

@@ -10,7 +10,6 @@ import { onRenderTab } from './onRenderTab'
 import { onRenderTabSet } from './onRenderTabSetFn'
 import { useSyncDirectoryStoreAndLayout } from './useSyncDirectoryStoreAndLayout'
 import { LayoutHelpers } from '../file-browser/utils/LayoutHelpers'
-import { SettingsShortcuts } from '../file-browser/SettingsShortcuts'
 import { VimShortcuts } from '../file-browser/vim/VimShortcuts'
 import { WindowStoreShortcuts } from '../windowStore'
 import { DialogStoreRenderer } from '../file-browser/dialogStore'
@@ -34,7 +33,6 @@ export const FlexLayoutManager: React.FC = () => {
   return (
     <div className="flex flex-col items-stretch h-full overflow-hidden">
       <DialogStoreRenderer />
-      <SettingsShortcuts />
       <CustomTitleBar />
       <div className="flex-1 min-w-0 min-h-0 relative">
         <Layout
