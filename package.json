@@ -27,7 +27,9 @@
     "build-distributable": "npm run build-code && electron-builder --mac --arm64",
     "build-vendor": "node scripts/build-all.mjs",
     "build-everything": "npm run build-vendor && npm run build",
-    "build-icon": "node scripts/build-icon.mjs"
+    "build-icon": "node scripts/build-icon.mjs",
+    "build-mas": "npm run build-code && electron-builder --mac mas",
+    "upload-mas": "xcrun altool --upload-app --type osx --file \"dist/mas/Koda.pkg\" --bundle-id com.ertucode.koda"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
