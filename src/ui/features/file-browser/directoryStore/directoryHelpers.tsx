@@ -33,6 +33,7 @@ import { UnarchiveDialog } from '../components/UnarchiveDialog'
 import { MultiFileTagsDialog } from '../components/MultiFileTagsDialog'
 import { AssignTagsDialog } from '../components/AssignTagsDialog'
 import { directorySizeCache } from '../directorySizeCache'
+import { scrollRowIntoViewIfNeeded } from '@/lib/libs/table/globalTableScroll'
 
 export const cd = async (newDirectory: DirectoryInfo, isNew: boolean, drectoryId: DirectoryId | undefined) => {
   const context = getActiveDirectory(directoryStore.getSnapshot().context, drectoryId)
@@ -418,6 +419,7 @@ export const directoryHelpers = {
     const metadata = await fn(directoryId)
     if (!metadata) return
     const { directoryData, beforeNavigation } = metadata
+    const id = getActiveDirectory(directoryStore.getSnapshot().context, directoryId).directoryId
 
     setTimeout(() => {
       if (!directoryData) return
@@ -426,6 +428,7 @@ export const directoryHelpers = {
       const idx = directoryData.findIndex(i => i.name === beforeNavigationName)
       if (idx === -1) return
       directoryStore.trigger.setCursor({ cursor: { line: idx }, directoryId })
+      scrollRowIntoViewIfNeeded(id, idx)
     }, 5)
   },
 
