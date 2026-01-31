@@ -120,8 +120,12 @@ export const directoryStore = createStore({
     directoryNavigated: (_: { directoryId: DirectoryId; directory: DirectoryInfo }) => {},
     showContextMenu: (_: {
       element: HTMLElement
-      index: number
-      item: DerivedDirectoryItem
+      item:
+        | {
+            index: number
+            item: DerivedDirectoryItem
+          }
+        | undefined
       directoryId: DirectoryId
     }) => {},
   },
@@ -135,7 +139,11 @@ export const directoryStore = createStore({
     },
     showContextMenu: (
       context,
-      event: { element: HTMLElement; index: number; item: DerivedDirectoryItem; directoryId: DirectoryId },
+      event: {
+        element: HTMLElement
+        item: { index: number; item: DerivedDirectoryItem } | undefined
+        directoryId: DirectoryId
+      },
       enqueue
     ) => {
       enqueue.emit.showContextMenu(event)

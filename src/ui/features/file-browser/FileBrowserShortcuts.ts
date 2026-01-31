@@ -69,13 +69,26 @@ export const FileBrowserShortcuts = {
             const cursorLine = getCursorLine(snapshot.context, active)
             if (cursorLine == null) return
             const data = getFilteredData()
+            if (data.length === 0) {
+              const container = TableItemFinder.findContainer(active.directoryId)
+              if (!container) return
+
+              directoryStore.trigger.showContextMenu({
+                directoryId: active.directoryId,
+                element: container as HTMLElement,
+                item: undefined,
+              })
+              return
+            }
             const found = TableItemFinder.findItem(active.directoryId, cursorLine)
             if (!found) return
             directoryStore.trigger.showContextMenu({
               directoryId: active.directoryId,
               element: found.row as HTMLElement,
-              index: cursorLine,
-              item: data[cursorLine],
+              item: {
+                index: cursorLine,
+                item: data[cursorLine],
+              },
             })
           },
           label: 'Open context menu on cursor',

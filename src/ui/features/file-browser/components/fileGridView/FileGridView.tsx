@@ -119,7 +119,7 @@ export const FileGridView = memo(function FileGridView() {
   const directoryId = context.directoryId
   const filteredDirectoryData = directoryDerivedStores.get(context.directoryId)!.useFilteredDirectoryData()
 
-  const contextMenu = useContextMenu<{ item: DerivedDirectoryItem; index: number }>()
+  const contextMenu = useContextMenu<{ item: DerivedDirectoryItem; index: number } | undefined>()
 
   const directory = useSelector(directoryStore, state =>
     state.context.directoriesById[directoryId] ? state.context.directoriesById[directoryId].directory : null
@@ -136,10 +136,9 @@ export const FileGridView = memo(function FileGridView() {
       {contextMenu.item && (
         <ContextMenu menu={contextMenu}>
           <FileTableRowContextMenu
-            item={contextMenu.item.item}
             close={contextMenu.close}
             tableData={filteredDirectoryData}
-            index={contextMenu.item.index}
+            state={contextMenu.item}
           />
         </ContextMenu>
       )}
@@ -148,7 +147,12 @@ export const FileGridView = memo(function FileGridView() {
         data-list-id={directoryId}
         data-scroll-container
         className={clsx('h-full overflow-auto p-4', isDragOver && 'ring-2 ring-primary ring-inset')}
-        {...fileBrowserListContainerProps({ directoryId, directory })}
+        {...fileBrowserListContainerProps({
+          directoryId,
+          directory,
+          onContextMenu: contextMenu.onRightClick,
+          data: filteredDirectoryData,
+        })}
       >
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
           {filteredDirectoryData.map((item, idx) => (

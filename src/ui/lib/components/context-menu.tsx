@@ -93,70 +93,58 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Check for Ctrl modifier
-      if (!e.ctrlKey && e.key !== 'Enter') return
-
       const currentItem = navigableItems[selectedIndex]
       const isInSubmenu = openSubmenuIndex !== null
 
-      switch (e.key) {
-        case 'j': // Navigate down
-          e.preventDefault()
-          if (isInSubmenu && currentItem?.submenu) {
-            const filteredSubItems = currentItem.submenu.filter((i): i is NormalContextMenuItem => !!i)
-            setSelectedSubmenuIndex(prev => Math.min(prev + 1, filteredSubItems.length - 1))
-          } else {
-            setSelectedIndex(prev => Math.min(prev + 1, navigableItems.length - 1))
-          }
-          break
-
-        case 'k': // Navigate up
-          e.preventDefault()
-          if (isInSubmenu) {
-            setSelectedSubmenuIndex(prev => Math.max(prev - 1, 0))
-          } else {
-            setSelectedIndex(prev => Math.max(prev - 1, 0))
-          }
-          break
-
-        case 'l': // Navigate right (open submenu)
-        case 'Enter': // Navigate right (open submenu)
-          e.preventDefault()
-          if (openSubmenuIndex !== null && currentItem.submenu) {
-            // Execute submenu item action
-            const filteredSubItems = currentItem.submenu.filter((i): i is NormalContextMenuItem => !!i)
-            const subItem = filteredSubItems[selectedSubmenuIndex]
-            if (subItem) {
-              subItem.onClick?.()
-              menu.close()
-            }
-          } else if (currentItem.submenu) {
-            // Open submenu
-            setOpenSubmenuIndex(selectedIndex)
-            setSelectedSubmenuIndex(0)
-            const detailsElement = detailsRefs.current[selectedIndex]
-            if (detailsElement) {
-              detailsElement.open = true
-            }
-          } else {
-            // Execute action
-            currentItem.onClick?.()
+      if ((e.key === 'j' && e.ctrlKey) || e.key === 'ArrowDown') {
+        e.preventDefault()
+        if (isInSubmenu && currentItem?.submenu) {
+          const filteredSubItems = currentItem.submenu.filter((i): i is NormalContextMenuItem => !!i)
+          setSelectedSubmenuIndex(prev => Math.min(prev + 1, filteredSubItems.length - 1))
+        } else {
+          setSelectedIndex(prev => Math.min(prev + 1, navigableItems.length - 1))
+        }
+      } else if ((e.key === 'k' && e.ctrlKey) || e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (isInSubmenu) {
+          setSelectedSubmenuIndex(prev => Math.max(prev - 1, 0))
+        } else {
+          setSelectedIndex(prev => Math.max(prev - 1, 0))
+        }
+      } else if ((e.key === 'l' && e.ctrlKey) || e.key === 'Enter' || e.key === 'ArrowRight') {
+        e.preventDefault()
+        if (openSubmenuIndex !== null && currentItem.submenu) {
+          // Execute submenu item action
+          const filteredSubItems = currentItem.submenu.filter((i): i is NormalContextMenuItem => !!i)
+          const subItem = filteredSubItems[selectedSubmenuIndex]
+          if (subItem) {
+            subItem.onClick?.()
             menu.close()
           }
-          break
-
-        case 'h': // Navigate left (close submenu)
-          e.preventDefault()
-          if (isInSubmenu) {
-            setOpenSubmenuIndex(null)
-            setSelectedSubmenuIndex(0)
-            // Close the details element
-            const detailsElement = detailsRefs.current[selectedIndex]
-            if (detailsElement) {
-              detailsElement.open = false
-            }
+        } else if (currentItem.submenu) {
+          // Open submenu
+          setOpenSubmenuIndex(selectedIndex)
+          setSelectedSubmenuIndex(0)
+          const detailsElement = detailsRefs.current[selectedIndex]
+          if (detailsElement) {
+            detailsElement.open = true
           }
-          break
+        } else {
+          // Execute action
+          currentItem.onClick?.()
+          menu.close()
+        }
+      } else if ((e.key === 'h' && e.ctrlKey) || e.key === 'ArrowLeft') {
+        e.preventDefault()
+        if (isInSubmenu) {
+          setOpenSubmenuIndex(null)
+          setSelectedSubmenuIndex(0)
+          // Close the details element
+          const detailsElement = detailsRefs.current[selectedIndex]
+          if (detailsElement) {
+            detailsElement.open = false
+          }
+        }
       }
     }
 
@@ -274,7 +262,10 @@ export function useContextMenu<T>() {
 
   useEffect(() => {
     const handler = (e: MouseEvent | TouchEvent) => {
-      if (!state?.element.contains(e.target as Node) && !ref.current?.contains(e.target as Node)) {
+      if (
+        // !state?.element.contains(e.target as Node) &&
+        !ref.current?.contains(e.target as Node)
+      ) {
         setState(null)
       }
     }

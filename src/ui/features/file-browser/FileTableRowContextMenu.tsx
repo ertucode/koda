@@ -49,17 +49,46 @@ import { UnarchiveDialog } from './components/UnarchiveDialog'
 import { Base64PreviewDialog } from './components/Base64PreviewDialog'
 
 export const FileTableRowContextMenu = ({
-  item: i,
   close,
   tableData,
-  index,
+  state,
 }: {
-  item: DerivedDirectoryItem
   close: () => void
   tableData: DerivedDirectoryItem[]
-  index: number
+  state:
+    | {
+        index: number
+        item: DerivedDirectoryItem
+      }
+    | undefined
 }) => {
-  if (i.type === 'str') return undefined
+  const pasteItem: ContextMenuItem = {
+    onClick: () => {
+      clipboardHelpers.paste(directoryId)
+      close()
+    },
+    view: <TextWithIcon icon={ClipboardPasteIcon}>Paste</TextWithIcon>,
+  }
+
+  const newFileItem: ContextMenuItem = {
+    onClick: () => {
+      dialogActions.open({
+        component: NewItemDialog,
+        props: undefined,
+      })
+      close()
+    },
+    view: <TextWithIcon icon={FilePlusIcon}>New File or Folder</TextWithIcon>,
+  }
+
+  if (!state?.item || state.item.type === 'str') {
+    const fileMenuItems: (ContextMenuItem | null)[] = [newFileItem, pasteItem]
+
+    return <ContextMenuList items={fileMenuItems} />
+  }
+
+  const i = state.item
+  const index = state.index
   const directoryId = useDirectoryContext().directoryId
 
   const item = i.item
@@ -125,14 +154,6 @@ export const FileTableRowContextMenu = ({
     ),
   }
 
-  const pasteItem: ContextMenuItem = {
-    onClick: () => {
-      clipboardHelpers.paste(directoryId)
-      close()
-    },
-    view: <TextWithIcon icon={ClipboardPasteIcon}>Paste</TextWithIcon>,
-  }
-
   const deleteItem: ContextMenuItem = {
     onClick: () => {
       directoryHelpers.handleDelete(selectedItems, tableData, directoryId)
@@ -172,17 +193,6 @@ export const FileTableRowContextMenu = ({
           view: <TextWithIcon icon={PencilLineIcon}>Batch Rename ({selectionIndexes.size} items)</TextWithIcon>,
         }
       : null
-
-  const newFileItem: ContextMenuItem = {
-    onClick: () => {
-      dialogActions.open({
-        component: NewItemDialog,
-        props: undefined,
-      })
-      close()
-    },
-    view: <TextWithIcon icon={FilePlusIcon}>New File or Folder</TextWithIcon>,
-  }
 
   // Tag-related menu items
   const assignTagsItem: ContextMenuItem = {

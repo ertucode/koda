@@ -120,11 +120,11 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     columns,
     data: filteredDirectoryData,
   })
-  const contextMenu = useContextMenu<{ item: DerivedDirectoryItem; index: number }>()
+  const contextMenu = useContextMenu<{ item: DerivedDirectoryItem; index: number } | undefined>()
   useEffect(() => {
-    return directoryStore.on('showContextMenu', ({ element, index, item, directoryId: dId }) => {
+    return directoryStore.on('showContextMenu', ({ element, item, directoryId: dId }) => {
       if (dId !== directoryId) return
-      contextMenu.showWithElement(element, { item, index })
+      contextMenu.showWithElement(element, item)
     }).unsubscribe
   }, [directoryId, contextMenu])
 
@@ -150,16 +150,9 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
 
   return (
     <>
-      {contextMenu.item && (
+      {contextMenu.isOpen && (
         <ContextMenu menu={contextMenu}>
-          {
-            <FileTableRowContextMenu
-              item={contextMenu.item.item}
-              close={contextMenu.close}
-              tableData={table.data}
-              index={contextMenu.item.index}
-            />
-          }
+          <FileTableRowContextMenu state={contextMenu.item} close={contextMenu.close} tableData={table.data} />
         </ContextMenu>
       )}
 
@@ -175,7 +168,12 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
       <div
         className={clsx('relative h-full w-full min-h-0 overflow-auto rounded-none border-none')}
         data-scroll-container
-        {...fileBrowserListContainerProps({ directoryId, directory })}
+        {...fileBrowserListContainerProps({
+          directoryId,
+          directory,
+          onContextMenu: contextMenu.onRightClick,
+          data: table.data,
+        })}
       >
         <VimCursor />
         <VimFuzzyHighlight />
