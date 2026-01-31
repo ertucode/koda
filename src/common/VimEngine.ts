@@ -1003,6 +1003,7 @@ export namespace VimEngine {
   }
 
   export function reuseCursor(prevBuffer: Buffer, nextBuffer: Buffer): CursorPosition {
+    if (nextBuffer.items.length === 0) return prevBuffer.cursor
     const line = Math.min(prevBuffer.cursor.line, nextBuffer.items.length - 1)
     const column = Math.min(prevBuffer.cursor.column, nextBuffer.items[line].str.length)
     return {
