@@ -73,12 +73,14 @@ export const WindowStoreShortcuts = {
       enabled: true,
       shortcuts: [
         {
-          key: { key: 'F1', metaKey: true },
+          command: 'window_toggle_always_on_top_compact',
+          code: { code: 'F1', metaKey: true },
           handler: () => WindowStoreHelpers.toggleAlwaysOnTop({ metaKey: true }),
           label: '[Window] Toggle Always On Top and Compact',
         },
         {
-          key: { key: 'F2', metaKey: true },
+          command: 'window_toggle_compact_size',
+          code: { code: 'F2', metaKey: true },
           handler: () => WindowStoreHelpers.toggleWindowSize(),
           label: '[Window] Toggle Compact Window Size',
         },

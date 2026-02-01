@@ -2,11 +2,10 @@ import { RefObject, useEffect, useRef } from "react";
 import { shortcutRegistryAPI } from "./shortcutRegistry";
 import { shortcutCustomizationStore } from "./shortcutCustomization";
 
-export type ShortcutDefinition =
+export type ShortcutCode =
   | string
   | {
-      key: string;
-      isCode?: boolean;
+      code: string;
       metaKey?: boolean;
       shiftKey?: boolean;
       ctrlKey?: boolean;
@@ -14,26 +13,27 @@ export type ShortcutDefinition =
     };
 
 export type ShortcutWithHandler = {
-  key: ShortcutDefinition | ShortcutDefinition[];
+  command?: string;
+  code: ShortcutCode | ShortcutCode[];
   handler: (e: KeyboardEvent | undefined) => void;
   enabledIn?:
     | RefObject<HTMLElement | null>
     | ((e: KeyboardEvent | undefined) => boolean);
-  notKey?: ShortcutDefinition | ShortcutDefinition[];
-  label: string; // Required label for the command palette
+  notCode?: ShortcutCode | ShortcutCode[];
+  label: string;
 };
 
 export type SequenceShortcut = {
+  command?: string;
   sequence: string[];
   handler: (e: KeyboardEvent | undefined) => void;
   timeout?: number;
   enabledIn?: RefObject<HTMLElement | null> | ((e: KeyboardEvent) => boolean);
-  label: string; // Required label for the command palette
+  label: string;
 };
 
 export type UseShortcutsOptions = {
   isDisabled?: boolean;
-  /** Timeout in ms for key sequences (default: 500) */
   sequenceTimeout?: number;
   hideInPalette?: boolean;
 };
@@ -48,43 +48,39 @@ export function isSequenceShortcut(
   return "sequence" in shortcut;
 }
 
-// Helper to apply custom shortcuts to a shortcut definition
 function applyCustomShortcut(
   shortcut: DefinedShortcutInput,
   customShortcuts: Record<string, any>,
 ): DefinedShortcutInput {
-  const customKey = customShortcuts[shortcut.label];
+  const customCode = customShortcuts[shortcut.label];
 
-  if (!customKey) {
+  if (!customCode) {
     return shortcut;
   }
 
   const customizedShortcut = { ...shortcut };
 
   if (isSequenceShortcut(customizedShortcut)) {
-    // Handle sequence shortcuts
-    if (typeof customKey === "object" && "sequence" in customKey) {
-      customizedShortcut.sequence = customKey.sequence;
+    if (typeof customCode === "object" && "sequence" in customCode) {
+      customizedShortcut.sequence = customCode.sequence;
     }
   } else {
-    // Handle regular shortcuts
-    if (Array.isArray(customKey)) {
-      customizedShortcut.key = customKey as ShortcutDefinition[];
+    if (Array.isArray(customCode)) {
+      customizedShortcut.code = customCode as ShortcutCode[];
     } else {
-      customizedShortcut.key = customKey as ShortcutDefinition;
+      customizedShortcut.code = customCode as ShortcutCode;
     }
   }
 
   return customizedShortcut;
 }
 
-// Helper to convert ShortcutDefinition to human-readable string
 export function useShortcuts(
   shortcuts: ShortcutInput[],
   opts?: UseShortcutsOptions,
 ) {
-  const sequenceBufferRef = useRef<{ keys: string[]; lastTime: number }>({
-    keys: [],
+  const sequenceBufferRef = useRef<{ codes: string[]; lastTime: number }>({
+    codes: [],
     lastTime: 0,
   });
 
@@ -92,7 +88,6 @@ export function useShortcuts(
     const handleKeyDown = (e: KeyboardEvent) => {
       if (opts?.isDisabled) return;
 
-      // Apply custom shortcuts
       const customShortcuts =
         shortcutCustomizationStore.get().context.customShortcuts;
       const customizedShortcuts = shortcuts.map((s) => {
@@ -114,16 +109,13 @@ export function useShortcuts(
     };
   }, [shortcuts, opts]);
 
-  // Register shortcuts in the global registry
   useEffect(() => {
     if (opts?.hideInPalette || opts?.isDisabled) return;
     shortcuts.forEach((shortcut) => {
       if (!shortcut || shortcut === true) return;
-
       shortcutRegistryAPI.register(shortcut.label, shortcut);
     });
 
-    // Cleanup: unregister shortcuts when component unmounts
     return () => {
       shortcuts.forEach((shortcut) => {
         if (!shortcut || shortcut === true) return;
@@ -133,44 +125,33 @@ export function useShortcuts(
   }, [shortcuts]);
 }
 
-function checkShortcut(shortcut: ShortcutDefinition, e: KeyboardEvent) {
-  if (typeof shortcut === "string") {
-    return e.key === shortcut;
+function checkShortcutCode(code: ShortcutCode, e: KeyboardEvent) {
+  if (typeof code === "string") {
+    return e.code === code;
   }
 
-  if (shortcut.metaKey !== undefined && e.metaKey !== shortcut.metaKey)
+  if (code.metaKey !== undefined && e.metaKey !== code.metaKey)
     return false;
-  if (shortcut.shiftKey !== undefined && e.shiftKey !== shortcut.shiftKey)
+  if (code.shiftKey !== undefined && e.shiftKey !== code.shiftKey)
     return false;
-  if (shortcut.ctrlKey !== undefined && e.ctrlKey !== shortcut.ctrlKey)
+  if (code.ctrlKey !== undefined && e.ctrlKey !== code.ctrlKey)
     return false;
-  if (shortcut.altKey !== undefined && e.altKey !== shortcut.altKey)
+  if (code.altKey !== undefined && e.altKey !== code.altKey)
     return false;
 
-  // When isCode is true, match against e.code instead of e.key
-  if (shortcut.isCode) {
-    return e.code === shortcut.key;
-  }
-
-  return e.key === shortcut.key;
+  return e.code === code.code;
 }
 
-/**
- * Calculate specificity of a shortcut definition
- * More specific shortcuts have higher numbers
- * Specificity is the number of boolean modifiers that are explicitly set
- */
-function getShortcutSpecificity(shortcut: ShortcutDefinition): number {
-  if (typeof shortcut === "string") {
-    return 0; // No modifiers specified
+function getCodeSpecificity(code: ShortcutCode): number {
+  if (typeof code === "string") {
+    return 0;
   }
 
   let specificity = 0;
-  if (shortcut.metaKey !== undefined) specificity++;
-  if (shortcut.shiftKey !== undefined) specificity++;
-  if (shortcut.ctrlKey !== undefined) specificity++;
-  if (shortcut.altKey !== undefined) specificity++;
-  if (shortcut.isCode !== undefined) specificity++;
+  if (code.metaKey !== undefined) specificity++;
+  if (code.shiftKey !== undefined) specificity++;
+  if (code.ctrlKey !== undefined) specificity++;
+  if (code.altKey !== undefined) specificity++;
 
   return specificity;
 }
@@ -195,60 +176,53 @@ function checkEnabledIn(
 export function handleKeyDownWithShortcuts(
   e: KeyboardEvent,
   shortcuts: ShortcutInput[],
-  sequenceBuffer: { keys: string[]; lastTime: number },
+  sequenceBuffer: { codes: string[]; lastTime: number },
   opts?: UseShortcutsOptions,
 ) {
   const now = Date.now();
   const defaultTimeout = opts?.sequenceTimeout ?? 500;
 
-  // Get all sequence shortcuts to determine max length and check for matches
   const sequenceShortcuts = shortcuts.filter(
     (s): s is SequenceShortcut => !!s && s !== true && isSequenceShortcut(s),
   );
 
-  // Check if we should reset the buffer (timeout exceeded)
   if (sequenceShortcuts.length > 0) {
     const minTimeout = Math.min(
       ...sequenceShortcuts.map((s) => s.timeout ?? defaultTimeout),
     );
     if (now - sequenceBuffer.lastTime > minTimeout) {
-      sequenceBuffer.keys = [];
+      sequenceBuffer.codes = [];
     }
 
-    // Add the new key to the buffer
-    sequenceBuffer.keys.push(e.key);
+    sequenceBuffer.codes.push(e.code);
     sequenceBuffer.lastTime = now;
 
-    // Keep buffer at max needed length
     const maxLength = Math.max(
       ...sequenceShortcuts.map((s) => s.sequence.length),
     );
-    if (sequenceBuffer.keys.length > maxLength) {
-      sequenceBuffer.keys = sequenceBuffer.keys.slice(-maxLength);
+    if (sequenceBuffer.codes.length > maxLength) {
+      sequenceBuffer.codes = sequenceBuffer.codes.slice(-maxLength);
     }
 
-    // Check sequence shortcuts first
     for (const shortcut of sequenceShortcuts) {
       if (!checkEnabledIn(shortcut.enabledIn, e)) continue;
 
       const timeout = shortcut.timeout ?? defaultTimeout;
       if (now - sequenceBuffer.lastTime > timeout) continue;
 
-      if (sequenceBuffer.keys.length < shortcut.sequence.length) continue;
+      if (sequenceBuffer.codes.length < shortcut.sequence.length) continue;
 
-      // Check if the end of the buffer matches the sequence
-      const bufferEnd = sequenceBuffer.keys.slice(-shortcut.sequence.length);
-      const matches = shortcut.sequence.every((key, i) => bufferEnd[i] === key);
+      const bufferEnd = sequenceBuffer.codes.slice(-shortcut.sequence.length);
+      const matches = shortcut.sequence.every((code, i) => bufferEnd[i] === code);
 
       if (matches) {
         shortcut.handler(e);
-        sequenceBuffer.keys = []; // Reset after match
-        return; // Sequence matched, don't process regular shortcuts
+        sequenceBuffer.codes = [];
+        return;
       }
     }
   }
 
-  // Process regular shortcuts - find all matching shortcuts and pick the most specific
   const matchingShortcuts: Array<{
     shortcut: ShortcutWithHandler;
     specificity: number;
@@ -256,49 +230,42 @@ export function handleKeyDownWithShortcuts(
 
   shortcuts.forEach((shortcut) => {
     if (!shortcut || shortcut === true) return;
-    if (isSequenceShortcut(shortcut)) return; // Already handled above
+    if (isSequenceShortcut(shortcut)) return;
 
     if (!checkEnabledIn(shortcut.enabledIn, e)) return;
 
-    // Check if notKey excludes this shortcut
-    if (shortcut.notKey) {
-      if (Array.isArray(shortcut.notKey)) {
-        if (shortcut.notKey.some((k) => checkShortcut(k, e))) {
+    if (shortcut.notCode) {
+      if (Array.isArray(shortcut.notCode)) {
+        if (shortcut.notCode.some((c) => checkShortcutCode(c, e))) {
           return;
         }
       } else {
-        if (checkShortcut(shortcut.notKey, e)) {
+        if (checkShortcutCode(shortcut.notCode, e)) {
           return;
         }
       }
     }
 
-    // Check if this shortcut matches
-    let matchedDefinition: ShortcutDefinition | null = null;
-    if (Array.isArray(shortcut.key)) {
-      const matched = shortcut.key.find((k) => checkShortcut(k, e));
+    let matchedCode: ShortcutCode | null = null;
+    if (Array.isArray(shortcut.code)) {
+      const matched = shortcut.code.find((c) => checkShortcutCode(c, e));
       if (matched) {
-        matchedDefinition = matched;
+        matchedCode = matched;
       }
     } else {
-      if (checkShortcut(shortcut.key, e)) {
-        matchedDefinition = shortcut.key;
+      if (checkShortcutCode(shortcut.code, e)) {
+        matchedCode = shortcut.code;
       }
     }
 
-    // If matched, calculate specificity and add to candidates
-    if (matchedDefinition) {
-      const specificity = getShortcutSpecificity(matchedDefinition);
+    if (matchedCode) {
+      const specificity = getCodeSpecificity(matchedCode);
       matchingShortcuts.push({ shortcut, specificity });
     }
   });
 
-  // If we have matching shortcuts, execute only the most specific one
   if (matchingShortcuts.length > 0) {
-    // Sort by specificity (highest first)
     matchingShortcuts.sort((a, b) => b.specificity - a.specificity);
-
-    // Execute only the most specific shortcut
     const mostSpecific = matchingShortcuts[0];
     mostSpecific.shortcut.handler(e);
   }

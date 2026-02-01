@@ -1,15 +1,14 @@
 import { createStore } from '@xstate/store'
 import { z } from 'zod'
 import { createAsyncStoragePersistence } from '@/features/file-browser/utils/asyncStorage'
-import { ShortcutDefinition } from './useShortcuts'
+import { ShortcutCode } from './useShortcuts'
 import { AsyncStorageKeys } from '@common/AsyncStorageKeys'
 
 // Schema for a single shortcut definition
-const shortcutDefinitionSchema: z.ZodType<ShortcutDefinition> = z.union([
+const shortcutDefinitionSchema: z.ZodType<ShortcutCode> = z.union([
   z.string(),
   z.object({
-    key: z.string(),
-    isCode: z.boolean().optional(),
+    code: z.string(),
     metaKey: z.boolean().optional(),
     shiftKey: z.boolean().optional(),
     ctrlKey: z.boolean().optional(),
@@ -46,7 +45,7 @@ export const shortcutCustomizationStore = createStore({
       context,
       event: {
         label: string
-        shortcut: ShortcutDefinition | ShortcutDefinition[] | { sequence: string[] }
+        shortcut: ShortcutCode | ShortcutCode[] | { sequence: string[] }
       }
     ) => ({
       ...context,
@@ -78,7 +77,7 @@ shortcutCustomizationStore.subscribe(state => {
 
 // Helper functions
 export const shortcutCustomizationHelpers = {
-  setCustomShortcut: (label: string, shortcut: ShortcutDefinition | ShortcutDefinition[] | { sequence: string[] }) =>
+  setCustomShortcut: (label: string, shortcut: ShortcutCode | ShortcutCode[] | { sequence: string[] }) =>
     shortcutCustomizationStore.send({
       type: 'setCustomShortcut',
       label,

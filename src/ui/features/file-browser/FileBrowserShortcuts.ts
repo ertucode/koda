@@ -55,7 +55,8 @@ export const FileBrowserShortcuts = {
       key: SHORTCUTS_KEY,
       shortcuts: [
         {
-          key: ['Enter'],
+          command: 'file_browser_open_item',
+          code: ['Enter'],
           handler: e => {
             e?.preventDefault()
             directoryHelpers.openItemOnCursor(getFilteredData(), undefined)
@@ -63,7 +64,8 @@ export const FileBrowserShortcuts = {
           label: 'Open item on cursor',
         },
         {
-          key: { key: 'Enter', metaKey: true },
+          command: 'file_browser_context_menu',
+          code: { code: 'Enter', metaKey: true },
           handler: _ => {
             const snapshot = directoryStore.getSnapshot()
             const active = getActiveDirectory(snapshot.context, undefined)
@@ -95,7 +97,8 @@ export const FileBrowserShortcuts = {
           label: 'Open context menu on cursor',
         },
         {
-          key: { key: 'p', ctrlKey: true },
+          command: 'file_browser_find_all',
+          code: { code: 'KeyP', ctrlKey: true },
           handler: e => {
             e?.preventDefault()
             dialogActions.open({
@@ -109,7 +112,8 @@ export const FileBrowserShortcuts = {
           label: 'Find all (files and folders)',
         },
         {
-          key: { key: 'k', ctrlKey: true, metaKey: true },
+          command: 'file_browser_show_shortcuts',
+          code: { code: 'KeyK', ctrlKey: true, metaKey: true },
           handler: e => {
             e?.preventDefault()
             dialogActions.open({
@@ -120,7 +124,8 @@ export const FileBrowserShortcuts = {
           label: 'Show keyboard shortcuts',
         },
         {
-          key: { key: 'l', ctrlKey: true, metaKey: true },
+          command: 'file_browser_manage_layouts',
+          code: { code: 'KeyL', ctrlKey: true, metaKey: true },
           handler: e => {
             e?.preventDefault()
             dialogActions.open({
@@ -131,7 +136,8 @@ export const FileBrowserShortcuts = {
           label: 'Manage custom layouts',
         },
         {
-          key: { key: 's', ctrlKey: true },
+          command: 'file_browser_find_string',
+          code: { code: 'KeyS', ctrlKey: true },
           handler: e => {
             e?.preventDefault()
             dialogActions.open({
@@ -144,7 +150,8 @@ export const FileBrowserShortcuts = {
           label: 'Find string',
         },
         {
-          key: { key: 'f', ctrlKey: true },
+          command: 'file_browser_find_file',
+          code: { code: 'KeyF', ctrlKey: true },
           handler: e => {
             e?.preventDefault()
             dialogActions.open({
@@ -158,21 +165,24 @@ export const FileBrowserShortcuts = {
           label: 'Find file',
         },
         {
-          key: { key: 'o', ctrlKey: true },
+          command: 'file_browser_go_previous',
+          code: { code: 'KeyO', ctrlKey: true },
           handler: _ => {
             directoryHelpers.onGoUpOrPrev(directoryHelpers.goPrev, undefined)
           },
           label: 'Go to previous directory',
         },
         {
-          key: { key: 'i', ctrlKey: true },
+          command: 'file_browser_go_next',
+          code: { code: 'KeyI', ctrlKey: true },
           handler: _ => {
             directoryHelpers.onGoUpOrPrev(directoryHelpers.goNext, undefined)
           },
           label: 'Go to next directory',
         },
         {
-          key: ['-'],
+          command: 'file_browser_go_up',
+          code: ['Minus'],
           handler: () => {
             const [shouldRun] = VimShortcutHelper.shouldRun()
             if (!shouldRun) return
@@ -181,7 +191,8 @@ export const FileBrowserShortcuts = {
           label: 'Go up to parent directory',
         },
         {
-          key: { key: 'Backspace', metaKey: true },
+          command: 'file_browser_delete',
+          code: { code: 'Backspace', metaKey: true },
           handler: () => {
             const items = directorySelection.getSelectedRealsOrCurrentReal(undefined)
             if (items)
@@ -195,7 +206,8 @@ export const FileBrowserShortcuts = {
           label: 'Delete selected items',
         },
         {
-          key: { key: 'n', ctrlKey: true },
+          command: 'file_browser_new_item',
+          code: { code: 'KeyN', ctrlKey: true },
           handler: e => {
             e?.preventDefault()
             dialogActions.open({
@@ -206,8 +218,9 @@ export const FileBrowserShortcuts = {
           label: 'Create new item',
         },
         {
-          key: 'r',
-          notKey: { key: 'r', metaKey: true },
+          command: 'file_browser_reload',
+          code: 'KeyR',
+          notCode: { code: 'KeyR', metaKey: true },
           handler: e => {
             const [shouldRun] = VimShortcutHelper.shouldRun()
             if (!shouldRun) return
@@ -217,7 +230,8 @@ export const FileBrowserShortcuts = {
           label: 'Reload directory',
         },
         {
-          key: { key: 'r', metaKey: true, shiftKey: true },
+          command: 'file_browser_batch_rename',
+          code: { code: 'KeyR', metaKey: true, shiftKey: true },
           handler: e => {
             e?.preventDefault()
             const itemsToRename = directorySelection.getSelectedRealsOrCurrentReal(undefined)
@@ -234,7 +248,8 @@ export const FileBrowserShortcuts = {
           label: 'Batch rename selected items',
         },
         {
-          key: { key: 'c', metaKey: true },
+          command: 'file_browser_copy',
+          code: { code: 'KeyC', metaKey: true },
           handler: e => {
             // Check if user is selecting text
             const selection = window.getSelection()
@@ -252,7 +267,8 @@ export const FileBrowserShortcuts = {
           label: 'Copy selected items',
         },
         {
-          key: { key: 'x', metaKey: true },
+          command: 'file_browser_cut',
+          code: { code: 'KeyX', metaKey: true },
           handler: e => {
             // Check if user is selecting text
             const selection = window.getSelection()
@@ -270,7 +286,8 @@ export const FileBrowserShortcuts = {
           label: 'Cut selected items',
         },
         {
-          key: { key: 'v', metaKey: true },
+          command: 'file_browser_paste',
+          code: { code: 'KeyV', metaKey: true },
           handler: e => {
             // Check if user is in an input field
             const target = e?.target as HTMLElement
@@ -285,7 +302,8 @@ export const FileBrowserShortcuts = {
           label: 'Paste items',
         },
         {
-          key: { key: 'v', metaKey: true, shiftKey: true },
+          command: 'file_browser_paste_clipboard',
+          code: { code: 'KeyV', metaKey: true, shiftKey: true },
           handler: async e => {
             e?.preventDefault()
             const customPasteType = await getWindowElectron().getCustomPasteType()
@@ -306,7 +324,8 @@ export const FileBrowserShortcuts = {
           label: 'Paste image, base64 data, or text from clipboard',
         },
         {
-          key: { key: 'v', metaKey: true, ctrlKey: true },
+          command: 'file_browser_toggle_view',
+          code: { code: 'KeyV', metaKey: true, ctrlKey: true },
           handler: e => {
             e?.preventDefault()
             directoryStore.send({
@@ -317,7 +336,8 @@ export const FileBrowserShortcuts = {
           label: 'Toggle view mode (list/grid)',
         },
         {
-          key: { key: '0', ctrlKey: true },
+          command: 'file_browser_dev_tools',
+          code: { code: 'Digit0', ctrlKey: true },
           handler: _ => {
             // @ts-ignore
             document.querySelector('webview')?.openDevTools()
@@ -326,14 +346,16 @@ export const FileBrowserShortcuts = {
           enabledIn: () => true,
         },
         {
-          key: { key: '/' },
+          command: 'file_browser_focus_search',
+          code: { code: 'Slash' },
           handler: e => {
             directoryStore.trigger.focusFuzzyInput({ e })
           },
           label: 'Focus search',
         },
         {
-          key: { key: 'l', ctrlKey: true, metaKey: true },
+          command: 'file_browser_load_sizes',
+          code: { code: 'KeyL', ctrlKey: true, metaKey: true },
           handler: e => {
             e?.preventDefault()
             directoryHelpers.loadDirectorySizes(undefined)
@@ -341,7 +363,8 @@ export const FileBrowserShortcuts = {
           label: 'Load directory sizes',
         },
         {
-          key: { key: 't', metaKey: true },
+          command: 'file_browser_new_tab',
+          code: { code: 'KeyT', metaKey: true },
           handler: e => {
             e?.preventDefault()
             const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory()
@@ -354,7 +377,8 @@ export const FileBrowserShortcuts = {
           label: 'New tab',
         },
         {
-          key: { key: 'm', ctrlKey: true },
+          command: 'file_browser_maximize',
+          code: { code: 'KeyM', ctrlKey: true },
           handler: e => {
             e?.preventDefault()
             const activeTabSet = LayoutHelpers.getActiveTabsetWithComponent(['directory', 'preview'])
@@ -365,7 +389,8 @@ export const FileBrowserShortcuts = {
           label: 'Maximize/Minimize',
         },
         {
-          key: { key: 'm', ctrlKey: true, metaKey: true },
+          command: 'file_browser_maximize_preview',
+          code: { code: 'KeyM', ctrlKey: true, metaKey: true },
           handler: e => {
             e?.preventDefault()
             const activeTabSet = LayoutHelpers.getTabsetWithComponent(['preview'])
@@ -376,7 +401,8 @@ export const FileBrowserShortcuts = {
           label: 'Maximize/Minimize Preview',
         },
         {
-          key: { key: 'w', metaKey: true },
+          command: 'file_browser_close_tab',
+          code: { code: 'KeyW', metaKey: true },
           handler: e => {
             if (directoryStore.getSnapshot().context.directoryOrder.length === 1) {
               // Close the window
@@ -397,7 +423,8 @@ export const FileBrowserShortcuts = {
         ...directorySelection.getSelectionShortcuts(),
         // Option+1 through Option+9 to open favorites
         ...Array.from({ length: 9 }, (_, i) => ({
-          key: { key: `Digit${i + 1}`, isCode: true, altKey: true },
+          command: `file_browser_favorite_${i + 1}`,
+          code: { code: `Digit${i + 1}`, altKey: true },
           handler: (e: KeyboardEvent | undefined) => {
             e?.preventDefault()
             const favorite = favoritesStore.get().context.favorites[i]
@@ -410,7 +437,8 @@ export const FileBrowserShortcuts = {
           label: `Open favorite ${i + 1}`,
         })),
         ...new Array(10).fill(0).map((_, i) => ({
-          key: { key: (i + 1).toString(), metaKey: true },
+          command: `file_browser_pane_${i + 1}`,
+          code: { code: `Digit${i + 1}`, metaKey: true },
           handler: (e: KeyboardEvent | undefined) => {
             e?.preventDefault()
             const dir = getNthLayoutDirectory(i + 1)
@@ -427,8 +455,9 @@ export const FileBrowserShortcuts = {
       enabled: true,
       sequences: [
         {
+          command: 'file_browser_go_first',
           // Go to the top (like vim gg)
-          sequence: ['g', 'g'],
+          sequence: ['KeyG', 'KeyG'],
           handler: e => {
             directoryStore.trigger.setCursor({ cursor: { line: 0 }, directoryId: undefined })
             e?.preventDefault()
@@ -436,7 +465,8 @@ export const FileBrowserShortcuts = {
           label: 'Go to first item',
         },
         {
-          sequence: ['g', '.'],
+          command: 'file_browser_toggle_dotfiles',
+          sequence: ['KeyG', 'Period'],
           handler: () => {
             fileBrowserSettingsStore.trigger.toggleShowDotFiles()
           },
@@ -462,10 +492,22 @@ export const FileBrowserShortcuts = {
 
 export const commands = [
   { code: 'Enter', command: 'file_browser_open_item', label: 'Open item on cursor' },
-  { code: { code: 'Enter', metaKey: true }, command: 'file_browser_context_menu', label: 'Open context menu on cursor' },
+  {
+    code: { code: 'Enter', metaKey: true },
+    command: 'file_browser_context_menu',
+    label: 'Open context menu on cursor',
+  },
   { code: { code: 'KeyP', ctrlKey: true }, command: 'file_browser_find_all', label: 'Find all (files and folders)' },
-  { code: { code: 'KeyK', ctrlKey: true, metaKey: true }, command: 'file_browser_show_shortcuts', label: 'Show keyboard shortcuts' },
-  { code: { code: 'KeyL', ctrlKey: true, metaKey: true }, command: 'file_browser_manage_layouts', label: 'Manage custom layouts' },
+  {
+    code: { code: 'KeyK', ctrlKey: true, metaKey: true },
+    command: 'file_browser_show_shortcuts',
+    label: 'Show keyboard shortcuts',
+  },
+  {
+    code: { code: 'KeyL', ctrlKey: true, metaKey: true },
+    command: 'file_browser_manage_layouts',
+    label: 'Manage custom layouts',
+  },
   { code: { code: 'KeyS', ctrlKey: true }, command: 'file_browser_find_string', label: 'Find string' },
   { code: { code: 'KeyF', ctrlKey: true }, command: 'file_browser_find_file', label: 'Find file' },
   { code: { code: 'KeyO', ctrlKey: true }, command: 'file_browser_go_previous', label: 'Go to previous directory' },
@@ -474,18 +516,38 @@ export const commands = [
   { code: { code: 'Backspace', metaKey: true }, command: 'file_browser_delete', label: 'Delete selected items' },
   { code: { code: 'KeyN', ctrlKey: true }, command: 'file_browser_new_item', label: 'Create new item' },
   { code: 'KeyR', command: 'file_browser_reload', label: 'Reload directory' },
-  { code: { code: 'KeyR', metaKey: true, shiftKey: true }, command: 'file_browser_batch_rename', label: 'Batch rename selected items' },
+  {
+    code: { code: 'KeyR', metaKey: true, shiftKey: true },
+    command: 'file_browser_batch_rename',
+    label: 'Batch rename selected items',
+  },
   { code: { code: 'KeyC', metaKey: true }, command: 'file_browser_copy', label: 'Copy selected items' },
   { code: { code: 'KeyX', metaKey: true }, command: 'file_browser_cut', label: 'Cut selected items' },
   { code: { code: 'KeyV', metaKey: true }, command: 'file_browser_paste', label: 'Paste items' },
-  { code: { code: 'KeyV', metaKey: true, shiftKey: true }, command: 'file_browser_paste_clipboard', label: 'Paste image, base64 data, or text from clipboard' },
-  { code: { code: 'KeyV', metaKey: true, ctrlKey: true }, command: 'file_browser_toggle_view', label: 'Toggle view mode (list/grid)' },
+  {
+    code: { code: 'KeyV', metaKey: true, shiftKey: true },
+    command: 'file_browser_paste_clipboard',
+    label: 'Paste image, base64 data, or text from clipboard',
+  },
+  {
+    code: { code: 'KeyV', metaKey: true, ctrlKey: true },
+    command: 'file_browser_toggle_view',
+    label: 'Toggle view mode (list/grid)',
+  },
   { code: { code: 'Digit0', ctrlKey: true }, command: 'file_browser_dev_tools', label: 'Open dev tools' },
   { code: 'Slash', command: 'file_browser_focus_search', label: 'Focus search' },
-  { code: { code: 'KeyL', ctrlKey: true, metaKey: true }, command: 'file_browser_load_sizes', label: 'Load directory sizes' },
+  {
+    code: { code: 'KeyL', ctrlKey: true, metaKey: true },
+    command: 'file_browser_load_sizes',
+    label: 'Load directory sizes',
+  },
   { code: { code: 'KeyT', metaKey: true }, command: 'file_browser_new_tab', label: 'New tab' },
   { code: { code: 'KeyM', ctrlKey: true }, command: 'file_browser_maximize', label: 'Maximize/Minimize' },
-  { code: { code: 'KeyM', ctrlKey: true, metaKey: true }, command: 'file_browser_maximize_preview', label: 'Maximize/Minimize Preview' },
+  {
+    code: { code: 'KeyM', ctrlKey: true, metaKey: true },
+    command: 'file_browser_maximize_preview',
+    label: 'Maximize/Minimize Preview',
+  },
   { code: { code: 'KeyW', metaKey: true }, command: 'file_browser_close_tab', label: 'Close tab' },
   // Favorites shortcuts
   { code: { code: 'Digit1', altKey: true }, command: 'file_browser_favorite_1', label: 'Open favorite 1' },

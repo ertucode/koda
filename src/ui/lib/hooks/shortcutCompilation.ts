@@ -1,194 +1,148 @@
-import { RefObject } from "react";
-import {
-  SequenceShortcut,
-  ShortcutDefinition,
-  ShortcutWithHandler,
-} from "./useShortcuts";
+import { RefObject } from 'react'
+import { SequenceShortcut, ShortcutCode, ShortcutWithHandler } from './useShortcuts'
 
-/*
- *{
-      isCode?: boolean;
-      metaKey?: boolean;
-      shiftKey?: boolean;
-      ctrlKey?: boolean;
-      altKey?: boolean;
-      key: string;
-    }
- *
- * 5 booleans + key|keyCode string 
- * TFFFTe
- * */
-export type CompiledShortcut = $Branded<
-  ShortcutDefinition,
-  "compiled-shortcut"
->;
-type Handler = (e: KeyboardEvent) => void;
-export type CompiledShortcutSequence = CompiledShortcut[];
+export type CompiledShortcut = string
+type Handler = (e: KeyboardEvent) => void
+export type CompiledShortcutSequence = CompiledShortcut[]
 
-function compileShortcut(shortcut: ShortcutDefinition): CompiledShortcut {
-  if (typeof shortcut === "string") {
-    return ("FFFFF" + shortcut) as CompiledShortcut;
+function compileShortcutCode(code: ShortcutCode): CompiledShortcut {
+  if (typeof code === 'string') {
+    return ('TFFFF' + code) as CompiledShortcut
   }
 
   return [
-    shortcut.isCode ? "T" : "F",
-    shortcut.metaKey ? "T" : "F",
-    shortcut.shiftKey ? "T" : "F",
-    shortcut.ctrlKey ? "T" : "F",
-    shortcut.altKey ? "T" : "F",
-    shortcut.key,
-  ].join("") as CompiledShortcut;
+    'T',
+    code.metaKey ? 'T' : 'F',
+    code.shiftKey ? 'T' : 'F',
+    code.ctrlKey ? 'T' : 'F',
+    code.altKey ? 'T' : 'F',
+    code.code,
+  ].join('') as CompiledShortcut
 }
 
-function compileSequence(
-  sequence: ShortcutDefinition[],
-): CompiledShortcutSequence {
-  return sequence.map(compileShortcut);
+function compileSequence(sequence: ShortcutCode[]): CompiledShortcutSequence {
+  return sequence.map(compileShortcutCode)
 }
 
-function compileEvent(e: KeyboardEvent): [CompiledShortcut, CompiledShortcut] {
-  return [
-    [
-      "T",
-      e.metaKey ? "T" : "F",
-      e.shiftKey ? "T" : "F",
-      e.ctrlKey ? "T" : "F",
-      e.altKey ? "T" : "F",
-      e.code,
-    ].join("") as CompiledShortcut,
-    [
-      "F",
-      e.metaKey ? "T" : "F",
-      e.shiftKey ? "T" : "F",
-      e.ctrlKey ? "T" : "F",
-      e.altKey ? "T" : "F",
-      e.key,
-    ].join("") as CompiledShortcut,
-  ];
+function compileEvent(e: KeyboardEvent): CompiledShortcut {
+  return ['T', e.metaKey ? 'T' : 'F', e.shiftKey ? 'T' : 'F', e.ctrlKey ? 'T' : 'F', e.altKey ? 'T' : 'F', e.code].join(
+    ''
+  ) as CompiledShortcut
 }
 
-export function compileShortcuts(
-  shortcut: ShortcutWithHandler[],
-): CompiledShortcuts {
-  const shortcuts = new Map<CompiledShortcut, ShortcutWithHandler>();
-  for (const s of shortcut) {
-    if (Array.isArray(s.key)) {
-      for (const k of s.key) {
-        shortcuts.set(compileShortcut(k), s);
+export function compileShortcuts(shortcuts: ShortcutWithHandler[]): CompiledShortcuts {
+  const compiled = new Map<CompiledShortcut, ShortcutWithHandler>()
+  for (const s of shortcuts) {
+    if (Array.isArray(s.code)) {
+      for (const c of s.code) {
+        compiled.set(compileShortcutCode(c), s)
       }
     } else {
-      shortcuts.set(compileShortcut(s.key), s);
+      compiled.set(compileShortcutCode(s.code), s)
     }
   }
-  return shortcuts;
+  return compiled
 }
 
-export function compileSequences(
-  sequences: SequenceShortcut[],
-): CompiledSequences {
-  return sequences.map((s) => ({
-    seq: compileSequence(s.sequence),
+export function compileSequences(sequences: SequenceShortcut[]): CompiledSequences {
+  return sequences.map(s => ({
+    seq: compileSequence(s.sequence.map(code => ({ code }))),
     def: s,
-  }));
+  }))
 }
 
 type SequenceState = {
-  active: boolean;
-  index: number;
-  sequence: CompiledShortcutSequence | null;
-  startedAt: number;
-  handler: Handler;
-};
-const sequenceTimeout = 500;
+  index: number
+  sequences: { seq: CompiledShortcutSequence; handler: Handler }[] | null
+  startedAt: number
+}
+const sequenceTimeout = 500
 let state: SequenceState = {
-  active: false,
   index: 0,
-  sequence: null,
+  sequences: null,
   startedAt: 0,
-  handler: () => {},
-};
+}
 
 export type CompiledSequences = {
-  seq: CompiledShortcutSequence;
-  def: SequenceShortcut;
-}[];
-export type CompiledShortcuts = Map<CompiledShortcut, ShortcutWithHandler>;
-export function handleKeydown(
-  single: CompiledShortcuts,
-  sequences: CompiledSequences,
-  e: KeyboardEvent,
-) {
-  const keys = compileEvent(e);
-  const now = performance.now();
+  seq: CompiledShortcutSequence
+  def: SequenceShortcut
+}[]
+export type CompiledShortcuts = Map<CompiledShortcut, ShortcutWithHandler>
+export function handleKeydown(single: CompiledShortcuts, sequences: CompiledSequences, e: KeyboardEvent) {
+  const code = compileEvent(e)
+  const now = performance.now()
 
   // 1️⃣ If we're in a sequence
-  if (state.active) {
+  if (state.sequences) {
     if (now - state.startedAt > sequenceTimeout) {
-      resetState();
-      return;
+      resetState()
+      return
     }
 
-    const expected = state.sequence![state.index];
+    let matched = false
+    for (let i = state.sequences.length - 1; i >= 0; i--) {
+      const s = state.sequences[i]
+      const expected = s.seq[state.index]
 
-    if (keys.includes(expected)) {
-      state.index++;
+      if (code === expected) {
+        matched = true
 
-      if (state.index === state.sequence!.length) {
-        state.handler!(e);
-        resetState();
+        if (state.index + 1 === s.seq.length) {
+          s.handler(e)
+          resetState()
+        }
+
+        return
+      } else {
+        state.sequences.splice(i, 1)
       }
-
-      return;
+    }
+    if (matched) {
+      state.index++
+      return
     }
 
     // mismatch → cancel
-    resetState();
+    resetState()
   }
 
-  // 2️⃣ Try to start a sequence
+  const matchedSequences: { seq: CompiledShortcutSequence; handler: Handler }[] = []
   for (const s of sequences) {
-    if (keys.includes(s.seq[0])) {
-      state = {
-        active: true,
-        index: 1,
-        sequence: s.seq,
-        handler: s.def.handler,
-        startedAt: now,
-      };
-
-      return;
+    if (code === s.seq[0]) {
+      matchedSequences.push({ seq: s.seq, handler: s.def.handler })
+    }
+  }
+  if (matchedSequences.length > 0) {
+    state = {
+      index: 1,
+      startedAt: now,
+      sequences: matchedSequences,
     }
   }
 
   // 3️⃣ Fallback to single shortcuts
-  for (const k of keys) {
-    const def = single.get(k);
-    if (def && checkEnabledIn(def.enabledIn, e)) {
-      def.handler(e);
-      return;
-    }
+  const def = single.get(code)
+  if (def && checkEnabledIn(def.enabledIn, e)) {
+    def.handler(e)
+    return
   }
 }
 
 function checkEnabledIn(
-  enabledIn:
-    | RefObject<HTMLElement | null>
-    | ((e: KeyboardEvent) => boolean)
-    | undefined,
-  e: KeyboardEvent,
+  enabledIn: RefObject<HTMLElement | null> | ((e: KeyboardEvent) => boolean) | undefined,
+  e: KeyboardEvent
 ): boolean {
   if (e.target instanceof HTMLInputElement) {
-    if (!enabledIn) return false;
-    if (typeof enabledIn === "function") {
-      return enabledIn(e);
+    if (!enabledIn) return false
+    if (typeof enabledIn === 'function') {
+      return enabledIn(e)
     }
-    return enabledIn.current === e.target;
+    return enabledIn.current === e.target
   }
-  return true;
+  return true
 }
 
 function resetState() {
-  state.active = false;
-  state.index = 0;
-  state.sequence = null;
+  state.index = 0
+  state.sequences = null
 }

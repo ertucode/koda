@@ -85,7 +85,7 @@ export function FilePreview({ filePath, isFile, fileSize, fileExt, isResizing = 
 
   useShortcuts([
     {
-      key: { key: ' ', ctrlKey: true },
+      code: { code: 'Space', ctrlKey: true },
       label: 'Preview anyway',
       handler: e => {
         e?.preventDefault()

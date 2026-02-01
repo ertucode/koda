@@ -6,14 +6,34 @@ import {
   handleKeydown,
 } from './shortcutCompilation'
 import { shortcutRegistryAPI } from './shortcutRegistry'
-import { SequenceShortcut, ShortcutWithHandler } from './useShortcuts'
+import { SequenceShortcut, ShortcutCode, ShortcutWithHandler } from './useShortcuts'
+
+export type CommandDefinition = {
+  command: string
+  label: string
+  customizable?: boolean
+}
+
+export type ShortcutCommand = CommandDefinition & {
+  code: ShortcutCode | ShortcutCode[]
+  handler: (e: KeyboardEvent | undefined) => void
+  enabledIn?: React.RefObject<HTMLElement | null> | ((e: KeyboardEvent | undefined) => boolean)
+  notCode?: ShortcutCode | ShortcutCode[]
+}
+
+export type SequenceCommand = CommandDefinition & {
+  sequence: string[]
+  handler: (e: KeyboardEvent | undefined) => void
+  timeout?: number
+  enabledIn?: React.RefObject<HTMLElement | null> | ((e: KeyboardEvent) => boolean)
+}
 
 export namespace GlobalShortcuts {
   export type Create = {
     key: string
-    shortcuts: ShortcutWithHandler[]
+    shortcuts: ShortcutCommand[]
     enabled: boolean
-    sequences: SequenceShortcut[]
+    sequences: SequenceCommand[]
   }
 
   type Item = {
@@ -34,6 +54,28 @@ export namespace GlobalShortcuts {
     sequences: [],
   }
 
+  function convertShortcutCommand(item: ShortcutCommand): ShortcutWithHandler {
+    return {
+      command: item.command,
+      code: item.code,
+      handler: item.handler,
+      label: item.label,
+      enabledIn: item.enabledIn,
+      notCode: item.notCode,
+    }
+  }
+
+  function convertSequenceCommand(item: SequenceCommand): SequenceShortcut {
+    return {
+      command: item.command,
+      sequence: item.sequence,
+      handler: item.handler,
+      label: item.label,
+      timeout: item.timeout,
+      enabledIn: item.enabledIn,
+    }
+  }
+
   function recreateFlattened() {
     flattened.shortcuts = new Map()
     flattened.sequences = []
@@ -47,9 +89,12 @@ export namespace GlobalShortcuts {
   }
 
   export function create(item: Create) {
+    const convertedShortcuts = item.shortcuts.map(convertShortcutCommand)
+    const convertedSequences = item.sequences.map(convertSequenceCommand)
+
     const compiled = {
-      shortcuts: compileShortcuts(item.shortcuts),
-      sequences: compileSequences(item.sequences),
+      shortcuts: compileShortcuts(convertedShortcuts),
+      sequences: compileSequences(convertedSequences),
       enabled: item.enabled,
       key: item.key,
     }
@@ -60,11 +105,11 @@ export namespace GlobalShortcuts {
       flattened.sequences.push(...compiled.sequences)
     }
 
-    for (const i of item.shortcuts) {
+    for (const i of convertedShortcuts) {
       shortcutRegistryAPI.register(i.label, i)
     }
 
-    for (const i of item.sequences) {
+    for (const i of convertedSequences) {
       shortcutRegistryAPI.register(i.label, i)
     }
   }

@@ -4,7 +4,7 @@ import { dialogActions } from '../dialogStore'
 import { shortcutRegistryAPI } from '@/lib/hooks/shortcutRegistry'
 import { KeyboardIcon, Edit2Icon, XIcon, RotateCcwIcon } from 'lucide-react'
 import { Button } from '@/lib/components/button'
-import { ShortcutDefinition, isSequenceShortcut, useShortcuts } from '@/lib/hooks/useShortcuts'
+import { ShortcutCode, isSequenceShortcut, useShortcuts } from '@/lib/hooks/useShortcuts'
 import { clsx } from '@/lib/functions/clsx'
 import Fuse from 'fuse.js'
 import { shortcutCustomizationHelpers, shortcutCustomizationStore } from '@/lib/hooks/shortcutCustomization'
@@ -40,7 +40,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
   useShortcuts(
     [
       {
-        key: [{ key: 'ArrowDown' }, { key: 'j', ctrlKey: true }],
+        code: [{ code: 'ArrowDown' }, { code: 'KeyJ', ctrlKey: true }],
         handler: e => {
           e?.preventDefault()
           setSelectedIndex(prev => (prev + 1 === filteredShortcuts.length ? 0 : prev + 1))
@@ -49,7 +49,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
         enabledIn: () => true,
       },
       {
-        key: [{ key: 'ArrowUp' }, { key: 'k', ctrlKey: true }],
+        code: [{ code: 'ArrowUp' }, { code: 'KeyK', ctrlKey: true }],
         handler: e => {
           e?.preventDefault()
           setSelectedIndex(prev => {
@@ -60,7 +60,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
         enabledIn: () => true,
       },
       {
-        key: { key: 'Enter' },
+        code: { code: 'Enter' },
         handler: e => {
           e?.preventDefault()
           if (filteredShortcuts[selectedIndex]) {
@@ -129,8 +129,8 @@ export const CommandPalette = function CommandPalette(_props: {}) {
   const handleSaveShortcut = (label: string) => {
     if (!recordedKeys) return
 
-    const shortcut: ShortcutDefinition = {
-      key: recordedKeys.key,
+    const shortcut: ShortcutCode = {
+      code: recordedKeys.code,
       metaKey: recordedKeys.metaKey || undefined,
       ctrlKey: recordedKeys.ctrlKey || undefined,
       altKey: recordedKeys.altKey || undefined,
@@ -178,7 +178,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
                 ? customShortcuts[shortcut.label]
                 : isSequenceShortcut(shortcut.shortcut)
                   ? { sequence: shortcut.shortcut.sequence }
-                  : shortcut.shortcut.key
+                  : shortcut.shortcut.code
 
               return (
                 <div
@@ -202,7 +202,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
                         <kbd className="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 border border-blue-200 rounded dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700">
                           {recordedKeys
                             ? shortcutToString({
-                                key: recordedKeys.key,
+                                code: recordedKeys.code,
                                 metaKey: recordedKeys.metaKey || undefined,
                                 ctrlKey: recordedKeys.ctrlKey || undefined,
                                 altKey: recordedKeys.altKey || undefined,
@@ -284,7 +284,7 @@ function shortcutKeyString(key: string) {
   return key
 }
 
-function shortcutToString(shortcut: ShortcutDefinition): string {
+function shortcutToString(shortcut: ShortcutCode): string {
   if (typeof shortcut === 'string') {
     return shortcutKeyString(shortcut)
   }
@@ -294,7 +294,7 @@ function shortcutToString(shortcut: ShortcutDefinition): string {
   if (shortcut.ctrlKey) parts.push('Ctrl')
   if (shortcut.altKey) parts.push('Alt')
   if (shortcut.shiftKey) parts.push('Shift')
-  parts.push(shortcutKeyString(shortcut.key))
+  parts.push(shortcutKeyString(shortcut.code))
 
   return parts.join('+')
 }

@@ -39,7 +39,7 @@ export const FinderDialog = function FinderDialog(props: FinderDialogProps) {
   // Handle keyboard shortcuts
   useShortcuts([
     {
-      key: { key: '1', metaKey: true },
+      code: { code: 'Digit1', metaKey: true },
       handler: e => {
         e?.preventDefault()
         setActiveTab('find')
@@ -48,7 +48,7 @@ export const FinderDialog = function FinderDialog(props: FinderDialogProps) {
       label: 'Switch to Find tab',
     },
     {
-      key: { key: '2', metaKey: true },
+      code: { code: 'Digit2', metaKey: true },
       handler: e => {
         e?.preventDefault()
         setActiveTab('strings')
@@ -57,7 +57,7 @@ export const FinderDialog = function FinderDialog(props: FinderDialogProps) {
       label: 'Switch to Search in Files tab',
     },
     {
-      key: 'Escape',
+      code: 'Escape',
       handler: e => {
         e?.preventDefault()
         dialogActions.close()

@@ -1,7 +1,7 @@
 // Global registry for all active shortcuts
 // Uses a Map with labels as keys to store shortcuts
 
-import { DefinedShortcutInput, ShortcutDefinition, isSequenceShortcut } from "./useShortcuts";
+import { DefinedShortcutInput, ShortcutCode, isSequenceShortcut } from "./useShortcuts";
 import { shortcutCustomizationStore } from "./shortcutCustomization";
 
 export type RegisteredShortcut = {
@@ -46,9 +46,9 @@ export const shortcutRegistryAPI = {
       } else {
         // Handle regular shortcuts
         if (Array.isArray(customKey)) {
-          customizedShortcut.key = customKey as ShortcutDefinition[];
+          customizedShortcut.code = customKey as ShortcutCode[];
         } else {
-          customizedShortcut.key = customKey as ShortcutDefinition;
+          customizedShortcut.code = customKey as ShortcutCode;
         }
       }
 

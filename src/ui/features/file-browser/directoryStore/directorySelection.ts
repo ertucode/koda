@@ -5,6 +5,8 @@ import { getActiveDirectory, getBufferSelection, getFullPathForBuffer, selectBuf
 import { directoryDerivedStores } from './directorySubscriptions'
 import { throttle } from '@common/throttle'
 
+type ShortcutWithCommand = ShortcutWithHandler & { command: string }
+
 export const directorySelection = {
   // Selection helpers
   select: (
@@ -106,7 +108,7 @@ export const directorySelection = {
     })
   },
 
-  getSelectionShortcuts: (): ShortcutWithHandler[] => {
+  getSelectionShortcuts: (): ShortcutWithCommand[] => {
     // Helper function to get current cursor position
     const getCursorPosition = () => {
       const snapshot = directoryStore.getSnapshot()
@@ -205,7 +207,8 @@ export const directorySelection = {
     return [
       // Cmd+A: Select all
       {
-        key: [{ key: 'a', metaKey: true }],
+        command: 'file_browser_select_all',
+        code: [{ code: 'KeyA', metaKey: true }],
         handler: e => {
           const { state, filteredData } = getCursorPosition()
           directoryStore.send({
@@ -221,21 +224,24 @@ export const directorySelection = {
 
       // Shift+Space: Toggle current item
       {
-        key: { key: 'V', shiftKey: true },
+        command: 'file_browser_toggle_selection',
+        code: { code: 'KeyV', shiftKey: true },
         handler: e => moveCursor(0, 'toggle', e),
         label: 'Toggle selection of current item',
       },
 
       // Space: Set selection to current item only
       {
-        key: { key: 'v' },
+        command: 'file_browser_select_current',
+        code: { code: 'KeyV' },
         handler: e => moveCursor(0, 'replace', e),
         label: 'Select only current item',
       },
 
       // J/ArrowDown: Move down (replace selection)
       {
-        key: ['j', 'ArrowDown'],
+        command: 'file_browser_move_down',
+        code: ['KeyJ', 'ArrowDown'],
         handler: throttle(e => {
           const cols = getColumnsPerRow()
           const snapshot = directoryStore.getSnapshot()
@@ -248,7 +254,8 @@ export const directorySelection = {
 
       // K/ArrowUp: Move up (replace selection)
       {
-        key: ['k', 'ArrowUp'],
+        command: 'file_browser_move_up',
+        code: ['KeyK', 'ArrowUp'],
         handler: throttle(e => {
           const cols = getColumnsPerRow()
           const snapshot = directoryStore.getSnapshot()
@@ -261,9 +268,10 @@ export const directorySelection = {
 
       // J/Shift+ArrowDown: Move down and add to selection
       {
-        key: [
-          { key: 'J', shiftKey: true },
-          { key: 'ArrowDown', shiftKey: true },
+        command: 'file_browser_move_down_add',
+        code: [
+          { code: 'KeyJ', shiftKey: true },
+          { code: 'ArrowDown', shiftKey: true },
         ],
         handler: throttle(e => {
           const cols = getColumnsPerRow()
@@ -277,9 +285,10 @@ export const directorySelection = {
 
       // K/Shift+ArrowUp: Move up and add to selection
       {
-        key: [
-          { key: 'K', shiftKey: true },
-          { key: 'ArrowUp', shiftKey: true },
+        command: 'file_browser_move_up_add',
+        code: [
+          { code: 'KeyK', shiftKey: true },
+          { code: 'ArrowUp', shiftKey: true },
         ],
         handler: throttle(e => {
           const cols = getColumnsPerRow()
@@ -293,7 +302,8 @@ export const directorySelection = {
 
       // h/ArrowLeft: Move left in grid, jump up 10 in list
       {
-        key: ['h', 'ArrowLeft'],
+        command: 'file_browser_move_left',
+        code: ['KeyH', 'ArrowLeft'],
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
@@ -305,7 +315,8 @@ export const directorySelection = {
 
       // l/ArrowRight: Move right in grid, jump down 10 in list
       {
-        key: ['l', 'ArrowRight'],
+        command: 'file_browser_move_right',
+        code: ['KeyL', 'ArrowRight'],
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
           const state = getActiveDirectory(snapshot.context, undefined)
@@ -317,9 +328,10 @@ export const directorySelection = {
 
       // H/Shift+ArrowLeft: Move left and add in grid, jump up 10 and add in list
       {
-        key: [
-          { key: 'H', shiftKey: true },
-          { key: 'ArrowLeft', shiftKey: true },
+        command: 'file_browser_move_left_add',
+        code: [
+          { code: 'KeyH', shiftKey: true },
+          { code: 'ArrowLeft', shiftKey: true },
         ],
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
@@ -332,9 +344,10 @@ export const directorySelection = {
 
       // L/Shift+ArrowRight: Move right and add in grid, jump down 10 and add in list
       {
-        key: [
-          { key: 'L', shiftKey: true },
-          { key: 'ArrowRight', shiftKey: true },
+        command: 'file_browser_move_right_add',
+        code: [
+          { code: 'KeyL', shiftKey: true },
+          { code: 'ArrowRight', shiftKey: true },
         ],
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
@@ -347,9 +360,10 @@ export const directorySelection = {
 
       // Ctrl+J/Cmd+ArrowDown: Move down and remove from selection
       {
-        key: [
-          { key: 'j', ctrlKey: true },
-          { key: 'ArrowDown', metaKey: true },
+        command: 'file_browser_move_down_remove',
+        code: [
+          { code: 'KeyJ', ctrlKey: true },
+          { code: 'ArrowDown', metaKey: true },
         ],
         handler: throttle(e => {
           const cols = getColumnsPerRow()
@@ -363,9 +377,10 @@ export const directorySelection = {
 
       // Ctrl+K/Cmd+ArrowUp: Move up and remove from selection
       {
-        key: [
-          { key: 'k', ctrlKey: true },
-          { key: 'ArrowUp', metaKey: true },
+        command: 'file_browser_move_up_remove',
+        code: [
+          { code: 'KeyK', ctrlKey: true },
+          { code: 'ArrowUp', metaKey: true },
         ],
         handler: throttle(e => {
           const cols = getColumnsPerRow()
@@ -379,9 +394,10 @@ export const directorySelection = {
 
       // Ctrl+H/Cmd+ArrowLeft: Move left and remove in grid, jump up 10 and remove in list
       {
-        key: [
-          { key: 'h', ctrlKey: true },
-          { key: 'ArrowLeft', metaKey: true },
+        command: 'file_browser_move_left_remove',
+        code: [
+          { code: 'KeyH', ctrlKey: true },
+          { code: 'ArrowLeft', metaKey: true },
         ],
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
@@ -394,9 +410,10 @@ export const directorySelection = {
 
       // Ctrl+L/Cmd+ArrowRight: Move right and remove in grid, jump down 10 and remove in list
       {
-        key: [
-          { key: 'l', ctrlKey: true },
-          { key: 'ArrowRight', metaKey: true },
+        command: 'file_browser_move_right_remove',
+        code: [
+          { code: 'KeyL', ctrlKey: true },
+          { code: 'ArrowRight', metaKey: true },
         ],
         handler: throttle(e => {
           const snapshot = directoryStore.getSnapshot()
@@ -409,7 +426,8 @@ export const directorySelection = {
 
       // Shift+G: Go to last item
       {
-        key: { key: 'G', shiftKey: true },
+        command: 'file_browser_go_last',
+        code: { code: 'KeyG', shiftKey: true },
         handler: e => {
           const { state, filteredData } = getCursorPosition()
           directoryStore.trigger.setCursor({
@@ -423,14 +441,16 @@ export const directorySelection = {
 
       // Ctrl+D: Page down
       {
-        key: { key: 'd', ctrlKey: true },
+        command: 'file_browser_page_down',
+        code: { code: 'KeyD', ctrlKey: true },
         handler: throttle(e => moveCursor(10, 'replace', e), THROTTLE_DELAY),
         label: 'Page down',
       },
 
       // Ctrl+U: Page up
       {
-        key: { key: 'u', ctrlKey: true },
+        command: 'file_browser_page_up',
+        code: { code: 'KeyU', ctrlKey: true },
         handler: throttle(e => moveCursor(-10, 'replace', e), THROTTLE_DELAY),
         label: 'Page up',
       },
