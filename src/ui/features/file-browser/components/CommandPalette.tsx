@@ -189,7 +189,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
         </div>
       }
       onClose={dialogActions.close}
-      footer={<Button onClick={dialogActions.close}> Close </Button>}
+      footer={<Button onClick={dialogActions.close}>Close</Button>}
       className="max-w-2xl"
     >
       {duplicateCommands.size > 0 && (
@@ -211,7 +211,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
-      <div className="overflow-y-auto " ref={containerRef}>
+      <div className="overflow-y-auto max-h-[50vh]" ref={containerRef}>
         <div className="space-y-1 min-h-full">
           {filteredShortcuts.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
