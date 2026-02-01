@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Dialog } from '@/lib/components/dialog'
 import { dialogActions } from '../dialogStore'
 import { shortcutRegistryAPI } from '@/lib/hooks/shortcutRegistry'
-import { KeyboardIcon, Edit2Icon, XIcon, RotateCcwIcon } from 'lucide-react'
+import { KeyboardIcon, Edit2Icon, XIcon, RotateCcwIcon, AlertTriangleIcon } from 'lucide-react'
 import { Button } from '@/lib/components/button'
 import { ShortcutCode, isSequenceShortcut, useShortcuts } from '@/lib/hooks/useShortcuts'
 import { clsx } from '@/lib/functions/clsx'
@@ -13,7 +13,7 @@ import { useSelector } from '@xstate/store/react'
 export const CommandPalette = function CommandPalette(_props: {}) {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
-  const [editingLabel, setEditingLabel] = useState<string | null>(null)
+  const [editingCommand, setEditingCommand] = useState<string | null>(null)
   const [recordedKeys, setRecordedKeys] = useState<KeyboardEvent | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const customShortcuts = useSelector(shortcutCustomizationStore, state => state.context.customShortcuts)
@@ -21,6 +21,44 @@ export const CommandPalette = function CommandPalette(_props: {}) {
   const shortcuts = useMemo(() => {
     return shortcutRegistryAPI.getAll()
   }, [])
+
+  // Detect duplicate keymaps in O(N) time
+  const duplicateCommands = useMemo(() => {
+    const codeMap = new Map<string, string[]>() // code -> commands[]
+
+    for (const shortcut of shortcuts) {
+      const code = isSequenceShortcut(shortcut.shortcut)
+        ? `seq:${shortcut.shortcut.sequence.join(',')}`
+        : Array.isArray(shortcut.shortcut.code)
+          ? shortcut.shortcut.code
+              .map(c =>
+                typeof c === 'string'
+                  ? c
+                  : `${c.code}:${c.metaKey ? 'M' : ''}${c.ctrlKey ? 'C' : ''}${c.altKey ? 'A' : ''}${c.shiftKey ? 'S' : ''}`
+              )
+              .sort()
+              .join('|')
+          : typeof shortcut.shortcut.code === 'string'
+            ? shortcut.shortcut.code
+            : `${shortcut.shortcut.code.code}:${shortcut.shortcut.code.metaKey ? 'M' : ''}${shortcut.shortcut.code.ctrlKey ? 'C' : ''}${shortcut.shortcut.code.altKey ? 'A' : ''}${shortcut.shortcut.code.shiftKey ? 'S' : ''}`
+
+      const existing = codeMap.get(code) || []
+      existing.push(shortcut.command)
+      codeMap.set(code, existing)
+    }
+
+    // Find all commands that share codes with others
+    const duplicates = new Set<string>()
+    for (const [_, commands] of codeMap) {
+      if (commands.length > 1) {
+        for (const cmd of commands) {
+          duplicates.add(cmd)
+        }
+      }
+    }
+
+    return duplicates
+  }, [shortcuts])
 
   const fuse = useMemo(() => {
     return new Fuse(shortcuts, {
@@ -95,7 +133,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
   useEffect(() => {
     setSearchQuery('')
     setSelectedIndex(0)
-    setEditingLabel(null)
+    setEditingCommand(null)
     setRecordedKeys(null)
     // Focus the search input when dialog opens
     setTimeout(() => {
@@ -110,7 +148,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
 
   // Keyboard recording handler for editing shortcuts
   useEffect(() => {
-    if (!editingLabel) return
+    if (!editingCommand) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
       e.preventDefault()
@@ -124,9 +162,9 @@ export const CommandPalette = function CommandPalette(_props: {}) {
 
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [editingLabel])
+  }, [editingCommand])
 
-  const handleSaveShortcut = (label: string) => {
+  const handleSaveShortcut = (command: string) => {
     if (!recordedKeys) return
 
     const shortcut: ShortcutCode = {
@@ -137,8 +175,8 @@ export const CommandPalette = function CommandPalette(_props: {}) {
       shiftKey: recordedKeys.shiftKey || undefined,
     }
 
-    shortcutCustomizationHelpers.setCustomShortcut(label, shortcut)
-    setEditingLabel(null)
+    shortcutCustomizationHelpers.setCustomShortcut(command, shortcut)
+    setEditingCommand(null)
     setRecordedKeys(null)
   }
 
@@ -151,9 +189,18 @@ export const CommandPalette = function CommandPalette(_props: {}) {
         </div>
       }
       onClose={dialogActions.close}
+      footer={<Button onClick={dialogActions.close}> Close </Button>}
       className="max-w-2xl"
-      footer={<Button onClick={dialogActions.close}>Close</Button>}
     >
+      {duplicateCommands.size > 0 && (
+        <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded dark:bg-yellow-900/40 dark:border-yellow-600 flex items-start gap-2">
+          <AlertTriangleIcon className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+          <span className="text-xs text-yellow-800 dark:text-yellow-200">
+            {duplicateCommands.size} shortcut{duplicateCommands.size > 1 ? 's have' : ' has'} conflicting keymaps.
+            Multiple commands share the same keyboard shortcut, which may cause unexpected behavior.
+          </span>
+        </div>
+      )}
       <div className="mb-4">
         <input
           ref={searchInputRef}
@@ -164,7 +211,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
           className="w-full px-3 py-2 text-sm border border-gray-300 rounded dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
-      <div className="overflow-y-auto h-[60vh]" ref={containerRef}>
+      <div className="overflow-y-auto " ref={containerRef}>
         <div className="space-y-1 min-h-full">
           {filteredShortcuts.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
@@ -172,21 +219,23 @@ export const CommandPalette = function CommandPalette(_props: {}) {
             </div>
           ) : (
             filteredShortcuts.map((shortcut, index) => {
-              const isEditing = editingLabel === shortcut.label
-              const hasCustom = shortcutCustomizationHelpers.hasCustomShortcut(shortcut.label)
+              const isEditing = editingCommand === shortcut.command
+              const hasCustom = shortcutCustomizationHelpers.hasCustomShortcut(shortcut.command)
+              const isDuplicate = duplicateCommands.has(shortcut.command)
               const displayShortcut = hasCustom
-                ? customShortcuts[shortcut.label]
+                ? customShortcuts[shortcut.command]
                 : isSequenceShortcut(shortcut.shortcut)
                   ? { sequence: shortcut.shortcut.sequence }
                   : shortcut.shortcut.code
 
               return (
                 <div
-                  key={shortcut.label}
+                  key={shortcut.command}
                   className={clsx(
                     'flex items-center justify-between py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800 command-palette-item group',
                     index === selectedIndex ? 'bg-base-content/10' : '',
-                    !isEditing && 'cursor-pointer'
+                    !isEditing && 'cursor-pointer',
+                    isDuplicate && 'bg-yellow-100 dark:bg-yellow-900/30'
                   )}
                   onClick={() => {
                     if (!isEditing) {
@@ -195,11 +244,18 @@ export const CommandPalette = function CommandPalette(_props: {}) {
                     }
                   }}
                 >
-                  <span className="text-sm flex-1">{shortcut.label}</span>
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-sm">{shortcut.label}</span>
+                    {isDuplicate && (
+                      <span title="Conflicting keymap">
+                        <AlertTriangleIcon className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
                     {isEditing ? (
-                      <>
-                        <kbd className="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 border border-blue-200 rounded dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700">
+                      <div className="flex items-center gap-1 h-6">
+                        <kbd className="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 border border-blue-200 rounded dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700 whitespace-nowrap leading-none">
                           {recordedKeys
                             ? shortcutToString({
                                 code: recordedKeys.code,
@@ -210,61 +266,91 @@ export const CommandPalette = function CommandPalette(_props: {}) {
                               })
                             : 'Press a key...'}
                         </kbd>
-                        <Button
-                          onClick={() => handleSaveShortcut(shortcut.label)}
+                        <button
+                          onClick={() => handleSaveShortcut(shortcut.command)}
                           disabled={!recordedKeys}
-                          className="text-xs px-2 py-1"
+                          className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors h-6 w-6 flex items-center justify-center"
+                          title="Save"
                         >
-                          Save
-                        </Button>
-                        <Button
+                          <svg
+                            className="w-3.5 h-3.5 text-green-600 dark:text-green-400"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                        <button
                           onClick={e => {
                             e.stopPropagation()
-                            setEditingLabel(null)
+                            setEditingCommand(null)
                             setRecordedKeys(null)
                           }}
-                          className="text-xs px-2 py-1"
+                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors h-6 w-6 flex items-center justify-center"
+                          title="Cancel"
                         >
-                          <XIcon className="w-3 h-3" />
-                        </Button>
-                      </>
+                          <XIcon className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                        </button>
+                      </div>
                     ) : (
-                      <div className="relative flex items-center gap-2 group">
+                      <div className="relative flex items-center gap-2 group h-6">
                         {hasCustom && (
                           <button
                             onClick={e => {
                               e.stopPropagation()
-                              shortcutCustomizationHelpers.removeCustomShortcut(shortcut.label)
+                              shortcutCustomizationHelpers.removeCustomShortcut(shortcut.command)
                             }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded h-6 w-6 flex items-center justify-center"
                             title="Reset to default"
                           >
-                            <RotateCcwIcon className="w-3 h-3 text-gray-500" />
+                            <RotateCcwIcon className="w-3.5 h-3.5 text-gray-500" />
                           </button>
                         )}
                         <div
-                          className="flex items-center gap-2 cursor-pointer"
+                          className="flex items-center gap-2 cursor-pointer h-6"
                           onClick={e => {
                             e.stopPropagation()
-                            setEditingLabel(shortcut.label)
+                            setEditingCommand(shortcut.command)
                             setRecordedKeys(null)
                           }}
                         >
-                          <Edit2Icon className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500" />
-                          <kbd
-                            className={clsx(
-                              'px-2 py-1 text-xs font-semibold border rounded hover:opacity-80',
-                              hasCustom
-                                ? 'text-blue-800 bg-blue-100 border-blue-200 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700'
-                                : 'text-gray-800 bg-gray-100 border-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600'
+                          <Edit2Icon className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500" />
+                          <div className="flex items-center gap-1 h-6">
+                            {/* Show custom shortcut if defined */}
+                            {hasCustom && (
+                              <>
+                                <kbd
+                                  className={clsx(
+                                    'px-2 py-1 text-xs font-semibold border rounded hover:opacity-80',
+                                    'text-blue-800 bg-blue-100 border-blue-200 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700'
+                                  )}
+                                >
+                                  {typeof displayShortcut === 'object' && 'sequence' in displayShortcut
+                                    ? displayShortcut.sequence.join(' ')
+                                    : Array.isArray(displayShortcut)
+                                      ? displayShortcut.map(shortcutToString).join(' or ')
+                                      : shortcutToString(displayShortcut)}
+                                </kbd>
+                                <span className="text-xs text-gray-400">→</span>
+                              </>
                             )}
-                          >
-                            {typeof displayShortcut === 'object' && 'sequence' in displayShortcut
-                              ? displayShortcut.sequence.join(' ')
-                              : Array.isArray(displayShortcut)
-                                ? displayShortcut.map(shortcutToString).join(' or ')
-                                : shortcutToString(displayShortcut)}
-                          </kbd>
+                            {/* Show original shortcut */}
+                            <kbd
+                              className={clsx(
+                                'px-2 py-1 text-xs font-semibold border rounded hover:opacity-80',
+                                hasCustom
+                                  ? 'text-gray-500 bg-gray-50 border-gray-200 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-700 line-through'
+                                  : 'text-gray-800 bg-gray-100 border-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600'
+                              )}
+                            >
+                              {isSequenceShortcut(shortcut.defaultShortcut)
+                                ? shortcut.defaultShortcut.sequence.join(' ')
+                                : Array.isArray(shortcut.defaultShortcut.code)
+                                  ? shortcut.defaultShortcut.code.map(shortcutToString).join(' or ')
+                                  : shortcutToString(shortcut.defaultShortcut.code)}
+                            </kbd>
+                          </div>
                         </div>
                       </div>
                     )}

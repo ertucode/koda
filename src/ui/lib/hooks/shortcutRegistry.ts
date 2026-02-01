@@ -1,35 +1,37 @@
 // Global registry for all active shortcuts
-// Uses a Map with labels as keys to store shortcuts
+// Uses a Map with command IDs as keys to store shortcuts
 
 import { DefinedShortcutInput, ShortcutCode, isSequenceShortcut } from "./useShortcuts";
 import { shortcutCustomizationStore } from "./shortcutCustomization";
 
 export type RegisteredShortcut = {
+  command: string;
   label: string;
   shortcut: DefinedShortcutInput;
-  defaultShortcut: DefinedShortcutInput; // Store original default
+  defaultShortcut: DefinedShortcutInput;
 };
 
 const shortcutRegistry = new Map<string, RegisteredShortcut>();
 
 export const shortcutRegistryAPI = {
-  register: (label: string, shortcut: DefinedShortcutInput) => {
-    shortcutRegistry.set(label, { 
+  register: (command: string, label: string, shortcut: DefinedShortcutInput) => {
+    shortcutRegistry.set(command, { 
+      command,
       label, 
       shortcut,
-      defaultShortcut: shortcut, // Store the original
+      defaultShortcut: shortcut,
     });
   },
 
-  unregister: (label: string) => {
-    shortcutRegistry.delete(label);
+  unregister: (command: string) => {
+    shortcutRegistry.delete(command);
   },
 
   getAll: () => {
     const customShortcuts = shortcutCustomizationStore.get().context.customShortcuts;
     
     return Array.from(shortcutRegistry.values()).map((registered) => {
-      const customKey = customShortcuts[registered.label];
+      const customKey = customShortcuts[registered.command];
       
       if (!customKey) {
         return registered;

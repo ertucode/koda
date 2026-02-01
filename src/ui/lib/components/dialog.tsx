@@ -31,7 +31,7 @@ export function Dialog({
       <div className={cn('modal-box max-w-[80vw] max-h-[80vh] flex flex-col gap-3', className)} style={style}>
         {title && <h3 className="font-bold text-lg flex-shrink-0">{title}</h3>}
         <div className="flex-1 min-h-0">{children}</div>
-        <div className="self-end flex-shrink-0 flex gap-3 items-center">{footer && footer}</div>
+        {footer && <div className="flex flex-shrink-0 flex gap-3 justify-end bg-base-100">{footer}</div>}
       </div>
       <form method="dialog" className="modal-backdrop ">
         <button className="cursor-default" onClick={onClose}>

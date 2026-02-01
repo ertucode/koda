@@ -7,6 +7,7 @@ import {
 } from './shortcutCompilation'
 import { shortcutRegistryAPI } from './shortcutRegistry'
 import { SequenceShortcut, ShortcutCode, ShortcutWithHandler } from './useShortcuts'
+import { shortcutCustomizationStore } from './shortcutCustomization'
 
 export type CommandDefinition = {
   command: string
@@ -41,6 +42,8 @@ export namespace GlobalShortcuts {
     sequences: CompiledSequences
     enabled: boolean
     key: string
+    originalShortcuts: ShortcutCommand[]
+    originalSequences: SequenceCommand[]
   }
 
   type FlattenedGlobalShortcuts = {
@@ -76,6 +79,50 @@ export namespace GlobalShortcuts {
     }
   }
 
+  function applyCustomShortcuts(
+    shortcuts: ShortcutCommand[],
+    customShortcuts: Record<string, any>
+  ): ShortcutCommand[] {
+    return shortcuts.map(item => {
+      // Skip if not customizable
+      if (item.customizable === false) {
+        return item
+      }
+
+      const customKey = customShortcuts[item.command]
+      if (!customKey) {
+        return item
+      }
+
+      return {
+        ...item,
+        code: customKey,
+      }
+    })
+  }
+
+  function applyCustomSequences(
+    sequences: SequenceCommand[],
+    customShortcuts: Record<string, any>
+  ): SequenceCommand[] {
+    return sequences.map(item => {
+      // Skip if not customizable
+      if (item.customizable === false) {
+        return item
+      }
+
+      const customSeq = customShortcuts[item.command]
+      if (!customSeq || typeof customSeq !== 'object' || !('sequence' in customSeq)) {
+        return item
+      }
+
+      return {
+        ...item,
+        sequence: customSeq.sequence,
+      }
+    })
+  }
+
   function recreateFlattened() {
     flattened.shortcuts = new Map()
     flattened.sequences = []
@@ -88,15 +135,45 @@ export namespace GlobalShortcuts {
     }
   }
 
+  function recompileAll() {
+    const customShortcuts = shortcutCustomizationStore.get().context.customShortcuts
+
+    for (const item of Object.values(shortcutsMap)) {
+      const shortcutsWithCustom = applyCustomShortcuts(item.originalShortcuts, customShortcuts)
+      const sequencesWithCustom = applyCustomSequences(item.originalSequences, customShortcuts)
+
+      const convertedShortcuts = shortcutsWithCustom.map(convertShortcutCommand)
+      const convertedSequences = sequencesWithCustom.map(convertSequenceCommand)
+
+      item.shortcuts = compileShortcuts(convertedShortcuts)
+      item.sequences = compileSequences(convertedSequences)
+    }
+
+    recreateFlattened()
+  }
+
+  // Subscribe to custom shortcut changes and recompile all shortcuts
+  shortcutCustomizationStore.subscribe(() => {
+    recompileAll()
+  })
+
   export function create(item: Create) {
-    const convertedShortcuts = item.shortcuts.map(convertShortcutCommand)
-    const convertedSequences = item.sequences.map(convertSequenceCommand)
+    const customShortcuts = shortcutCustomizationStore.get().context.customShortcuts
+
+    // Apply custom shortcuts if they exist
+    const shortcutsWithCustom = applyCustomShortcuts(item.shortcuts, customShortcuts)
+    const sequencesWithCustom = applyCustomSequences(item.sequences, customShortcuts)
+
+    const convertedShortcuts = shortcutsWithCustom.map(convertShortcutCommand)
+    const convertedSequences = sequencesWithCustom.map(convertSequenceCommand)
 
     const compiled = {
       shortcuts: compileShortcuts(convertedShortcuts),
       sequences: compileSequences(convertedSequences),
       enabled: item.enabled,
       key: item.key,
+      originalShortcuts: item.shortcuts,
+      originalSequences: item.sequences,
     }
     shortcutsMap[item.key] = compiled
 
@@ -105,12 +182,12 @@ export namespace GlobalShortcuts {
       flattened.sequences.push(...compiled.sequences)
     }
 
-    for (const i of convertedShortcuts) {
-      shortcutRegistryAPI.register(i.label, i)
+    for (const i of item.shortcuts) {
+      shortcutRegistryAPI.register(i.command, i.label, convertShortcutCommand(i))
     }
 
-    for (const i of convertedSequences) {
-      shortcutRegistryAPI.register(i.label, i)
+    for (const i of item.sequences) {
+      shortcutRegistryAPI.register(i.command, i.label, convertSequenceCommand(i))
     }
   }
 
