@@ -15,6 +15,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
   const [searchQuery, setSearchQuery] = useState('')
   const [editingCommand, setEditingCommand] = useState<string | null>(null)
   const [recordedKeys, setRecordedKeys] = useState<KeyboardEvent | null>(null)
+  const [isSearchingByKeymap, setIsSearchingByKeymap] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const customShortcuts = useSelector(shortcutCustomizationStore, state => state.context.customShortcuts)
 
@@ -72,8 +73,31 @@ export const CommandPalette = function CommandPalette(_props: {}) {
     if (!searchQuery.trim()) {
       return shortcuts
     }
+    if (isSearchingByKeymap) {
+      // Search by keymap - match against shortcut key combinations
+      const searchLower = searchQuery.toLowerCase()
+      return shortcuts.filter(shortcut => {
+        const hasCustom = shortcutCustomizationHelpers.hasCustomShortcut(shortcut.command)
+        const displayShortcut = hasCustom
+          ? customShortcuts[shortcut.command]
+          : isSequenceShortcut(shortcut.shortcut)
+            ? { sequence: shortcut.shortcut.sequence }
+            : shortcut.shortcut.code
+
+        let keymapStr = ''
+        if (typeof displayShortcut === 'object' && 'sequence' in displayShortcut) {
+          keymapStr = displayShortcut.sequence.join(' ')
+        } else if (Array.isArray(displayShortcut)) {
+          keymapStr = displayShortcut.map(shortcutToString).join(' or ')
+        } else {
+          keymapStr = shortcutToString(displayShortcut)
+        }
+
+        return keymapStr.toLowerCase().includes(searchLower)
+      })
+    }
     return fuse.search(searchQuery).map(result => result.item)
-  }, [searchQuery, shortcuts, fuse])
+  }, [searchQuery, shortcuts, fuse, isSearchingByKeymap, customShortcuts])
 
   useShortcuts(
     [
@@ -105,6 +129,16 @@ export const CommandPalette = function CommandPalette(_props: {}) {
             dialogActions.close()
             filteredShortcuts[selectedIndex].shortcut.handler(undefined)
           }
+        },
+        label: '',
+        enabledIn: () => true,
+      },
+      {
+        code: { code: 'Escape', metaKey: true },
+        handler: e => {
+          e?.preventDefault()
+          setIsSearchingByKeymap(true)
+          setSearchQuery('')
         },
         label: '',
         enabledIn: () => true,
@@ -164,6 +198,44 @@ export const CommandPalette = function CommandPalette(_props: {}) {
     return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [editingCommand])
 
+  // Keyboard capture for keymap search mode
+  useEffect(() => {
+    if (!isSearchingByKeymap) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't capture if editing a shortcut
+      if (editingCommand) return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      if (e.metaKey && e.key === 'Escape') {
+        setIsSearchingByKeymap(false)
+        setSearchQuery('')
+        return
+      }
+
+      const isModifierKey = ['Control', 'Meta', 'Alt', 'Shift'].includes(e.key)
+
+      // Build keymap string
+      const parts: string[] = []
+      if (e.metaKey) parts.push('⌘')
+      if (e.ctrlKey) parts.push('Ctrl')
+      if (e.altKey) parts.push('Alt')
+      if (e.shiftKey) parts.push('Shift')
+      if (!isModifierKey) parts.push(shortcutKeyString(e.code))
+
+      const keymapStr = parts.join('+')
+      setSearchQuery(keymapStr)
+
+      // Keep focus on the search input
+      searchInputRef.current?.focus()
+    }
+
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
+  }, [isSearchingByKeymap, editingCommand])
+
   const handleSaveShortcut = (command: string) => {
     if (!recordedKeys) return
 
@@ -201,15 +273,37 @@ export const CommandPalette = function CommandPalette(_props: {}) {
           </span>
         </div>
       )}
-      <div className="mb-4">
+      <div className="mb-4 flex items-center gap-2">
         <input
           ref={searchInputRef}
           type="text"
-          placeholder="Search shortcuts..."
+          placeholder={isSearchingByKeymap ? 'Press keys to search...' : 'Search shortcuts...'}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={clsx(
+            'flex-1 px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2',
+            isSearchingByKeymap
+              ? 'border-blue-400 bg-blue-50 dark:border-blue-500 dark:bg-blue-900/20 focus:ring-blue-500'
+              : 'border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 focus:ring-blue-500'
+          )}
         />
+
+        <div className="tooltip tooltip-left" data-tip="Search by keymap (⌘+Esc)">
+          <button
+            onClick={() => {
+              setIsSearchingByKeymap(!isSearchingByKeymap)
+              setSearchQuery('')
+            }}
+            className={clsx(
+              'p-2 rounded border transition-colors h-[34px] w-[34px] flex items-center justify-center',
+              isSearchingByKeymap
+                ? 'bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-900/40 dark:border-blue-600 dark:text-blue-300'
+                : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+            )}
+          >
+            <KeyboardIcon className="w-4 h-4" />
+          </button>
+        </div>
       </div>
       <div className="overflow-y-auto max-h-[50vh] h-[50vh]" ref={containerRef}>
         <div className="space-y-1 min-h-full">

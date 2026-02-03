@@ -52,6 +52,7 @@
   @import './styles/join.css';
   @import './styles/toast.css';
   @import './styles/drag-image.css';
+  @import './styles/tooltip.css';
 }
 
 /* @font-face { */
