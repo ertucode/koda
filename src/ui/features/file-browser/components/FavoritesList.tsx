@@ -6,6 +6,7 @@ import { TextWithIcon } from '@/lib/components/text-with-icon'
 import { directoryHelpers, directoryStore, selectDirectory } from '../directoryStore/directory'
 import { setDefaultPath } from '../defaultPath'
 import { fileDragDropHandlers } from '../fileDragDrop'
+import { resolveDragItemsFromEvent } from '@/lib/functions/dragDrop'
 
 interface FavoritesListProps {
   className?: string
@@ -25,30 +26,8 @@ export function FavoritesList({ className }: FavoritesListProps) {
   }
 
   const handleExternalDrop = (e: React.DragEvent, insertIndex: number) => {
-    // Try to get dragged items from dataTransfer (HTML5 drag) or from store (native drag)
-    let itemsToAdd: Array<{ fullPath: string; type: 'file' | 'dir'; name: string }> | null = null
-
-    // First try dataTransfer (HTML5 drag)
-    const dragItemsJson = e.dataTransfer.getData('application/x-mygui-drag-items')
-    if (dragItemsJson) {
-      try {
-        itemsToAdd = JSON.parse(dragItemsJson)
-      } catch (error) {
-        console.error('Failed to parse drag items', error)
-      }
-    }
-
-    // If not found, try from store (native drag)
-    if (!itemsToAdd) {
-      const activeDrag = fileDragDropHandlers.getActiveDrag()
-      if (activeDrag) {
-        itemsToAdd = activeDrag.items
-      }
-    }
-
-    if (!itemsToAdd || itemsToAdd.length === 0) {
-      return
-    }
+    const itemsToAdd = resolveDragItemsFromEvent(e, fileDragDropHandlers.getActiveDrag()?.items)
+    if (!itemsToAdd) return
 
     // Add each item to favorites at the insert position
     const currentFavorites = favoritesStore.getSnapshot().context.favorites

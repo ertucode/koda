@@ -14,6 +14,11 @@ import {
   directoryHelpers,
   selectDirectory,
 } from "../directoryStore/directory";
+import { fileDragDropHandlers } from "../fileDragDrop";
+import {
+  isFileDragEvent,
+  resolveDragItemsFromEvent,
+} from "@/lib/functions/dragDrop";
 
 interface TagsListProps {
   className?: string;
@@ -90,13 +95,15 @@ function TagListItem({ tag }: { tag: TagColor }) {
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    // Check if this is a file drag operation
-    if (e.dataTransfer.types.includes("application/x-mygui-file-drag")) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.dataTransfer.dropEffect = "copy";
-      setIsDragOver(true);
+    const hasActiveDrag = fileDragDropHandlers.getActiveDrag() !== null;
+    if (!isFileDragEvent(e, hasActiveDrag)) {
+      return;
     }
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+    setIsDragOver(true);
   };
 
   const handleDragLeave = () => {
@@ -104,8 +111,9 @@ function TagListItem({ tag }: { tag: TagColor }) {
   };
 
   const handleDrop = (e: React.DragEvent) => {
-    // Check if this is a file drag operation
-    if (!e.dataTransfer.types.includes("application/x-mygui-file-drag")) {
+    const activeDrag = fileDragDropHandlers.getActiveDrag();
+    const hasActiveDrag = activeDrag !== null;
+    if (!isFileDragEvent(e, hasActiveDrag)) {
       return;
     }
 
@@ -113,21 +121,8 @@ function TagListItem({ tag }: { tag: TagColor }) {
     e.stopPropagation();
     setIsDragOver(false);
 
-    // Get dragged items from dataTransfer
-    const dragItemsJson = e.dataTransfer.getData("application/x-mygui-drag-items");
-    if (!dragItemsJson) {
-      return;
-    }
-
-    let items: Array<{ fullPath: string; type: "file" | "dir"; name: string }>;
-    try {
-      items = JSON.parse(dragItemsJson);
-    } catch (error) {
-      console.error("Failed to parse drag items", error);
-      return;
-    }
-
-    if (items.length === 0) {
+    const items = resolveDragItemsFromEvent(e, activeDrag?.items);
+    if (!items) {
       return;
     }
 
