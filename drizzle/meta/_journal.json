@@ -1,0 +1,13 @@
+{
+  "version": "5",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1770424588666,
+      "tag": "0000_clever_swarm",
+      "breakpoints": true
+    }
+  ]
+}

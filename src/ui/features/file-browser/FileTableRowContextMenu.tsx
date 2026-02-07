@@ -309,29 +309,111 @@ export const FileTableRowContextMenu = ({
     }
   }, [item.type, fullPath])
 
+  const handleOpenWithApplication = async (app: ApplicationInfo) => {
+    try {
+      await getWindowElectron().openFileWithApplication(fullPath, app.path)
+      const extensionMatch = item.name.match(/\.([^.]+)$/)
+      const extension = extensionMatch ? extensionMatch[1].toLowerCase() : ''
+      if (app.path !== '__choose__' && extension && !app.isDefault && !unarchiveMetadata) {
+        const toastId = toast.show({
+          severity: 'info',
+          message: (
+            <div className="flex items-center gap-2">
+              <span>
+                Set {app.name} as default for .{extension}?
+              </span>
+              <button
+                className="btn btn-xs btn-ghost"
+                onClick={async () => {
+                  await getWindowElectron().setDefaultApplicationForExtension({
+                    extension,
+                    appPath: app.path,
+                    appName: app.name,
+                  })
+                  if (toastId) {
+                    toast.hide(toastId)
+                  }
+                  toast.show({
+                    severity: 'success',
+                    message: `Set ${app.name} as default for .${extension}`,
+                  })
+                }}
+              >
+                Set default
+              </button>
+            </div>
+          ),
+          timeout: Infinity,
+          closeOnOutsideClick: true,
+          location: 'bottom-right',
+        })
+      }
+    } catch (err: any) {
+      toast.show({
+        severity: 'error',
+        message: `Failed to open file: ${err?.message || 'Unknown error'}`,
+      })
+    }
+    close()
+  }
+
   const openWithApplicationItem: ContextMenuItem | null =
     item.type === 'file'
       ? {
           view: <TextWithIcon icon={ExternalLinkIcon}>Open With</TextWithIcon>,
-          submenu: applications.map(app => ({
-            onClick: async () => {
-              try {
-                await getWindowElectron().openFileWithApplication(fullPath, app.path)
-              } catch (err: any) {
-                toast.show({
-                  severity: 'error',
-                  message: `Failed to open file: ${err?.message || 'Unknown error'}`,
-                })
+          submenu: applications.map(app => {
+            if (app.defaultSource === 'koda') {
+              return {
+                view: (
+                  <div className="flex flex-col max-w-full" title={`${app.name}\n${app.path}`}>
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                      {app.name} (Default (Koda))
+                    </span>
+                    <span className="text-xs opacity-70 overflow-hidden text-ellipsis whitespace-nowrap">{app.path}</span>
+                  </div>
+                ),
+                submenu: [
+                  {
+                    onClick: () => handleOpenWithApplication(app),
+                    view: 'Open with this app',
+                  },
+                  {
+                    onClick: async () => {
+                      const extensionMatch = item.name.match(/\.([^.]+)$/)
+                      const extension = extensionMatch ? extensionMatch[1].toLowerCase() : ''
+                      if (!extension) return
+                      await getWindowElectron().clearDefaultApplicationForExtension({ extension })
+                      close()
+                    },
+                    view: 'Unset default',
+                  },
+                ],
               }
-              close()
-            },
-            view: (
-              <span>
-                {app.name}
-                {app.isDefault ? ' (Default)' : ''}
-              </span>
-            ),
-          })),
+            }
+
+            const defaultLabel =
+              app.defaultSource === 'system'
+                ? ' (Default (System))'
+                : app.isDefault
+                  ? ' (Default)'
+                  : ''
+
+            return {
+              onClick: () => handleOpenWithApplication(app),
+              view:
+                app.path === '__choose__' ? (
+                  <span>{app.name}</span>
+                ) : (
+                  <div className="flex flex-col max-w-full" title={`${app.name}\n${app.path}`}>
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                      {app.name}
+                      {defaultLabel}
+                    </span>
+                    <span className="text-xs opacity-70 overflow-hidden text-ellipsis whitespace-nowrap">{app.path}</span>
+                  </div>
+                ),
+            }
+          }),
         }
       : null
 

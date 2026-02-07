@@ -1,7 +1,9 @@
 import { exec } from "child_process";
 import { platform } from "os";
 import { promisify } from "util";
+import path from "path";
 import { expandHome } from "./expand-home.js";
+import { getOpenedApplicationsForExtension } from "../db/openedApplications.js";
 
 const execAsync = promisify(exec);
 
@@ -9,6 +11,8 @@ export type ApplicationInfo = {
   name: string;
   path: string;
   isDefault?: boolean;
+  isCustom?: boolean;
+  defaultSource?: "system" | "koda";
 };
 
 export async function getApplicationsForFile(
@@ -18,14 +22,80 @@ export async function getApplicationsForFile(
   const p = platform();
 
   if (p === "darwin") {
-    return getMacApplications(expandedPath);
+    return mergeStoredApplications(expandedPath, await getMacApplications(expandedPath));
   } else if (p === "linux") {
-    return getLinuxApplications(expandedPath);
+    return mergeStoredApplications(expandedPath, await getLinuxApplications(expandedPath));
   } else if (p === "win32") {
-    return getWindowsApplications(expandedPath);
+    return mergeStoredApplications(expandedPath, await getWindowsApplications(expandedPath));
   }
 
   return [];
+}
+
+async function mergeStoredApplications(
+  filePath: string,
+  apps: ApplicationInfo[],
+): Promise<ApplicationInfo[]> {
+  const extension = normalizeExtension(path.extname(filePath));
+  if (!extension) return apps;
+
+  let storedApps = [] as ReturnType<typeof getOpenedApplicationsForExtension>;
+  try {
+    storedApps = getOpenedApplicationsForExtension(extension);
+  } catch {
+    return apps;
+  }
+  if (!storedApps.length) return apps;
+
+  const browseItem =
+    apps.find((app) => app.path === "__choose__") ?? {
+      name: "Browse...",
+      path: "__choose__",
+      isDefault: false,
+    };
+
+  const baseApps = apps.filter((app) => app.path !== "__choose__");
+  const storedAppInfos: ApplicationInfo[] = storedApps.map((app) => ({
+    name: app.appName,
+    path: app.appPath,
+    isDefault: app.isDefault,
+    isCustom: true,
+  }));
+
+  const merged: ApplicationInfo[] = [];
+  const seen = new Set<string>();
+
+  for (const app of [...storedAppInfos, ...baseApps]) {
+    if (seen.has(app.path)) continue;
+    seen.add(app.path);
+    merged.push({ ...app });
+  }
+
+  const storedDefaultPath = storedApps.find((app) => app.isDefault)?.appPath;
+  if (storedDefaultPath) {
+    for (const app of merged) {
+      const isDefault = app.path === storedDefaultPath;
+      app.isDefault = isDefault;
+      if (isDefault) {
+        app.defaultSource = "koda";
+      }
+    }
+  } else {
+    for (const app of merged) {
+      if (app.isDefault) {
+        app.defaultSource = "system";
+      }
+    }
+  }
+
+  merged.push(browseItem);
+  return merged;
+}
+
+function normalizeExtension(extension: string) {
+  const trimmed = extension.trim().toLowerCase();
+  if (!trimmed) return "";
+  return trimmed.startsWith(".") ? trimmed.slice(1) : trimmed;
 }
 
 async function getMacApplications(

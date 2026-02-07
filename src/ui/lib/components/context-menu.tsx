@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Fuse from 'fuse.js'
 import { sportForContextMenu } from '../functions/spotForContextMenu'
+import { clsx } from '../functions/clsx'
 
 function extractText(node: React.ReactNode): string {
   if (typeof node === 'string') return node
@@ -106,6 +107,7 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
         }
       } else if ((e.key === 'k' && e.ctrlKey) || e.key === 'ArrowUp') {
         e.preventDefault()
+        e.stopPropagation()
         if (isInSubmenu) {
           setSelectedSubmenuIndex(prev => Math.max(prev - 1, 0))
         } else {
@@ -163,7 +165,7 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
   let navigableIndex = -1
 
   return (
-    <div className="menu menu-sm bg-base-200 rounded-box w-56">
+    <div className="menu menu-sm bg-base-200 rounded-box w-62">
       <div className="relative p-2">
         <input
           ref={inputRef}
@@ -190,7 +192,7 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
           </button>
         )}
       </div>
-      <ul ref={ulRef}>
+      <ul ref={ulRef} className="max-w-full">
         {filteredItems.map((item, idx) => {
           if ('isSeparator' in item) return <li key={idx}></li>
 
@@ -205,6 +207,7 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
             return (
               <li key={idx}>
                 <details
+                  className="max-w-full"
                   ref={el => {
                     detailsRefs.current[currentNavigableIndex] = el
                   }}
@@ -216,7 +219,7 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
                       return (
                         <li key={subIdx}>
                           <a
-                            className={isSubItemSelected ? 'bg-base-300' : ''}
+                            className={clsx('max-w-full block', isSubItemSelected ? 'bg-base-300' : '')}
                             onClick={() => {
                               subItem.onClick?.()
                               menu.close()
@@ -235,7 +238,7 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
           return (
             <li key={idx}>
               <a
-                className={isSelected ? 'bg-base-300' : ''}
+                className={clsx('max-w-full block', isSelected ? 'bg-base-300' : '')}
                 onClick={() => {
                   item.onClick?.()
                   menu.close()

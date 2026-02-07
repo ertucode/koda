@@ -36,6 +36,8 @@ export type ApplicationInfo = {
   name: string
   path: string
   isDefault?: boolean
+  isCustom?: boolean
+  defaultSource?: 'system' | 'koda'
 }
 
 export type AudioMetadata = {
@@ -178,6 +180,8 @@ export type EventResponseMapping = {
   abortTask: Promise<void>
   getApplicationsForFile: Promise<ApplicationInfo[]>
   openFileWithApplication: Promise<void>
+  setDefaultApplicationForExtension: Promise<void>
+  clearDefaultApplicationForExtension: Promise<void>
   openSelectAppWindow: Promise<string | null | undefined>
   openShell: Promise<void>
   runCommand: Promise<GenericResult<void>>
@@ -321,6 +325,8 @@ export type EventRequestMapping = {
   abortTask: string
   getApplicationsForFile: string
   openFileWithApplication: { filePath: string; applicationPath: string }
+  setDefaultApplicationForExtension: { extension: string; appPath: string; appName?: string }
+  clearDefaultApplicationForExtension: { extension: string }
   openSelectAppWindow: { initialPath: string }
   openShell: string
   runCommand: { name: string; filePath: string; parameters: any }
@@ -435,6 +441,12 @@ export type WindowElectron = {
   abortTask: (taskId: string) => Promise<void>
   getApplicationsForFile: (filePath: string) => Promise<ApplicationInfo[]>
   openFileWithApplication: (filePath: string, applicationPath: string) => Promise<void>
+  setDefaultApplicationForExtension: (opts: {
+    extension: string
+    appPath: string
+    appName?: string
+  }) => Promise<void>
+  clearDefaultApplicationForExtension: (opts: { extension: string }) => Promise<void>
   openSelectAppWindow: (initialPath: string) => Promise<string | null | undefined>
   openShell: (url: string) => Promise<void>
   isSelectAppMode: () => boolean

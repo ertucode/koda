@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Menu, screen, ipcMain, shell } from 'electron'
+import path from 'path'
 import os from 'os'
 import { ipcHandle, isDev } from './util.js'
 import fs from 'fs'
@@ -29,6 +30,12 @@ import { TaskManager } from './TaskManager.js'
 import { startArchive, startUnarchive } from './utils/start-archive-task.js'
 import { Archive } from './utils/archive/Archive.js'
 import { getApplicationsForFile, openFileWithApplication } from './utils/get-applications-for-file.js'
+import { initializeDatabase } from './db/index.js'
+import {
+  clearDefaultApplicationForExtension,
+  recordOpenedApplicationForFile,
+  setDefaultApplicationForExtension,
+} from './db/openedApplications.js'
 import { serializeWindowArguments, WindowArguments } from '../common/WindowArguments.js'
 import { runCommand } from './utils/run-command.js'
 import { getServerConfig } from './server-config.js'
@@ -153,6 +160,15 @@ app.on('ready', () => {
   const menu = Menu.buildFromTemplate(menuTemplate)
   Menu.setApplicationMenu(menu)
 
+  try {
+    initializeDatabase({
+      dbPath: path.join(app.getPath('userData'), 'koda.sqlite'),
+      migrationsPath: path.join(app.getAppPath(), 'drizzle'),
+    })
+  } catch (error) {
+    console.error('Failed to initialize database', error)
+  }
+
   // Use pending path from open-file event if available, otherwise check argv
   const initialPath =
     pendingOpenPath ?? process.argv.find(a => a.startsWith('--initial-path='))?.replace('--initial-path=', '')
@@ -214,9 +230,18 @@ app.on('ready', () => {
     if (applicationPath === '__choose__') {
       const res = await openSelectAppWindow('/Applications')
       if (!res) return
-      return openFileWithApplication(filePath, res)
+      await openFileWithApplication(filePath, res)
+      recordOpenedApplicationForFile(filePath, res)
+      return
     }
-    return openFileWithApplication(filePath, applicationPath)
+    await openFileWithApplication(filePath, applicationPath)
+    recordOpenedApplicationForFile(filePath, applicationPath)
+  })
+  ipcHandle('setDefaultApplicationForExtension', async ({ extension, appPath, appName }) => {
+    setDefaultApplicationForExtension(extension, appPath, appName)
+  })
+  ipcHandle('clearDefaultApplicationForExtension', async ({ extension }) => {
+    clearDefaultApplicationForExtension(extension)
   })
 
   ipcHandle('openShell', async (url: string) => {

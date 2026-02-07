@@ -18,6 +18,7 @@ export interface ToastOptions {
   timeout?: number;
   location?: ToastLocation;
   customIcon?: React.ComponentType<{ className?: string }>;
+  closeOnOutsideClick?: boolean;
 }
 
 interface Toast extends ToastOptions {
@@ -27,21 +28,33 @@ interface Toast extends ToastOptions {
 // Global toast manager - available anywhere, even outside React
 class ToastManager {
   private showFn:
-    | ((options: ToastOptions | GenericError.ResultType) => void)
+    | ((options: ToastOptions | GenericError.ResultType) => string)
     | null = null;
+  private hideFn: ((id: string) => void) | null = null;
 
   setShowFunction(
-    fn: (options: ToastOptions | GenericError.ResultType) => void,
+    fn: (options: ToastOptions | GenericError.ResultType) => string,
   ) {
     this.showFn = fn;
+  }
+
+  setHideFunction(fn: (id: string) => void) {
+    this.hideFn = fn;
   }
 
   show(options: ToastOptions | GenericError.ResultType) {
     if (!this.showFn) {
       console.warn("Toast system not initialized yet");
+      return null;
+    }
+    return this.showFn(options);
+  }
+
+  hide(id: string) {
+    if (!this.hideFn) {
       return;
     }
-    this.showFn(options);
+    this.hideFn(id);
   }
 }
 
@@ -106,7 +119,7 @@ const ToastItem: React.FC<{ toast: Toast; onClose: (id: string) => void }> = ({
   onClose,
 }) => {
   return (
-    <div className={`alert shadow-lg min-w-[300px] max-w-md`}>
+    <div className={`alert shadow-lg min-w-[300px] max-w-md`} data-toast-root="true">
       {getSeverityIcon(toast.severity, toast.customIcon)}
       <div>
         <h3 className="font-bold">
@@ -133,6 +146,10 @@ export const ToastRenderer = () => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
+  const removeOutsideClosableToasts = useCallback(() => {
+    setToasts((prev) => prev.filter((toast) => !toast.closeOnOutsideClick));
+  }, []);
+
   const show = useCallback(
     (opts: ToastOptions | GenericError.ResultType) => {
       const options: ToastOptions =
@@ -157,6 +174,8 @@ export const ToastRenderer = () => {
           removeToast(id);
         }, 5000);
       }
+
+      return id;
     },
     [removeToast],
   );
@@ -164,7 +183,29 @@ export const ToastRenderer = () => {
   // Register the show function with the global toast manager
   React.useEffect(() => {
     toast.setShowFunction(show);
-  }, [show]);
+    toast.setHideFunction(removeToast);
+  }, [removeToast, show]);
+
+  React.useEffect(() => {
+    const hasOutsideClosable = toasts.some((item) => item.closeOnOutsideClick);
+    if (!hasOutsideClosable) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest('[data-toast-root="true"]')) {
+        return;
+      }
+      removeOutsideClosableToasts();
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [removeOutsideClosableToasts, toasts]);
 
   // Group toasts by location
   const toastsByLocation = toasts.reduce(

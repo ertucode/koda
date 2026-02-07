@@ -92,6 +92,10 @@ electron.contextBridge.exposeInMainWorld('electron', {
   getApplicationsForFile: (filePath: string) => ipcInvoke('getApplicationsForFile', filePath),
   openFileWithApplication: (filePath: string, applicationPath: string) =>
     ipcInvoke('openFileWithApplication', { filePath, applicationPath }),
+  setDefaultApplicationForExtension: (opts: { extension: string; appPath: string; appName?: string }) =>
+    ipcInvoke('setDefaultApplicationForExtension', opts),
+  clearDefaultApplicationForExtension: (opts: { extension: string }) =>
+    ipcInvoke('clearDefaultApplicationForExtension', opts),
   openSelectAppWindow: (initialPath: string) => ipcInvoke('openSelectAppWindow', { initialPath }),
   openShell: (url: string) => ipcInvoke('openShell', url),
   runCommand: (opts: { name: string; filePath: string; parameters: any }) => ipcInvoke('runCommand', opts),
