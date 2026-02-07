@@ -107,14 +107,6 @@ export function PreviewApp() {
     return <div className="flex items-center justify-center h-full text-red-500 p-4">{error}</div>
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        <span className="loading loading-spinner size-10" />
-      </div>
-    )
-  }
-
   const Renderer = getRenderer(data)
 
   return (
