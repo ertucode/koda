@@ -1,4 +1,13 @@
-import React, { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import Fuse from 'fuse.js'
 import { sportForContextMenu } from '../functions/spotForContextMenu'
 import { clsx } from '../functions/clsx'
@@ -66,86 +75,76 @@ type NormalContextMenuItem = {
 }
 export type ContextMenuItem = NormalContextMenuItem | { isSeparator: true }
 
+export type ForgivingContextMenuItem = ContextMenuItem | false | null | undefined
 export type ContextMenuListProps = {
-  items: (ContextMenuItem | false | null | undefined)[]
+  items: ForgivingContextMenuItem[]
+}
+
+function getFilteredItems(items: ForgivingContextMenuItem[], query: string): ContextMenuItem[] {
+  if (!query) return items.filter((item): item is ContextMenuItem => !!item)
+  const fuseItems = items
+    .filter((item): item is NormalContextMenuItem => !!(item && !('isSeparator' in item)))
+    .map((item, idx) => ({ item, idx, searchText: extractText(item.view) }))
+  const fuse = new Fuse(fuseItems, { keys: ['searchText'] })
+  const filteredItems = fuse.search(query).map(result => result.item.item)
+
+  return filteredItems
 }
 
 export function ContextMenuList({ items }: ContextMenuListProps) {
   const menu = useContext(ContextMenuContext)
   const [query, setQuery] = useState('')
-  const baseItems = items.filter((i): i is ContextMenuItem => !!i)
-  const fuseItems = baseItems.filter(item => !('isSeparator' in item)) as NormalContextMenuItem[]
-  const fuseData = fuseItems.map((item, idx) => ({ item, idx, searchText: extractText(item.view) }))
-  const fuse = new Fuse(fuseData, { keys: ['searchText'] })
-  const filteredItems = query ? fuse.search(query).map(result => result.item.item) : baseItems
+  const filteredItems = getFilteredItems(items, query)
 
   useEffect(() => {
     inputRef.current?.focus()
   }, [])
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const [openSubmenuIndex, setOpenSubmenuIndex] = useState<number | null>(null)
-  const [selectedSubmenuIndex, setSelectedSubmenuIndex] = useState(0)
-  const ulRef = useRef<HTMLUListElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const detailsRefs = useRef<(HTMLDetailsElement | null)[]>([])
-
-  // Filter out separators for navigation
-  const navigableItems = filteredItems.filter(item => !('isSeparator' in item)) as NormalContextMenuItem[]
+  const [indexes, setIndexes] = useState<number[]>([0])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const currentItem = navigableItems[selectedIndex]
-      const isInSubmenu = openSubmenuIndex !== null
+      const { item: currentItem, maxItems } = getItemAndSiblings(filteredItems, indexes)
+      const depthIdx = indexes.length - 1
 
       if ((e.key === 'j' && e.ctrlKey) || e.key === 'ArrowDown') {
         e.preventDefault()
-        if (isInSubmenu && currentItem?.submenu) {
-          const filteredSubItems = currentItem.submenu.filter((i): i is NormalContextMenuItem => !!i)
-          setSelectedSubmenuIndex(prev => Math.min(prev + 1, filteredSubItems.length - 1))
-        } else {
-          setSelectedIndex(prev => Math.min(prev + 1, navigableItems.length - 1))
-        }
+        e.stopPropagation()
+        setIndexes(prev => {
+          const newIndexes = [...prev]
+          newIndexes[depthIdx] = Math.min(prev[depthIdx] + 1, maxItems - 1)
+          return newIndexes
+        })
       } else if ((e.key === 'k' && e.ctrlKey) || e.key === 'ArrowUp') {
         e.preventDefault()
         e.stopPropagation()
-        if (isInSubmenu) {
-          setSelectedSubmenuIndex(prev => Math.max(prev - 1, 0))
-        } else {
-          setSelectedIndex(prev => Math.max(prev - 1, 0))
-        }
+        setIndexes(prev => {
+          const newIndexes = [...prev]
+          newIndexes[depthIdx] = Math.max(prev[depthIdx] - 1, 0)
+          return newIndexes
+        })
       } else if ((e.key === 'l' && e.ctrlKey) || e.key === 'Enter' || e.key === 'ArrowRight') {
         e.preventDefault()
-        if (openSubmenuIndex !== null && currentItem.submenu) {
-          // Execute submenu item action
-          const filteredSubItems = currentItem.submenu.filter((i): i is NormalContextMenuItem => !!i)
-          const subItem = filteredSubItems[selectedSubmenuIndex]
-          if (subItem) {
-            subItem.onClick?.()
-            menu.close()
-          }
-        } else if (currentItem.submenu) {
-          // Open submenu
-          setOpenSubmenuIndex(selectedIndex)
-          setSelectedSubmenuIndex(0)
-          const detailsElement = detailsRefs.current[selectedIndex]
-          if (detailsElement) {
-            detailsElement.open = true
-          }
+        e.stopPropagation()
+        if (currentItem.submenu) {
+          setIndexes(prev => {
+            const newIndexes = [...prev]
+            newIndexes[depthIdx + 1] = 0
+            return newIndexes
+          })
         } else {
-          // Execute action
           currentItem.onClick?.()
           menu.close()
         }
       } else if ((e.key === 'h' && e.ctrlKey) || e.key === 'ArrowLeft') {
         e.preventDefault()
-        if (isInSubmenu) {
-          setOpenSubmenuIndex(null)
-          setSelectedSubmenuIndex(0)
-          // Close the details element
-          const detailsElement = detailsRefs.current[selectedIndex]
-          if (detailsElement) {
-            detailsElement.open = false
-          }
+        e.stopPropagation()
+        if (indexes.length > 1) {
+          setIndexes(prev => {
+            const newIndexes = [...prev]
+            newIndexes.length = depthIdx
+            return newIndexes
+          })
         }
       }
     }
@@ -155,14 +154,9 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [selectedIndex, openSubmenuIndex, selectedSubmenuIndex, navigableItems, menu])
+  }, [indexes, filteredItems])
 
-  // Reset refs array
-  useEffect(() => {
-    detailsRefs.current = detailsRefs.current.slice(0, filteredItems.length)
-  }, [filteredItems.length])
-
-  let navigableIndex = -1
+  let navigableIndex = 0
 
   return (
     <div className="menu menu-sm bg-base-200 rounded-box w-62">
@@ -192,47 +186,25 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
           </button>
         )}
       </div>
-      <ul ref={ulRef} className="max-w-full">
+      <ul className="max-w-full">
         {filteredItems.map((item, idx) => {
           if ('isSeparator' in item) return <li key={idx}></li>
 
-          navigableIndex++
-          const currentNavigableIndex = navigableIndex
-          const isSelected = currentNavigableIndex === selectedIndex && openSubmenuIndex === null
+          const currentNavigableIndex = navigableIndex++
+          const isSelected = currentNavigableIndex === indexes[0]
 
           if (item.submenu) {
-            const filteredSubItems = item.submenu.filter((i): i is NormalContextMenuItem => !!i)
-            const isSubmenuOpen = openSubmenuIndex === currentNavigableIndex
-
             return (
-              <li key={idx}>
-                <details
-                  className="max-w-full"
-                  ref={el => {
-                    detailsRefs.current[currentNavigableIndex] = el
-                  }}
-                >
-                  <summary className={isSelected ? 'bg-base-300' : ''}>{item.view}</summary>
-                  <ul>
-                    {filteredSubItems.map((subItem, subIdx) => {
-                      const isSubItemSelected = isSubmenuOpen && subIdx === selectedSubmenuIndex
-                      return (
-                        <li key={subIdx}>
-                          <a
-                            className={clsx('max-w-full block', isSubItemSelected ? 'bg-base-300' : '')}
-                            onClick={() => {
-                              subItem.onClick?.()
-                              menu.close()
-                            }}
-                          >
-                            {subItem.view}
-                          </a>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </details>
-              </li>
+              <ContextMenuListItemWithSubmenu
+                key={idx}
+                idx={currentNavigableIndex}
+                depthIdx={0}
+                indexes={indexes}
+                items={filteredItems}
+                indexesToHere={[currentNavigableIndex]}
+                menu={menu}
+                setIndexes={setIndexes}
+              />
             )
           }
           return (
@@ -251,6 +223,100 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
         })}
       </ul>
     </div>
+  )
+}
+
+function getItemAndSiblings(items: ContextMenuItem[], indexesToHere: number[]) {
+  let item = items[indexesToHere[0]] as NormalContextMenuItem
+  let maxItems = items.filter(item => !('isSeparator' in item)).length
+  for (let i = 1; i < indexesToHere.length; i++) {
+    if ('isSeparator' in item) throw new Error('Separator not allowed in submenu')
+    maxItems = item.submenu!.filter(i => !!(i && !('isSeparator' in i))).length
+    item = item.submenu?.[indexesToHere[i]] as any as NormalContextMenuItem
+  }
+  return { item, maxItems }
+}
+
+function ContextMenuListItemWithSubmenu({
+  idx,
+  depthIdx,
+  indexes,
+  setIndexes,
+  indexesToHere,
+  items,
+  menu,
+}: {
+  idx: number
+  depthIdx: number
+  indexes: number[]
+  indexesToHere: number[]
+  setIndexes: Dispatch<SetStateAction<number[]>>
+  items: ContextMenuItem[]
+  menu: ReturnType<typeof useContextMenu<any>>
+}) {
+  const isSelected = indexes[depthIdx] === idx
+  const isOpen = isSelected && indexes[depthIdx + 1] !== undefined
+
+  const { item } = getItemAndSiblings(items, indexesToHere)
+
+  let navigableIndex = 0
+
+  if ('isSeparator' in item) return <li key={idx}></li>
+
+  return (
+    <li key={idx}>
+      <details className="max-w-full" open={isOpen}>
+        <summary
+          className={isSelected ? 'bg-base-300' : ''}
+          onClick={() =>
+            setIndexes(prev => {
+              const newIndexes = [...prev]
+              newIndexes[depthIdx] = idx
+              newIndexes[depthIdx + 1] = 0
+              return newIndexes
+            })
+          }
+        >
+          {item.view}
+        </summary>
+        <ul>
+          {item.submenu?.map((subItem, subIdx) => {
+            if (!subItem) return null
+            if ('isSeparator' in subItem) return <li key={subIdx}></li>
+
+            const currentNavigableIndex = navigableIndex++
+            const isSubmenuSelected = indexes[depthIdx + 1] === currentNavigableIndex
+
+            if (subItem.submenu)
+              return (
+                <ContextMenuListItemWithSubmenu
+                  key={subIdx}
+                  idx={currentNavigableIndex}
+                  depthIdx={depthIdx + 1}
+                  indexes={indexes}
+                  setIndexes={setIndexes}
+                  indexesToHere={indexesToHere.concat(currentNavigableIndex)}
+                  items={items}
+                  menu={menu}
+                />
+              )
+            return (
+              <li key={subIdx}>
+                <a
+                  className={clsx('max-w-full block', isSubmenuSelected ? 'bg-base-300' : '')}
+                  onClick={() => {
+                    subItem?.onClick?.()
+                    menu.close()
+                  }}
+                >
+                  {subItem.view}
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      </details>
+    </li>
   )
 }
 

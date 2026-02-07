@@ -364,14 +364,15 @@ export const FileTableRowContextMenu = ({
           submenu: applications.map(app => {
             if (app.defaultSource === 'koda') {
               return {
-                view: (
-                  <div className="flex flex-col max-w-full" title={`${app.name}\n${app.path}`}>
-                    <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                      {app.name} (Default (Koda))
-                    </span>
-                    <span className="text-xs opacity-70 overflow-hidden text-ellipsis whitespace-nowrap">{app.path}</span>
-                  </div>
-                ),
+                view: <div>{app.name} ⭐</div>,
+                // view: (
+                //   <div className="flex flex-col max-w-full" title={`${app.name}\n${app.path}`}>
+                //     <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                //       {app.name} (Default (Koda))
+                //     </span>
+                //     <span className="text-xs opacity-70 overflow-hidden text-ellipsis whitespace-nowrap">{app.path}</span>
+                //   </div>
+                // ),
                 submenu: [
                   {
                     onClick: () => handleOpenWithApplication(app),
@@ -391,12 +392,7 @@ export const FileTableRowContextMenu = ({
               }
             }
 
-            const defaultLabel =
-              app.defaultSource === 'system'
-                ? ' (Default (System))'
-                : app.isDefault
-                  ? ' (Default)'
-                  : ''
+            const defaultLabel = app.isDefault ? ' ⭐' : ''
 
             return {
               onClick: () => handleOpenWithApplication(app),
@@ -409,7 +405,9 @@ export const FileTableRowContextMenu = ({
                       {app.name}
                       {defaultLabel}
                     </span>
-                    <span className="text-xs opacity-70 overflow-hidden text-ellipsis whitespace-nowrap">{app.path}</span>
+                    <span className="text-xs opacity-70 overflow-hidden text-ellipsis whitespace-nowrap">
+                      {app.path}
+                    </span>
                   </div>
                 ),
             }
