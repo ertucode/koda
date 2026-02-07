@@ -301,13 +301,19 @@ export const FileTableRowContextMenu = ({
   const [applications, setApplications] = useState<ApplicationInfo[]>([])
 
   useEffect(() => {
-    if (item.type === 'file') {
-      getWindowElectron()
-        .getApplicationsForFile(fullPath)
-        .then(setApplications)
-        .catch(() => setApplications([]))
-    }
+    if (item.type !== 'file') return
+    getWindowElectron()
+      .getApplicationsForFile(fullPath)
+      .then(setApplications)
+      .catch(() => setApplications([]))
   }, [item.type, fullPath])
+
+  const buildAppIcon = (icon?: string) => {
+    if (!icon) return undefined
+    return ({ className }: { className?: string }) => (
+      <img src={icon} alt="" className={['object-contain', className].filter(Boolean).join(' ')} />
+    )
+  }
 
   const handleOpenWithApplication = async (app: ApplicationInfo) => {
     try {
@@ -362,17 +368,14 @@ export const FileTableRowContextMenu = ({
       ? {
           view: <TextWithIcon icon={ExternalLinkIcon}>Open With</TextWithIcon>,
           submenu: applications.map(app => {
+            const AppIcon = buildAppIcon(app.icon)
             if (app.defaultSource === 'koda') {
               return {
-                view: <div>{app.name} ⭐</div>,
-                // view: (
-                //   <div className="flex flex-col max-w-full" title={`${app.name}\n${app.path}`}>
-                //     <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                //       {app.name} (Default (Koda))
-                //     </span>
-                //     <span className="text-xs opacity-70 overflow-hidden text-ellipsis whitespace-nowrap">{app.path}</span>
-                //   </div>
-                // ),
+                view: (
+                  <TextWithIcon icon={AppIcon} title={`${app.name}\n${app.path}`}>
+                    {app.name} ⭐
+                  </TextWithIcon>
+                ),
                 submenu: [
                   {
                     onClick: () => handleOpenWithApplication(app),
@@ -396,20 +399,20 @@ export const FileTableRowContextMenu = ({
 
             return {
               onClick: () => handleOpenWithApplication(app),
-              view:
-                app.path === '__choose__' ? (
-                  <span>{app.name}</span>
-                ) : (
-                  <div className="flex flex-col max-w-full" title={`${app.name}\n${app.path}`}>
-                    <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                      {app.name}
-                      {defaultLabel}
-                    </span>
-                    <span className="text-xs opacity-70 overflow-hidden text-ellipsis whitespace-nowrap">
-                      {app.path}
-                    </span>
-                  </div>
-                ),
+              view: (
+                <TextWithIcon icon={AppIcon}>
+                  {app.path === '__choose__' ? (
+                    <span>{app.name}</span>
+                  ) : (
+                    <div className="flex flex-col max-w-full" title={`${app.name}\n${app.path}`}>
+                      <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                        {app.name}
+                        {defaultLabel}
+                      </span>
+                    </div>
+                  )}
+                </TextWithIcon>
+              ),
             }
           }),
         }

@@ -38,6 +38,7 @@ export type ApplicationInfo = {
   isDefault?: boolean
   isCustom?: boolean
   defaultSource?: 'system' | 'koda'
+  icon?: string
 }
 
 export type AudioMetadata = {

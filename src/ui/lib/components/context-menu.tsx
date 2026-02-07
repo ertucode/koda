@@ -5,6 +5,7 @@ import React, {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react'
@@ -94,7 +95,7 @@ function getFilteredItems(items: ForgivingContextMenuItem[], query: string): Con
 export function ContextMenuList({ items }: ContextMenuListProps) {
   const menu = useContext(ContextMenuContext)
   const [query, setQuery] = useState('')
-  const filteredItems = getFilteredItems(items, query)
+  const filteredItems = useMemo(() => getFilteredItems(items, query), [items, query])
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -268,14 +269,19 @@ function ContextMenuListItemWithSubmenu({
       <details className="max-w-full" open={isOpen}>
         <summary
           className={isSelected ? 'bg-base-300' : ''}
-          onClick={() =>
+          onClick={e => {
+            e.preventDefault()
             setIndexes(prev => {
               const newIndexes = [...prev]
-              newIndexes[depthIdx] = idx
-              newIndexes[depthIdx + 1] = 0
+              if (isOpen) {
+                newIndexes.length = depthIdx + 1
+              } else {
+                newIndexes[depthIdx] = idx
+                newIndexes[depthIdx + 1] = 0
+              }
               return newIndexes
             })
-          }
+          }}
         >
           {item.view}
         </summary>

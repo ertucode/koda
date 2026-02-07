@@ -31,7 +31,14 @@ function AppIconOrCategoryIcon({ item, ctx }: { item: GetFilesAndFoldersInDirect
   useEffect(() => {
     if (item.type !== 'dir' || !item.name.endsWith('.app')) return
     const fullPath = ctx.getFullPath(item.name)
-    if (!fullPath.startsWith('/Applications/') || fullPath.startsWith('/System/Applications/')) return
+    if (
+      !(
+        fullPath.startsWith('/Applications/') ||
+        fullPath.startsWith('/System/Applications/') ||
+        fullPath.startsWith('~/Applications/')
+      )
+    )
+      return
 
     getWindowElectron()
       .generateAppIcon(fullPath)

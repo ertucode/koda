@@ -1,120 +1,136 @@
-import { exec } from "child_process";
-import { platform } from "os";
-import { promisify } from "util";
-import path from "path";
-import { expandHome } from "./expand-home.js";
-import { getOpenedApplicationsForExtension } from "../db/openedApplications.js";
+import { exec } from 'child_process'
+import { homedir, platform } from 'os'
+import { promisify } from 'util'
+import path from 'path'
+import { expandHome } from './expand-home.js'
+import { getOpenedApplicationsForExtension } from '../db/openedApplications.js'
+import { generateAppIcon } from './generate-app-icon.js'
+import { MacAppIconHelpers } from '../../common/MacAppIconHelpers.js'
 
-const execAsync = promisify(exec);
+const execAsync = promisify(exec)
 
 export type ApplicationInfo = {
-  name: string;
-  path: string;
-  isDefault?: boolean;
-  isCustom?: boolean;
-  defaultSource?: "system" | "koda";
-};
-
-export async function getApplicationsForFile(
-  filePath: string,
-): Promise<ApplicationInfo[]> {
-  const expandedPath = expandHome(filePath);
-  const p = platform();
-
-  if (p === "darwin") {
-    return mergeStoredApplications(expandedPath, await getMacApplications(expandedPath));
-  } else if (p === "linux") {
-    return mergeStoredApplications(expandedPath, await getLinuxApplications(expandedPath));
-  } else if (p === "win32") {
-    return mergeStoredApplications(expandedPath, await getWindowsApplications(expandedPath));
-  }
-
-  return [];
+  name: string
+  path: string
+  isDefault?: boolean
+  isCustom?: boolean
+  defaultSource?: 'system' | 'koda'
+  icon?: string
 }
 
-async function mergeStoredApplications(
-  filePath: string,
-  apps: ApplicationInfo[],
-): Promise<ApplicationInfo[]> {
-  const extension = normalizeExtension(path.extname(filePath));
-  if (!extension) return apps;
+export async function getApplicationsForFile(filePath: string): Promise<ApplicationInfo[]> {
+  const expandedPath = expandHome(filePath)
+  const p = platform()
 
-  let storedApps = [] as ReturnType<typeof getOpenedApplicationsForExtension>;
-  try {
-    storedApps = getOpenedApplicationsForExtension(extension);
-  } catch {
-    return apps;
+  if (p === 'darwin') {
+    const merged = await mergeStoredApplications(expandedPath, await getMacApplications(expandedPath))
+    return addMacAppIcons(merged)
+  } else if (p === 'linux') {
+    return mergeStoredApplications(expandedPath, await getLinuxApplications(expandedPath))
+  } else if (p === 'win32') {
+    return mergeStoredApplications(expandedPath, await getWindowsApplications(expandedPath))
   }
-  if (!storedApps.length) return apps;
 
-  const browseItem =
-    apps.find((app) => app.path === "__choose__") ?? {
-      name: "Browse...",
-      path: "__choose__",
-      isDefault: false,
-    };
+  return []
+}
 
-  const baseApps = apps.filter((app) => app.path !== "__choose__");
-  const storedAppInfos: ApplicationInfo[] = storedApps.map((app) => ({
+function resolvePathForIcon(path: string) {
+  if (path === '__choose__') return undefined
+
+  return MacAppIconHelpers.getAppIconFolderPath(path, homedir())
+}
+
+async function addMacAppIcons(apps: ApplicationInfo[]): Promise<ApplicationInfo[]> {
+  return Promise.all(
+    apps.map(async app => {
+      const iconPath = resolvePathForIcon(app.path)
+      if (!iconPath) return app
+
+      try {
+        const icon = await generateAppIcon(iconPath)
+        return { ...app, icon }
+      } catch {
+        return app
+      }
+    })
+  )
+}
+
+async function mergeStoredApplications(filePath: string, apps: ApplicationInfo[]): Promise<ApplicationInfo[]> {
+  const extension = normalizeExtension(path.extname(filePath))
+  if (!extension) return apps
+
+  let storedApps = [] as ReturnType<typeof getOpenedApplicationsForExtension>
+  try {
+    storedApps = getOpenedApplicationsForExtension(extension)
+  } catch {
+    return apps
+  }
+  if (!storedApps.length) return apps
+
+  const browseItem = apps.find(app => app.path === '__choose__') ?? {
+    name: 'Browse...',
+    path: '__choose__',
+    isDefault: false,
+  }
+
+  const baseApps = apps.filter(app => app.path !== '__choose__')
+  const storedAppInfos: ApplicationInfo[] = storedApps.map(app => ({
     name: app.appName,
     path: app.appPath,
     isDefault: app.isDefault,
     isCustom: true,
-  }));
+  }))
 
-  const merged: ApplicationInfo[] = [];
-  const seen = new Set<string>();
+  const merged: ApplicationInfo[] = []
+  const seen = new Set<string>()
 
   for (const app of [...storedAppInfos, ...baseApps]) {
-    if (seen.has(app.path)) continue;
-    seen.add(app.path);
-    merged.push({ ...app });
+    if (seen.has(app.path)) continue
+    seen.add(app.path)
+    merged.push({ ...app })
   }
 
-  const storedDefaultPath = storedApps.find((app) => app.isDefault)?.appPath;
+  const storedDefaultPath = storedApps.find(app => app.isDefault)?.appPath
   if (storedDefaultPath) {
     for (const app of merged) {
-      const isDefault = app.path === storedDefaultPath;
-      app.isDefault = isDefault;
+      const isDefault = app.path === storedDefaultPath
+      app.isDefault = isDefault
       if (isDefault) {
-        app.defaultSource = "koda";
+        app.defaultSource = 'koda'
       }
     }
   } else {
     for (const app of merged) {
       if (app.isDefault) {
-        app.defaultSource = "system";
+        app.defaultSource = 'system'
       }
     }
   }
 
-  merged.push(browseItem);
-  return merged;
+  merged.push(browseItem)
+  return merged
 }
 
 function normalizeExtension(extension: string) {
-  const trimmed = extension.trim().toLowerCase();
-  if (!trimmed) return "";
-  return trimmed.startsWith(".") ? trimmed.slice(1) : trimmed;
+  const trimmed = extension.trim().toLowerCase()
+  if (!trimmed) return ''
+  return trimmed.startsWith('.') ? trimmed.slice(1) : trimmed
 }
 
-async function getMacApplications(
-  filePath: string,
-): Promise<ApplicationInfo[]> {
+async function getMacApplications(filePath: string): Promise<ApplicationInfo[]> {
   try {
     // Get default application
-    const { stdout: defaultOut } = await execAsync(
-      `mdls -name kMDItemContentType -raw "${filePath}"`,
-    );
-    const contentType = defaultOut.trim();
+    const { stdout: defaultOut } = await execAsync(`mdls -name kMDItemContentType -raw "${filePath}"`)
+    const contentType = defaultOut.trim()
 
-    let defaultApp: string | undefined;
-    if (contentType && contentType !== "(null)") {
+    let defaultApp: string | undefined
+    if (contentType && contentType !== '(null)') {
       try {
         const { stdout: defaultAppOut } = await execAsync(
-          `defaults read com.apple.LaunchServices/com.apple.launchservices.secure LSHandlers 2>/dev/null | grep -A 2 "${contentType}" | grep LSHandlerRoleAll | awk -F'"' '{print $2}' | head -1`,
-        );
-        defaultApp = defaultAppOut.trim();
+          `defaults read com.apple.LaunchServices/com.apple.launchservices.secure LSHandlers 2>/dev/null | grep -A 2 "${contentType}" | grep LSHandlerRoleAll | awk -F'"' '{print $2}' | head -1`
+        )
+        defaultApp = defaultAppOut.trim()
       } catch {
         // Ignore errors getting default app
       }
@@ -123,35 +139,35 @@ async function getMacApplications(
     // Get all applications that can open this file
     // Use mdfind to find apps by content type, or use a list of common apps
     const { stdout } = await execAsync(
-      `mdfind "kMDItemContentType == '${contentType}'" 2>/dev/null | grep -i ".app$" | head -20`,
-    );
+      `mdfind "kMDItemContentType == '${contentType}'" 2>/dev/null | grep -i ".app$" | head -20`
+    )
 
     const apps = stdout
-      .split("\n")
-      .filter((line) => line.trim())
-      .map((appPath) => {
-        const name = appPath.split("/").pop()?.replace(".app", "") || appPath;
+      .split('\n')
+      .filter(line => line.trim())
+      .map(appPath => {
+        const name = appPath.split('/').pop()?.replace('.app', '') || appPath
         return {
           name,
           path: appPath,
           isDefault: defaultApp ? appPath.includes(defaultApp) : false,
-        };
-      });
+        }
+      })
 
     // If we didn't find apps via content type, try common applications
     if (apps.length === 0) {
-      const ext = filePath.split(".").pop()?.toLowerCase();
-      const commonApps = getCommonMacApps(ext);
+      const ext = filePath.split('.').pop()?.toLowerCase()
+      const commonApps = getCommonMacApps(ext)
 
       // Check which of these apps actually exist
       for (const app of commonApps) {
         try {
-          await execAsync(`test -d "${app.path}"`);
+          await execAsync(`test -d "${app.path}"`)
           apps.push({
             name: app.name,
             path: app.path,
             isDefault: app.isDefault ?? false,
-          });
+          })
         } catch {
           // App doesn't exist, skip it
         }
@@ -160,143 +176,118 @@ async function getMacApplications(
 
     // Always add "Browse..." option to let user pick any application
     apps.push({
-      name: "Browse...",
-      path: "__choose__",
+      name: 'Browse...',
+      path: '__choose__',
       isDefault: false,
-    });
+    })
 
-    return apps;
+    return apps
   } catch (error) {
-    console.error("Error getting Mac applications:", error);
+    console.error('Error getting Mac applications:', error)
     return [
       {
-        name: "Browse...",
-        path: "__choose__",
+        name: 'Browse...',
+        path: '__choose__',
         isDefault: false,
       },
-    ];
+    ]
   }
 }
 
 function getCommonMacApps(ext?: string): ApplicationInfo[] {
-  const apps: ApplicationInfo[] = [];
+  const apps: ApplicationInfo[] = []
 
   // Text editors
-  if (
-    ext &&
-    [
-      "txt",
-      "md",
-      "js",
-      "ts",
-      "jsx",
-      "tsx",
-      "json",
-      "css",
-      "html",
-      "xml",
-      "yaml",
-      "yml",
-    ].includes(ext)
-  ) {
+  if (ext && ['txt', 'md', 'js', 'ts', 'jsx', 'tsx', 'json', 'css', 'html', 'xml', 'yaml', 'yml'].includes(ext)) {
     apps.push(
       {
-        name: "Visual Studio Code",
-        path: "/Applications/Visual Studio Code.app",
+        name: 'Visual Studio Code',
+        path: '/Applications/Visual Studio Code.app',
         isDefault: false,
       },
       {
-        name: "Sublime Text",
-        path: "/Applications/Sublime Text.app",
+        name: 'Sublime Text',
+        path: '/Applications/Sublime Text.app',
         isDefault: false,
       },
       {
-        name: "TextEdit",
-        path: "/System/Applications/TextEdit.app",
+        name: 'TextEdit',
+        path: '/System/Applications/TextEdit.app',
         isDefault: false,
-      },
-    );
+      }
+    )
   }
 
   // Images
-  if (
-    ext &&
-    ["jpg", "jpeg", "png", "gif", "bmp", "svg", "webp"].includes(ext)
-  ) {
+  if (ext && ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(ext)) {
     apps.push(
       {
-        name: "Preview",
-        path: "/System/Applications/Preview.app",
+        name: 'Preview',
+        path: '/System/Applications/Preview.app',
         isDefault: false,
       },
       {
-        name: "Photoshop",
-        path: "/Applications/Adobe Photoshop 2024/Adobe Photoshop 2024.app",
+        name: 'Photoshop',
+        path: '/Applications/Adobe Photoshop 2024/Adobe Photoshop 2024.app',
         isDefault: false,
-      },
-    );
+      }
+    )
   }
 
   // Videos
-  if (ext && ["mp4", "mov", "avi", "mkv", "webm"].includes(ext)) {
+  if (ext && ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) {
     apps.push(
       {
-        name: "QuickTime Player",
-        path: "/System/Applications/QuickTime Player.app",
+        name: 'QuickTime Player',
+        path: '/System/Applications/QuickTime Player.app',
         isDefault: false,
       },
-      { name: "VLC", path: "/Applications/VLC.app", isDefault: false },
-    );
+      { name: 'VLC', path: '/Applications/VLC.app', isDefault: false }
+    )
   }
 
   // PDFs
-  if (ext === "pdf") {
+  if (ext === 'pdf') {
     apps.push(
       {
-        name: "Preview",
-        path: "/System/Applications/Preview.app",
+        name: 'Preview',
+        path: '/System/Applications/Preview.app',
         isDefault: false,
       },
       {
-        name: "Adobe Acrobat",
-        path: "/Applications/Adobe Acrobat DC/Adobe Acrobat.app",
+        name: 'Adobe Acrobat',
+        path: '/Applications/Adobe Acrobat DC/Adobe Acrobat.app',
         isDefault: false,
-      },
-    );
+      }
+    )
   }
 
-  return apps;
+  return apps
 }
 
-async function getLinuxApplications(
-  filePath: string,
-): Promise<ApplicationInfo[]> {
+async function getLinuxApplications(filePath: string): Promise<ApplicationInfo[]> {
   try {
     // Get MIME type
-    const { stdout: mimeOut } = await execAsync(
-      `file --mime-type -b "${filePath}"`,
-    );
-    const mimeType = mimeOut.trim();
+    const { stdout: mimeOut } = await execAsync(`file --mime-type -b "${filePath}"`)
+    const mimeType = mimeOut.trim()
 
     // Get desktop files that can handle this MIME type
     const { stdout } = await execAsync(
-      `grep -r "MimeType=.*${mimeType}" /usr/share/applications ~/.local/share/applications 2>/dev/null | cut -d: -f1 | head -20`,
-    );
+      `grep -r "MimeType=.*${mimeType}" /usr/share/applications ~/.local/share/applications 2>/dev/null | cut -d: -f1 | head -20`
+    )
 
-    const apps: ApplicationInfo[] = [];
-    const desktopFiles = stdout.split("\n").filter((line) => line.trim());
+    const apps: ApplicationInfo[] = []
+    const desktopFiles = stdout.split('\n').filter(line => line.trim())
 
     for (const desktopFile of desktopFiles) {
       try {
-        const { stdout: nameOut } = await execAsync(
-          `grep "^Name=" "${desktopFile}" | head -1 | cut -d= -f2`,
-        );
-        const name = nameOut.trim();
+        const { stdout: nameOut } = await execAsync(`grep "^Name=" "${desktopFile}" | head -1 | cut -d= -f2`)
+        const name = nameOut.trim()
         if (name) {
           apps.push({
             name,
             path: desktopFile,
-          });
+          })
         }
       } catch {
         // Skip this app
@@ -304,109 +295,99 @@ async function getLinuxApplications(
     }
 
     apps.push({
-      name: "Browse...",
-      path: "__choose__",
+      name: 'Browse...',
+      path: '__choose__',
       isDefault: false,
-    });
+    })
 
-    return apps;
+    return apps
   } catch (error) {
-    console.error("Error getting Linux applications:", error);
+    console.error('Error getting Linux applications:', error)
     return [
       {
-        name: "Browse...",
-        path: "__choose__",
+        name: 'Browse...',
+        path: '__choose__',
         isDefault: false,
       },
-    ];
+    ]
   }
 }
 
-async function getWindowsApplications(
-  filePath: string,
-): Promise<ApplicationInfo[]> {
+async function getWindowsApplications(filePath: string): Promise<ApplicationInfo[]> {
   try {
-    const ext = filePath.split(".").pop()?.toLowerCase();
+    const ext = filePath.split('.').pop()?.toLowerCase()
     if (!ext) {
       return [
         {
-          name: "Browse...",
-          path: "__choose__",
+          name: 'Browse...',
+          path: '__choose__',
           isDefault: false,
         },
-      ];
+      ]
     }
 
     // Get associated programs from registry
-    const { stdout } = await execAsync(
-      `assoc .${ext} 2>nul && ftype $(assoc .${ext} 2>nul | cut -d= -f2) 2>nul`,
-    );
+    const { stdout } = await execAsync(`assoc .${ext} 2>nul && ftype $(assoc .${ext} 2>nul | cut -d= -f2) 2>nul`)
 
-    const apps: ApplicationInfo[] = [];
+    const apps: ApplicationInfo[] = []
 
     // Parse the output to extract program paths
-    const lines = stdout.split("\n");
+    const lines = stdout.split('\n')
     for (const line of lines) {
-      if (line.includes("=")) {
-        const match = line.match(/"([^"]+)"/);
+      if (line.includes('=')) {
+        const match = line.match(/"([^"]+)"/)
         if (match) {
-          const appPath = match[1];
-          const name =
-            appPath.split("\\").pop()?.replace(".exe", "") || appPath;
+          const appPath = match[1]
+          const name = appPath.split('\\').pop()?.replace('.exe', '') || appPath
           apps.push({
             name,
             path: appPath,
             isDefault: true,
-          });
+          })
         }
       }
     }
 
     apps.push({
-      name: "Browse...",
-      path: "__choose__",
+      name: 'Browse...',
+      path: '__choose__',
       isDefault: false,
-    });
+    })
 
-    return apps;
+    return apps
   } catch (error) {
-    console.error("Error getting Windows applications:", error);
+    console.error('Error getting Windows applications:', error)
     return [
       {
-        name: "Browse...",
-        path: "__choose__",
+        name: 'Browse...',
+        path: '__choose__',
         isDefault: false,
       },
-    ];
+    ]
   }
 }
 
-export async function openFileWithApplication(
-  filePath: string,
-  applicationPath: string,
-): Promise<void> {
-  const expandedPath = expandHome(filePath);
-  const p = platform();
+export async function openFileWithApplication(filePath: string, applicationPath: string): Promise<void> {
+  const expandedPath = expandHome(filePath)
+  const p = platform()
 
-  let cmd: string;
-  if (p === "darwin") {
-    cmd = `open -a "${applicationPath}" "${expandedPath}"`;
-  } else if (p === "linux") {
+  let cmd: string
+  if (p === 'darwin') {
+    cmd = `open -a "${applicationPath}" "${expandedPath}"`
+  } else if (p === 'linux') {
     // For .desktop files, extract the Exec command
     try {
-      const { stdout } = await execAsync(
-        `grep "^Exec=" "${applicationPath}" | head -1 | cut -d= -f2`,
-      );
-      const execCmd = stdout.trim().replace(/%[a-zA-Z]/g, ""); // Remove %f, %u, etc.
-      cmd = `${execCmd} "${expandedPath}"`;
+      const { stdout } = await execAsync(`grep "^Exec=" "${applicationPath}" | head -1 | cut -d= -f2`)
+      const execCmd = stdout.trim().replace(/%[a-zA-Z]/g, '') // Remove %f, %u, etc.
+      cmd = `${execCmd} "${expandedPath}"`
     } catch {
-      cmd = `xdg-open "${expandedPath}"`;
+      cmd = `xdg-open "${expandedPath}"`
     }
-  } else if (p === "win32") {
-    cmd = `start "" "${applicationPath}" "${expandedPath}"`;
+  } else if (p === 'win32') {
+    cmd = `start "" "${applicationPath}" "${expandedPath}"`
   } else {
-    throw new Error("Unsupported platform");
+    throw new Error('Unsupported platform')
   }
 
-  await execAsync(cmd);
+  await execAsync(cmd)
 }
