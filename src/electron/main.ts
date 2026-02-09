@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, screen, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, Menu, screen, ipcMain, shell, clipboard } from 'electron'
 import path from 'path'
 import os from 'os'
 import { ipcHandle, isDev } from './util.js'
@@ -159,6 +159,18 @@ app.on('ready', () => {
   ]
   const menu = Menu.buildFromTemplate(menuTemplate)
   Menu.setApplicationMenu(menu)
+
+  app.on('web-contents-created', (_event, contents) => {
+    if (contents.getType() !== 'webview') return
+
+    contents.on('context-menu', (_contextEvent, params) => {
+      const template = buildContextMenuTemplate(contents, params)
+      if (!template.length) return
+
+      const window = BrowserWindow.fromWebContents(contents)
+      Menu.buildFromTemplate(template).popup(window ? { window } : undefined)
+    })
+  })
 
   try {
     initializeDatabase({
@@ -369,6 +381,62 @@ app.on('ready', () => {
     }
   })
 })
+
+function buildContextMenuTemplate(
+  contents: Electron.WebContents,
+  params: Electron.ContextMenuParams
+): Electron.MenuItemConstructorOptions[] {
+  const template: Electron.MenuItemConstructorOptions[] = []
+
+  if (params.isEditable) {
+    template.push(
+      { role: 'undo', enabled: params.editFlags.canUndo },
+      { role: 'redo', enabled: params.editFlags.canRedo },
+      { type: 'separator' },
+      { role: 'cut', enabled: params.editFlags.canCut },
+      { role: 'copy', enabled: params.editFlags.canCopy },
+      { role: 'paste', enabled: params.editFlags.canPaste },
+      { role: 'selectAll' }
+    )
+  } else if (params.selectionText) {
+    template.push({ role: 'copy', enabled: params.editFlags.canCopy })
+  }
+
+  if (params.mediaType === 'image') {
+    if (template.length) template.push({ type: 'separator' })
+    template.push(
+      {
+        label: 'Copy Image',
+        click: () => contents.copyImageAt(params.x, params.y),
+      },
+      {
+        label: 'Save Image As...',
+        click: () => contents.downloadURL(params.srcURL),
+      }
+    )
+  }
+
+  if (params.linkURL) {
+    if (template.length) template.push({ type: 'separator' })
+    template.push(
+      {
+        label: 'Open Link',
+        click: () => shell.openExternal(params.linkURL),
+      },
+      {
+        label: 'Copy Link',
+        click: () => clipboard.writeText(params.linkURL),
+      }
+    )
+  }
+
+  if (isDev()) {
+    if (template.length) template.push({ type: 'separator' })
+    template.push({ label: 'Inspect', click: () => contents.inspectElement(params.x, params.y) })
+  }
+
+  return template
+}
 
 // Listen for window focus events and notify renderer
 app.on('browser-window-focus', (_event, window) => {
