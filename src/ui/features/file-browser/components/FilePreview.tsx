@@ -80,6 +80,7 @@ export function FilePreview({ filePath, isFile, fileSize, fileExt, isResizing = 
       fileSize: fileSize ?? null,
       fileExt: fileExt ?? null,
       homePath: homeDirectory,
+      timestamp: Date.now(),
     })
   }, [filePath, isFile, fileSize, fileExt, isWebviewReady])
 

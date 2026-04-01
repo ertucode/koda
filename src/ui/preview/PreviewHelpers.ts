@@ -31,6 +31,7 @@ export namespace PreviewHelpers {
     fileSize: number | null;
     fileExt: string | null;
     homePath: string;
+    timestamp: number;
   };
 
   export type DerivedData = {
