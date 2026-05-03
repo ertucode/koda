@@ -1,8 +1,9 @@
 import { app, BrowserWindow, Menu, screen, ipcMain, shell, clipboard } from 'electron'
 import path from 'path'
-import os from 'os'
+import os, { homedir } from 'os'
 import { ipcHandle, isDev } from './util.js'
 import fs from 'fs'
+import fsSync from 'fs'
 import { getPreloadPath, getPreviewPreloadPath, getUIPath } from './pathResolver.js'
 import { getFilesAndFoldersInDirectory, getFileInfoByPaths } from './utils/get-files-and-folders-in-directory.js'
 import { openFile } from './utils/open-file.js'
@@ -102,6 +103,18 @@ async function createWindow(args?: WindowArgsWithoutStatic) {
 }
 
 app.on('ready', () => {
+  if (isDev()) {
+    fsSync.watchFile(homedir() + '/focus-electron', { interval: 50 }, (curr, prev) => {
+      if (curr.mtime !== prev.mtime) {
+        console.log('Focusing Electron')
+        const windows = BrowserWindow.getAllWindows()
+        if (windows[0]) {
+          windows[0].show()
+          windows[0].focus()
+        }
+      }
+    })
+  }
   const menuTemplate: Electron.MenuItemConstructorOptions[] = [
     {
       label: 'File',
