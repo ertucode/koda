@@ -34,10 +34,12 @@ function shouldUseClientMetadata(task: Tasks.Base): boolean {
 }
 
 function getSelectionAfterDeletion(clientMetadata: Tasks.ClientMetadata | undefined): number | undefined {
-  if (!clientMetadata?.selection || clientMetadata.selection.indexes.size === 0) return 0
+  if (!clientMetadata) return 0
+  if (!clientMetadata.selection || clientMetadata.selection.indexes.size === 0) {
+    return clientMetadata.cursorLine ?? 0
+  }
 
-  // We want to select the item just before the lowest deleted index
-  // If minIndex is 0, we select 0, otherwise select minIndex - 1
+  // Keep the cursor on the row that now contains the next item after deletion.
   return Math.max(0, Math.min(...clientMetadata.selection.indexes))
 }
 

@@ -20,6 +20,7 @@ import {
   directoryInfoEquals,
   getActiveDirectory,
   getBufferSelection,
+  getCursorLine,
   getCursorLineForDirectoryId,
 } from './directoryPureHelpers'
 import { initialDirectoryInfo } from '../defaultPath'
@@ -690,8 +691,10 @@ export const directoryHelpers = {
   getClientMetadata: (d: DirectoryContextDirectory): Tasks.ClientMetadata => {
     const snapshot = directoryStore.getSnapshot()
     const selection = getBufferSelection(snapshot.context, getActiveDirectory(snapshot.context, d.directoryId))
+    const cursorLine = getCursorLine(snapshot.context, getActiveDirectory(snapshot.context, d.directoryId))
     return {
       directoryId: d.directoryId,
+      cursorLine,
       selection,
     }
   },

@@ -17,6 +17,7 @@ export type TaskUpdate<T extends TaskDefinition['type']> = {
 export namespace Tasks {
   export type ClientMetadata = {
     directoryId: string
+    cursorLine: number | undefined
     selection: { indexes: Set<number>; last: number | undefined }
   }
 
