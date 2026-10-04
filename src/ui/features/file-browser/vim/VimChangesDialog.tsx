@@ -277,7 +277,7 @@ export const VimChangesDialog = function VimChangesDialog(props: { changes: VimE
     }
   }
 
-  const handleApply = async () => {
+  const handleApply = () => {
     if (selectedIds.size === 0) return
 
     // Validate for duplicates before applying
@@ -289,22 +289,26 @@ export const VimChangesDialog = function VimChangesDialog(props: { changes: VimE
     }
 
     const selectedChanges = changesWithIds.filter(c => selectedIds.has(c.id)).map(({ id, ...change }) => change)
+    dialogActions.close()
 
-    const result = await getWindowElectron().applyVimChanges(selectedChanges)
+    void getWindowElectron()
+      .applyVimChanges(selectedChanges)
+      .then(result => {
+        if (result.success) return
 
-    if (result.success) {
-      dialogActions.close()
-    } else {
-      // Error handling - could show a toast or alert
-      console.error('Failed to apply changes:', result.error)
-      const errorMsg =
-        result.error.type === 'message'
-          ? result.error.message
-          : result.error.type === 'http'
+        console.error('Failed to apply changes:', result.error)
+        const errorMsg =
+          result.error.type === 'message'
             ? result.error.message
-            : 'Unknown error occurred'
-      alert(`Failed to apply changes: ${errorMsg}`)
-    }
+            : result.error.type === 'http'
+              ? result.error.message
+              : 'Unknown error occurred'
+        alert(`Failed to apply changes: ${errorMsg}`)
+      })
+      .catch(error => {
+        console.error('Failed to apply changes:', error)
+        alert(`Failed to apply changes: ${error instanceof Error ? error.message : 'Unknown error occurred'}`)
+      })
   }
 
   const getChangeIcon = (displayType: DirectoryChange['displayType']) => {

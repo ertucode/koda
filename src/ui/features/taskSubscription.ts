@@ -69,6 +69,8 @@ export function subscribeToTasks() {
         fileToSelect
       )
     } else if (task.type === 'delete') {
+      if (!event.result.success) return
+
       const fullPaths = [...new Set(task.metadata.files)]
       favoritesStore.trigger.removeFavorites({ fullPaths })
       for (const fullPath of fullPaths) {
@@ -91,6 +93,8 @@ export function subscribeToTasks() {
         return
       }
     } else if (task.type === 'vim-changes') {
+      if (!event.result.success) return
+
       // Clear VIM buffers for affected directories
       const affectedDirectories = task.metadata.affectedDirectories
       const currentVimState = directoryStore.getSnapshot().context.vim

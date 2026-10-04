@@ -389,26 +389,81 @@ export const directoryHelpers = {
       title: 'Confirm Delete',
       message,
       confirmText: 'Delete',
-      onConfirm: async () => {
-        try {
-          // Delete all selected files/folders
-          const result = await getWindowElectron().deleteFiles(
-            paths,
-            directoryHelpers.getClientMetadata(activeDirectory),
-            fileBrowserSettingsStore.getSnapshot().context.settings.trashForDelete
-          )
+      onConfirm: () => {
+        void (async () => {
+          const clientMetadata = directoryHelpers.getClientMetadata(activeDirectory)
+          const deletedPaths = new Set(paths.map(path => PathHelpers.expandHome(homeDirectory, path)))
+          const affectedDirectories: {
+            directoryId: DirectoryId
+            directory: DirectoryInfo
+            previousData: GetFilesAndFoldersInDirectoryItem[]
+            optimisticData: GetFilesAndFoldersInDirectoryItem[]
+          }[] = []
 
-          if (!result.success) {
-            toast.show(result)
-            return
+          for (const directory of Object.values(directoryStore.getSnapshot().context.directoriesById)) {
+            const optimisticData = directory.directoryData.filter(item => {
+              const fullPath =
+                item.fullPath ??
+                (directory.directory.type === 'path'
+                  ? mergeMaybeSlashed(directory.directory.fullPath, item.name)
+                  : undefined)
+
+              return !fullPath || !deletedPaths.has(PathHelpers.expandHome(homeDirectory, fullPath))
+            })
+
+            if (optimisticData.length === directory.directoryData.length) continue
+
+            affectedDirectories.push({
+              directoryId: directory.directoryId,
+              directory: directory.directory,
+              previousData: directory.directoryData,
+              optimisticData,
+            })
+            directoryStore.send({
+              type: 'setDirectoryData',
+              data: optimisticData,
+              directoryId: directory.directoryId,
+            })
           }
-        } catch (error) {
-          console.error('Error deleting files:', error)
-          toast.show({
-            severity: 'error',
-            message: error instanceof Error ? error.message : 'Error deleting files',
-          })
-        }
+
+          const rollback = () => {
+            for (const affected of affectedDirectories) {
+              const current = directoryStore.getSnapshot().context.directoriesById[affected.directoryId]
+              if (!current || !directoryInfoEquals(current.directory, affected.directory)) continue
+
+              if (current.directoryData === affected.optimisticData) {
+                directoryStore.send({
+                  type: 'setDirectoryData',
+                  data: affected.previousData,
+                  directoryId: affected.directoryId,
+                })
+              }
+              void loadDirectoryInfo(current.directory, affected.directoryId)
+            }
+          }
+
+          try {
+            // Delete all selected files/folders
+            const result = await getWindowElectron().deleteFiles(
+              paths,
+              clientMetadata,
+              fileBrowserSettingsStore.getSnapshot().context.settings.trashForDelete
+            )
+
+            if (!result.success) {
+              rollback()
+              toast.show(result)
+              return
+            }
+          } catch (error) {
+            rollback()
+            console.error('Error deleting files:', error)
+            toast.show({
+              severity: 'error',
+              message: error instanceof Error ? error.message : 'Error deleting files',
+            })
+          }
+        })()
       },
     })
   },
