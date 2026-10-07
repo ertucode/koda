@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef } from 'react'
+import { type ReactNode, type RefObject, useEffect, useRef } from 'react'
 import { cn } from '../functions/clsx'
 
 export function Dialog({
@@ -8,6 +8,7 @@ export function Dialog({
   className,
   style,
   footer,
+  initialFocusRef,
 }: {
   title?: ReactNode
   children: ReactNode
@@ -15,16 +16,18 @@ export function Dialog({
   className?: string
   style?: React.CSSProperties
   footer?: ReactNode
+  initialFocusRef?: RefObject<HTMLElement | null>
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
     if (children) {
       dialogRef.current?.showModal()
+      initialFocusRef?.current?.focus()
     } else {
       dialogRef.current?.close()
     }
-  }, [children])
+  }, [children, initialFocusRef])
 
   return (
     <dialog className="modal" ref={dialogRef} onClose={onClose}>

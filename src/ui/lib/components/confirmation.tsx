@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useRef } from "react";
 import { Dialog } from "@/lib/components/dialog";
 import { createStore } from "@xstate/store";
 import { useSelector } from "@xstate/store/react";
@@ -31,6 +31,7 @@ export const confirmation = createStore({
 
 export function ConfirmationRenderer() {
   const { confirmation: state } = useSelector(confirmation, (v) => v.context);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleConfirm = async () => {
     if (!state) return;
@@ -48,13 +49,13 @@ export function ConfirmationRenderer() {
   return (
     <>
       {state && (
-        <Dialog onClose={handleReject} className="max-w-[60vw]">
+        <Dialog onClose={handleReject} className="max-w-[60vw]" initialFocusRef={confirmButtonRef}>
           <h3 className="font-bold text-lg mb-4">{state.title}</h3>
           <div className="mb-4">{state.message}</div>
           <div className="modal-action">
             <button
+              ref={confirmButtonRef}
               className="btn btn-primary"
-              autoFocus
               onClick={handleConfirm}
             >
               {state.confirmText || "Confirm"}
