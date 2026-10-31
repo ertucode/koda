@@ -59,6 +59,7 @@ export function createDirectoryContext(directoryId: DirectoryId, directory: Dire
     directory,
     loading: false,
     directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+    directoryDataFor: getFullPathForBuffer(directory),
     error: undefined as GenericError | undefined,
     historyStack: new HistoryStack<DirectoryInfo>([directory]),
     pendingSelection: null as string | string[] | null,
@@ -99,6 +100,7 @@ export const directoryStore = createStore({
         directory: { color: 'red', type: 'tags' },
         loading: false,
         directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+        directoryDataFor: 'tag:red',
         error: undefined as string | undefined,
         historyStack: new HistoryStack<DirectoryInfo>([{ color: 'red', type: 'tags' }]),
         pendingSelection: null as string | string[] | null,
@@ -154,12 +156,16 @@ export const directoryStore = createStore({
       event: {
         data: GetFilesAndFoldersInDirectoryItem[]
         directoryId: DirectoryId
+        directoryDataFor?: string
       }
     ) => {
       const updated = updateDirectory(context, event.directoryId, d => {
+        const currentDirectoryKey = getFullPathForBuffer(d.directory)
+        if (event.directoryDataFor && event.directoryDataFor !== currentDirectoryKey) return d
         return {
           ...d,
           directoryData: event.data,
+          directoryDataFor: currentDirectoryKey,
           error: undefined,
         }
       })
@@ -460,6 +466,7 @@ export const directoryStore = createStore({
               directory: directory,
               loading: false,
               directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+              directoryDataFor: getFullPathForBuffer(directory),
               error: undefined as GenericError | undefined,
               historyStack: new HistoryStack<DirectoryInfo>([directory]),
               pendingSelection: null as string | string[] | null,
@@ -515,6 +522,7 @@ export const loadDirectoryPath = async (dir: string, _directoryId: DirectoryId |
       type: 'setDirectoryData',
       data: result.data,
       directoryId,
+      directoryDataFor: dir,
     })
     return result.data
   } catch (e) {
@@ -538,7 +546,12 @@ export const loadTaggedFiles = async (color: TagColor, _directoryId: DirectoryId
   try {
     const filePaths = getFilesWithTag(color)
     if (filePaths.length === 0) {
-      directoryStore.send({ type: 'setDirectoryData', data: [], directoryId })
+      directoryStore.send({
+        type: 'setDirectoryData',
+        data: [],
+        directoryId,
+        directoryDataFor: `tag:${color}`,
+      })
       return []
     }
     const result = await getWindowElectron().getFileInfoByPaths(filePaths)
@@ -556,6 +569,7 @@ export const loadTaggedFiles = async (color: TagColor, _directoryId: DirectoryId
       type: 'setDirectoryData',
       data: result,
       directoryId,
+      directoryDataFor: `tag:${color}`,
     })
     return result
   } catch (e) {

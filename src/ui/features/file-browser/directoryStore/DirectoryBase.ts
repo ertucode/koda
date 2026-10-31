@@ -24,6 +24,8 @@ export type DirectoryContextDirectory = {
   directory: DirectoryInfo
   loading: boolean
   directoryData: GetFilesAndFoldersInDirectoryItem[]
+  // Identifies which directory owns directoryData while navigation is loading.
+  directoryDataFor: string
   error: GenericError | undefined
   historyStack: HistoryStack<DirectoryInfo>
   pendingSelection: string | string[] | null

@@ -56,6 +56,8 @@ export function setupSubscriptions(directoryId: DirectoryId) {
   )
   subscriptions.push(unsubscribeSort)
 
+  // Keep the current rows stable between changing the path and receiving its data.
+  let lastSettledDirectoryData: DerivedDirectoryItem[] = []
   const [useFilteredDirectoryData, getFilteredDirectoryData, unsubscribeFilteredDirectoryData] =
     createUseDerivedStoreValue(
       [directoryStore, fileBrowserSettingsStore, columnPreferencesStore],
@@ -64,8 +66,10 @@ export function setupSubscriptions(directoryId: DirectoryId) {
         const fullPath = dir && getFullPathForBuffer(dir.directory)
         return [
           dir?.directoryData,
+          dir?.directoryDataFor,
           settings.settings,
           JSON.stringify(resolveSortFromStores(dir, columnPrefs)),
+          fullPath,
           fullPath && d.vim.buffers[fullPath]?.items,
         ]
       },
@@ -73,14 +77,17 @@ export function setupSubscriptions(directoryId: DirectoryId) {
         const dir = d.directoriesById[directoryId]
         if (!dir) return []
         const fullPath = dir && getFullPathForBuffer(dir.directory)
+        if (dir.directoryDataFor !== fullPath) return lastSettledDirectoryData
         if (fullPath && VimEngine.isActive(d.vim, fullPath)) {
-          return d.vim.buffers[fullPath].items
+          lastSettledDirectoryData = d.vim.buffers[fullPath].items
+          return lastSettledDirectoryData
         }
 
         const sort = resolveSortFromStores(dir, columnPrefs)
         const directoryData = DirectoryDataFromSettings.getDirectoryData(dir?.directoryData, settings.settings, sort)
 
-        return directoryData.map(i => ({ type: 'real', str: i.name, item: i }))
+        lastSettledDirectoryData = directoryData.map(i => ({ type: 'real', str: i.name, item: i }))
+        return lastSettledDirectoryData
       }
     )
   subscriptions.push(unsubscribeFilteredDirectoryData)
@@ -117,6 +124,7 @@ export function setupSubscriptions(directoryId: DirectoryId) {
       [directoryStore, fileBrowserSettingsStore, columnPreferencesStore],
       ([d, settings, columnPrefs]) => [
         d.directoriesById[directoryId]?.directoryData,
+        d.directoriesById[directoryId]?.directoryDataFor,
         settings.settings,
         JSON.stringify(resolveSortFromStores(d.directoriesById[directoryId], columnPrefs)),
       ],
@@ -129,6 +137,7 @@ export function setupSubscriptions(directoryId: DirectoryId) {
         if (!currentDir) return
         const fullPath = getFullPathForBuffer(currentDir.directory)
         if (!fullPath) return
+        if (currentDir.directoryDataFor !== fullPath) return
 
         if (VimEngine.isActive(snapshot.vim, fullPath)) return
 
