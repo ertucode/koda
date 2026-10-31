@@ -1,7 +1,9 @@
-import { PinIcon, PinOffIcon, Minimize2Icon, Maximize2Icon } from 'lucide-react'
+import { PinIcon, PinOffIcon, Minimize2Icon, Maximize2Icon, CircleHelpIcon } from 'lucide-react'
 import { NavigationButtons } from './NavigationButtons'
 import { useSelector } from '@xstate/store/react'
 import { windowStore, WindowStoreHelpers } from '@/features/windowStore'
+import { dialogActions } from '../dialogStore'
+import { HelpDialog } from './HelpDialog'
 
 export function CustomTitleBar() {
   const state = useSelector(windowStore, s => s.context)
@@ -45,6 +47,16 @@ export function CustomTitleBar() {
           } as React.CSSProperties
         }
       >
+        {/* Help */}
+        <button
+          className="btn btn-xs btn-soft btn-info"
+          onClick={() => dialogActions.open({ component: HelpDialog, props: {} })}
+          title="Help"
+          aria-label="Open help"
+        >
+          <CircleHelpIcon className="size-4" />
+        </button>
+
         {/* Compact window size toggle */}
         <button
           className={`btn btn-xs ${isCompact ? 'btn-info' : 'btn-soft btn-info'}`}

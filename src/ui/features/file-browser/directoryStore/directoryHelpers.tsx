@@ -11,8 +11,6 @@ import { directoryLoadingHelpers } from './directoryLoadingStore'
 import { recentsStore } from '../recents'
 import { fileBrowserSettingsStore, fileBrowserSettingsHelpers } from '../settings'
 import { TagColor } from '../tags'
-import { DirectoryDataFromSettings } from '../utils/DirectoryDataFromSettings'
-import { selectSettings as selectSettingsFromStore } from '../settings'
 import { FileBrowserCache } from '../FileBrowserCache'
 import { directoryDerivedStores } from './directorySubscriptions'
 import { DirectoryInfo, DirectoryId, DirectoryContextDirectory, DerivedDirectoryItem } from './DirectoryBase'
@@ -24,8 +22,6 @@ import {
   getCursorLineForDirectoryId,
 } from './directoryPureHelpers'
 import { initialDirectoryInfo } from '../defaultPath'
-import { columnPreferencesStore } from '../columnPreferences'
-import { resolveSortFromStores } from '../schemas'
 import { ArchiveHelpers } from '@common/ArchiveHelpers'
 import { confirmation } from '@/lib/components/confirmation'
 import { Tasks } from '@common/Tasks'
@@ -98,16 +94,8 @@ function createCdMetadata(
   directoryData: GetFilesAndFoldersInDirectoryItem[] | undefined,
   prevContext: DirectoryContextDirectory
 ) {
-  const settings = selectSettingsFromStore(fileBrowserSettingsStore.get())
-  const columnPrefs = columnPreferencesStore.getSnapshot().context
   return {
-    directoryData:
-      directoryData &&
-      DirectoryDataFromSettings.getDirectoryData(
-        directoryData,
-        settings,
-        resolveSortFromStores(prevContext, columnPrefs)
-      ),
+    directoryData,
     beforeNavigation: prevContext.directory,
   }
 }
@@ -481,9 +469,11 @@ export const directoryHelpers = {
       if (!directoryData) return
       if (beforeNavigation.type !== 'path') return
       const beforeNavigationName = PathHelpers.name(beforeNavigation.fullPath)
-      const idx = directoryData.findIndex(i => i.name === beforeNavigationName)
+      const visibleDirectoryData = directoryDerivedStores.get(id)?.getFilteredDirectoryData()
+      if (!visibleDirectoryData) return
+      const idx = visibleDirectoryData.findIndex(i => i.str === beforeNavigationName)
       if (idx === -1) return
-      directoryStore.trigger.setCursor({ cursor: { line: idx }, directoryId })
+      directoryStore.trigger.setCursor({ cursor: { line: idx }, directoryId: id })
       scrollRowIntoViewIfNeeded(id, idx)
     }, 5)
   },

@@ -31,7 +31,8 @@
     "build-everything": "npm run build-vendor && npm run build",
     "build-icon": "node scripts/build-icon.mjs",
     "build-mas": "npm run build-code && electron-builder --mac mas",
-    "upload-mas": "xcrun altool --upload-app --type osx --file \"dist/mas/Koda.pkg\" --bundle-id com.ertucode.koda"
+    "upload-mas": "xcrun altool --upload-app --type osx --file \"dist/mas/Koda.pkg\" --bundle-id com.ertucode.koda",
+    "fix:sqlite3": "npx electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
