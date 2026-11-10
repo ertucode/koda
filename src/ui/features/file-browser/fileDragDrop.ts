@@ -4,7 +4,7 @@ import { directoryHelpers, directoryStore } from './directoryStore/directory'
 import { clipboardHelpers } from './clipboardHelpers'
 import { getWindowElectron, homeDirectory } from '@/getWindowElectron'
 import { toast } from '@/lib/components/toast'
-import { DerivedDirectoryItem, DirectoryId, RealDirectoryItem } from './directoryStore/DirectoryBase'
+import { DerivedDirectoryItem, DirectoryId, DirectoryType, RealDirectoryItem } from './directoryStore/DirectoryBase'
 import { useSelector } from '@xstate/store/react'
 import { captureDivAsBase64 } from '@/lib/functions/captureDiv'
 import { PathHelpers } from '@common/PathHelpers'
@@ -473,7 +473,7 @@ export const fileDragDropHandlers = {
   handleTableDrop: async (
     e: React.DragEvent,
     directoryId: DirectoryId,
-    directoryType: 'path' | 'tags',
+    directoryType: DirectoryType,
     directoryFullPath?: string
   ) => {
     // Only handle file drags, ignore pane/tab drags
@@ -488,10 +488,10 @@ export const fileDragDropHandlers = {
       directoryId: null,
     })
 
-    // Only allow drops in path directories, not in tags view
+    // Virtual listings are read-only destinations.
     if (directoryType !== 'path' || !directoryFullPath) {
       toast.show({
-        message: 'Cannot drop files in tags view',
+        message: 'Cannot drop files in a read-only listing',
         severity: 'error',
       })
       return
@@ -613,7 +613,7 @@ export const fileDragDropHandlers = {
       // Drop into the current directory (same logic as handleTableDrop)
       if (directory.type !== 'path') {
         toast.show({
-          message: 'Cannot drop files in tags view',
+          message: 'Cannot drop files in a read-only listing',
           severity: 'error',
         })
         return

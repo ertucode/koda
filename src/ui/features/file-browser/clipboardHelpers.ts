@@ -66,7 +66,7 @@ export const clipboardHelpers = {
     const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
 
     if (context.directory.type !== 'path') {
-      toast.show(GenericError.Message('Cannot paste in tags view'))
+      toast.show(GenericError.Message('Cannot paste in a read-only listing'))
       return
     }
 

@@ -8,6 +8,26 @@ import { expandHome } from "./expand-home.js";
 
 const execFileAsync = promisify(execFile);
 
+async function getVideoMidpoint(filePath: string): Promise<number> {
+  const { stderr } = await execFileAsync(ffmpegPath, [
+    "-hide_banner",
+    "-i",
+    filePath,
+    "-map",
+    "0:v:0",
+    "-frames:v",
+    "0",
+    "-f",
+    "null",
+    "-",
+  ]);
+  const duration = stderr.match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
+  if (!duration) return 2;
+
+  const [, hours, minutes, seconds] = duration;
+  return (Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds)) / 2;
+}
+
 /**
  * Generates a thumbnail from a video file and returns it as a base64 string
  * @param filePath - Full path to the video file
@@ -24,25 +44,25 @@ export async function generateVideoThumbnail(
   );
 
   try {
+    const expandedFilePath = expandHome(filePath);
+    const midpoint = await getVideoMidpoint(expandedFilePath);
+
     // Use ffmpeg to extract a good thumbnail frame
-    // -ss 2: seek to 2 seconds to avoid intro black frames
+    // -ss: seek to the middle of the video
     // -i: input file
     // -vf thumbnail: selects the frame with the most detail/least black
     // -vf scale=320:-1: scale to width 320px, maintain aspect ratio
     // -frames:v 1: extract only 1 frame
-    // -vsync vfr: variable frame rate to work with thumbnail filter
     // -f image2: force image format
     await execFileAsync(ffmpegPath, [
       "-ss",
-      "2", // Seek to 2 seconds to skip intro/black frames
+      midpoint.toString(),
       "-i",
-      expandHome(filePath),
+      expandedFilePath,
       "-vf",
       "thumbnail,scale=320:-1", // Use thumbnail filter to find best frame, then scale
       "-frames:v",
       "1", // Extract 1 frame
-      "-vsync",
-      "vfr", // Variable frame rate
       "-f",
       "image2",
       tempFile,

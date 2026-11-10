@@ -13,7 +13,7 @@ import {
 } from "../directoryStore/directory";
 import { setDefaultPath } from "../defaultPath";
 import { useDirectoryContext } from "../DirectoryContext";
-import { ChevronRightIcon } from "lucide-react";
+import { ChevronRightIcon, ClockIcon } from "lucide-react";
 import React from "react";
 
 export function FolderBreadcrumb() {
@@ -33,6 +33,15 @@ export function FolderBreadcrumb() {
           <div>{tagName}</div>
         </button>
       </>
+    );
+  }
+
+  if (directory.type === "recents") {
+    return (
+      <button className="join-item btn btn-xs btn-soft btn-info rounded-none flex items-center gap-2">
+        <ClockIcon className="size-3" />
+        <div>Recents</div>
+      </button>
     );
   }
 

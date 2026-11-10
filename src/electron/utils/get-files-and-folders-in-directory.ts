@@ -107,20 +107,7 @@ export async function getFileInfoByPaths(filePaths: string[]): Promise<GetFilesA
       const name = path.basename(fullPath)
 
       if (!stat) {
-        // File doesn't exist, return minimal info
-        const ext = path.extname(name)
-        return {
-          type: 'file' as const,
-          name,
-          ext,
-          category: getCategoryFromExtension(ext),
-          sizeStr: '--',
-          size: null,
-          modifiedTimestamp: null,
-          modifiedAt: null,
-          fullPath,
-          permissions: undefined,
-        }
+        return undefined
       }
 
       if (stat.isDirectory()) {
@@ -154,5 +141,5 @@ export async function getFileInfoByPaths(filePaths: string[]): Promise<GetFilesA
     })
   )
 
-  return items
+  return items.filter(item => item !== undefined)
 }

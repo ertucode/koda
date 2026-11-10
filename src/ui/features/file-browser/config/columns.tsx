@@ -161,7 +161,7 @@ function DirectoryNameCell({ item, ctx }: { item: RealDirectoryItem; ctx: Column
   const row = item.item
   const fullPath = row.fullPath ?? ctx.getFullPath(row.name)
   const tags = ctx.fileTags[fullPath]
-  // Show folder name when fullPath is available (tags view)
+  // Virtual listings include full paths, so disambiguate items with their parent path.
   const parentFolder = row.fullPath ? PathHelpers.parent(row.fullPath) : null
 
   return (
@@ -170,7 +170,7 @@ function DirectoryNameCell({ item, ctx }: { item: RealDirectoryItem; ctx: Column
         {item.str}
       </span>
       {tags && <TagCircles tags={tags} />}
-      {parentFolder && parentFolder.name && ctx.directoryType === 'tags' && (
+      {parentFolder && parentFolder.name && ctx.directoryType !== 'path' && (
         <span
           className="file-name-parent-path min-w-0 truncate text-gray-400 text-xs leading-none"
           title={parentFolder.path}

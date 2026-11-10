@@ -1,5 +1,5 @@
-import { Typescript } from '@common/Typescript'
 import { DirectoryContext, DirectoryContextDirectory, DirectoryId, DirectoryInfo } from './DirectoryBase'
+import { getListingDirectoryKey } from './listingDirectory'
 
 export const defaultSelection = Object.freeze({ indexes: new Set<number>(), last: undefined })
 export function getBufferSelection(state: DirectoryContext, directory: DirectoryContextDirectory) {
@@ -28,6 +28,7 @@ export function directoryInfoEquals(a: DirectoryInfo, b: DirectoryInfo): boolean
   if (a.type !== b.type) return false
   if (a.type === 'path' && b.type === 'path') return a.fullPath === b.fullPath
   if (a.type === 'tags' && b.type === 'tags') return a.color === b.color
+  if (a.type === 'recents' && b.type === 'recents') return true
   return false
 }
 export function getActiveDirectory(context: DirectoryContext, directoryId: DirectoryId | undefined) {
@@ -36,6 +37,5 @@ export function getActiveDirectory(context: DirectoryContext, directoryId: Direc
 }
 export function getFullPathForBuffer(directory: DirectoryInfo) {
   if (directory.type === 'path') return directory.fullPath
-  if (directory.type === 'tags') return `tag:${directory.color}`
-  Typescript.assertUnreachable(directory)
+  return getListingDirectoryKey(directory)
 }

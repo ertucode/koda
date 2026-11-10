@@ -66,7 +66,7 @@ const getFullPath = (dir: string, directoryId: DirectoryId | undefined) => {
   if (context.directory.type === 'path') {
     return mergeMaybeSlashed(context.directory.fullPath, dir)
   }
-  // For tags view, we cannot merge paths
+  // Virtual listings already provide full paths.
   return dir
 }
 
@@ -174,7 +174,7 @@ export const directoryHelpers = {
   createNewItem: async (name: string, directoryId: DirectoryId): Promise<ResultHandlerResult> => {
     const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
     if (context.directory.type !== 'path') {
-      return GenericError.Message('Cannot create items in tags view')
+      return GenericError.Message('Cannot create items in a read-only listing')
     }
 
     try {
@@ -236,6 +236,10 @@ export const directoryHelpers = {
     return cd({ type: 'tags', color }, true, directoryId)
   },
 
+  showRecents: (directoryId: DirectoryId) => {
+    return cd({ type: 'recents' }, true, directoryId)
+  },
+
   goNext: (directoryId: DirectoryId | undefined) => {
     return goNextOrPrev(directoryId, 'Next')
   },
@@ -276,7 +280,7 @@ export const directoryHelpers = {
 
   reloadIfChanged: async (directoryId: DirectoryId) => {
     const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
-    if (context.directory.type === 'tags') return
+    if (context.directory.type !== 'path') return
     const currentData = context.directoryData
 
     try {
@@ -551,7 +555,7 @@ export const directoryHelpers = {
   ): Promise<ResultHandlerResult> => {
     const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
     if (context.directory.type !== 'path') {
-      return GenericError.Message('Cannot create archive in tags view')
+      return GenericError.Message('Cannot create archive in a read-only listing')
     }
 
     try {
@@ -583,7 +587,7 @@ export const directoryHelpers = {
   ): Promise<ResultHandlerResult> => {
     const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
     if (context.directory.type !== 'path') {
-      return GenericError.Message('Cannot extract archive in tags view')
+      return GenericError.Message('Cannot extract archive in a read-only listing')
     }
 
     try {
@@ -609,7 +613,7 @@ export const directoryHelpers = {
     const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
     if (context.directory.type !== 'path') {
       toast.show({
-        message: 'Cannot load directory sizes in tags view',
+        message: 'Cannot load directory sizes in a read-only listing',
         severity: 'error',
       })
       return
@@ -717,7 +721,7 @@ export const directoryHelpers = {
     const directories = directoryStore.getSnapshot().context.directoriesById
 
     for (const dir of Object.values(directories)) {
-      if (dir.directory.type === 'tags') continue
+      if (dir.directory.type !== 'path') continue
 
       if (PathHelpers.expandHome(homeDirectory, dir.directory.fullPath) === path) {
         directoryHelpers.reload(dir.directoryId).then(() => {

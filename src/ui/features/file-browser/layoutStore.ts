@@ -23,6 +23,11 @@ const DirectoryDataSchema = z.array(
             color: z.enum(TAG_COLORS),
           })
         )
+        .or(
+          z.object({
+            type: z.literal('recents'),
+          })
+        )
     )
 )
 

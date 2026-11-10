@@ -12,9 +12,22 @@ const ROOT = path.resolve(new URL(".", import.meta.url).pathname, "..");
 const OUT = path.join(ROOT, "vendor-bin");
 await fs.mkdir(OUT, { recursive: true });
 
-// Using FFmpeg static builds from https://evermeet.cx/ffmpeg/
-// These are static builds specifically for macOS
-const FFMPEG_URL = "https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip";
+// Evermeet removed its download API. Resolve the current release through the
+// supported info API instead.
+const FFMPEG_INFO_URL = "https://evermeet.cx/ffmpeg/info/ffmpeg/release";
+
+const infoResponse = await fetch(FFMPEG_INFO_URL);
+if (!infoResponse.ok) {
+  throw new Error(
+    `HTTP ${infoResponse.status} while fetching ${FFMPEG_INFO_URL}`,
+  );
+}
+
+const ffmpegInfo = await infoResponse.json();
+const FFMPEG_URL = ffmpegInfo.download?.zip?.url;
+if (typeof FFMPEG_URL !== "string") {
+  throw new Error("FFmpeg info response did not contain a ZIP download URL");
+}
 
 console.log("→ Downloading ffmpeg...");
 const tmpFile = path.join(os.tmpdir(), "ffmpeg.zip");

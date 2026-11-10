@@ -3,7 +3,7 @@ import { TabNode, ITabRenderValues, Actions } from 'flexlayout-react'
 import { FoldersIcon, TagIcon, XIcon, LoaderIcon, StarIcon, StarOffIcon, FolderCogIcon } from 'lucide-react'
 import { layoutModel } from '../file-browser/initializeDirectory'
 import { useSelector } from '@xstate/store/react'
-import { directoryStore, selectDirectory } from '../file-browser/directoryStore/directory'
+import { directoryStore, directoryHelpers, selectDirectory } from '../file-browser/directoryStore/directory'
 import { useDirectoryLoading } from '../file-browser/directoryStore/directoryLoadingStore'
 import { TAG_COLOR_CLASSES } from '../file-browser/tags'
 import { LayoutHelpers } from '../file-browser/utils/LayoutHelpers'
@@ -43,6 +43,13 @@ export const onRenderTab = (node: TabNode, renderValues: ITabRenderValues) => {
         node.isSelected() && !noSiblings && 'shadow-[inset_0_-3px_0_0_var(--color-primary)]',
         !noSiblings && 'px-2'
       )}
+      onDoubleClick={e => {
+        if (component !== 'recents') return
+        e.stopPropagation()
+        const directoryId = directoryStore.getSnapshot().context.activeDirectoryId
+        void directoryHelpers.showRecents(directoryId)
+      }}
+      title={component === 'recents' ? 'Double-click to show recents in the active listing' : undefined}
     >
       <Icon className="size-4" />
       {noSiblings && node.getName()}
@@ -184,8 +191,10 @@ function DirectoryIcon({ directoryId }: { directoryId: DirectoryId }) {
 function DirectoryTabLabel({ directoryId }: { directoryId: DirectoryId }) {
   const directory = useSelector(directoryStore, selectDirectory(directoryId))
 
-  if (directory.type !== 'path')
+  if (directory.type === 'tags')
     return <div className={clsx('size-3 min-w-3 rounded-full flex-shrink-0', TAG_COLOR_CLASSES[directory.color].dot)} />
+
+  if (directory.type === 'recents') return <span className="text-xs">Recents</span>
 
   return (
     <>

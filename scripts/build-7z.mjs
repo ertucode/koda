@@ -14,7 +14,7 @@ await fs.mkdir(OUT, { recursive: true });
 
 // 7-Zip standalone console version for macOS
 const SEVEN_ZIP_URL =
-  "https://www.7-zip.org/a/7z2408-mac.tar.xz";
+  "https://github.com/ip7z/7zip/releases/download/26.06/7z2606-mac.tar.xz";
 
 console.log("→ Downloading 7-Zip...");
 const tmpFile = path.join(os.tmpdir(), "7z.tar.xz");

@@ -81,7 +81,7 @@ export const CreateFromClipboardDialog = createFormDialog<CreateFromClipboardDia
       directoryStore.getSnapshot().context.activeDirectoryId
     )
     if (context.directory.type !== 'path') {
-      return GenericError.Message('Cannot create file in tags view')
+      return GenericError.Message('Cannot create file in a read-only listing')
     }
 
     const fullPath = mergeMaybeSlashed(context.directory.fullPath, body.name)

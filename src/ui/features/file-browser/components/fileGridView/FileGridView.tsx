@@ -157,7 +157,11 @@ export const FileGridView = memo(function FileGridView() {
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
           {filteredDirectoryData.map((item, idx) => (
             <GridItem
-              key={idx}
+              key={
+                item.type === 'real'
+                  ? `${item.item.fullPath ?? item.item.name}:${item.item.modifiedTimestamp ?? 'unknown'}`
+                  : `str:${item.id}`
+              }
               item={item as RealDirectoryItem} // Grid view can't have vim item
               index={idx}
               directoryId={directoryId}

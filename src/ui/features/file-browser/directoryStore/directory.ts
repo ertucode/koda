@@ -4,7 +4,6 @@ import { errorToString } from '@common/errorToString'
 import { fileBrowserSettingsStore, selectSettings as selectSettingsFromStore, FileBrowserSettings } from '../settings'
 import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
 import { getWindowElectron, homeDirectory } from '@/getWindowElectron'
-import { TagColor, tagsStore } from '../tags'
 import { PathHelpers } from '@common/PathHelpers'
 import { defaultPath, initialDirectoryInfo } from '../defaultPath'
 import { toast } from '@/lib/components/toast'
@@ -24,6 +23,13 @@ import { defaultSelection, getActiveDirectory, getFullPathForBuffer, selectBuffe
 import { errorResponseToMessage, GenericError } from '@common/GenericError'
 import { useSelector } from '@xstate/store/react'
 import { VimEngine } from '@common/VimEngine'
+import {
+  getInitialDirectoryViewMode,
+  getListingDirectoryKey,
+  getListingDirectoryPaths,
+  getViewModeAfterNavigation,
+  removeStaleListingPaths,
+} from './listingDirectory'
 
 function updateDirectory(
   context: DirectoryContext,
@@ -63,7 +69,7 @@ export function createDirectoryContext(directoryId: DirectoryId, directory: Dire
     error: undefined as GenericError | undefined,
     historyStack: new HistoryStack<DirectoryInfo>([directory]),
     pendingSelection: null as string | string[] | null,
-    viewMode: 'list',
+    viewMode: getInitialDirectoryViewMode(directory),
     localSort: undefined,
   }
 }
@@ -187,6 +193,7 @@ export const directoryStore = createStore({
         return {
           ...d,
           directory: event.directory,
+          viewMode: getViewModeAfterNavigation(event.directory, d.viewMode),
         }
       }),
 
@@ -210,6 +217,7 @@ export const directoryStore = createStore({
         return {
           ...d,
           directory: nextDir,
+          viewMode: getViewModeAfterNavigation(nextDir, d.viewMode),
         }
       }),
 
@@ -223,6 +231,7 @@ export const directoryStore = createStore({
         return {
           ...d,
           directory: prevDir,
+          viewMode: getViewModeAfterNavigation(prevDir, d.viewMode),
         }
       }),
 
@@ -471,7 +480,7 @@ export const directoryStore = createStore({
               historyStack: new HistoryStack<DirectoryInfo>([directory]),
               pendingSelection: null as string | string[] | null,
               // View mode
-              viewMode: 'list' as 'list' | 'grid',
+              viewMode: getInitialDirectoryViewMode(directory),
               // Local sort state
               localSort: undefined,
             }
@@ -535,43 +544,42 @@ export const loadDirectoryPath = async (dir: string, _directoryId: DirectoryId |
   }
 }
 
-export const loadTaggedFiles = async (color: TagColor, _directoryId: DirectoryId | undefined) => {
+export const loadListingDirectory = async (
+  info: Exclude<DirectoryInfo, { type: 'path' }>,
+  _directoryId: DirectoryId | undefined
+) => {
   const directoryId = _directoryId ?? getActiveDirectory(directoryStore.getSnapshot().context, _directoryId).directoryId
-  const getFilesWithTag = (color: TagColor) =>
-    Object.entries(tagsStore.get().context.fileTags)
-      .filter(([_, tags]) => tags.includes(color))
-      .map(([path]) => path)
 
   directoryLoadingHelpers.startLoading(directoryId)
   try {
-    const filePaths = getFilesWithTag(color)
+    const filePaths = getListingDirectoryPaths(info)
+    const directoryKey = getListingDirectoryKey(info)
     if (filePaths.length === 0) {
       directoryStore.send({
         type: 'setDirectoryData',
         data: [],
         directoryId,
-        directoryDataFor: `tag:${color}`,
+        directoryDataFor: directoryKey,
       })
       return []
     }
     const result = await getWindowElectron().getFileInfoByPaths(filePaths)
+    const resultByPath = new Map(result.map(item => [item.fullPath, item]))
+    const orderedResult = filePaths
+      .map(path => resultByPath.get(PathHelpers.expandHome(homeDirectory, path)))
+      .filter(item => item !== undefined)
 
-    const staleItems = filePaths.filter(item => {
-      const normalized = PathHelpers.expandHome(homeDirectory, item)
-      return !result.find(i => i.fullPath === normalized)
-    })
-    if (staleItems.length > 0) {
-      tagsStore.trigger.removeFilesFromAllTags({
-        fullPaths: staleItems,
-      })
-    }
+    removeStaleListingPaths(
+      info,
+      orderedResult.map(item => item.fullPath).filter(fullPath => fullPath !== undefined)
+    )
     directoryStore.send({
       type: 'setDirectoryData',
-      data: result,
+      data: orderedResult,
       directoryId,
-      directoryDataFor: `tag:${color}`,
+      directoryDataFor: directoryKey,
     })
-    return result
+    return orderedResult
   } catch (e) {
     toast.show({
       message: errorToString(e),
@@ -585,9 +593,8 @@ export const loadTaggedFiles = async (color: TagColor, _directoryId: DirectoryId
 export const loadDirectoryInfo = async (info: DirectoryInfo, directoryId: DirectoryId | undefined) => {
   if (info.type === 'path') {
     return loadDirectoryPath(info.fullPath, directoryId, true)
-  } else {
-    return loadTaggedFiles(info.color, directoryId)
   }
+  return loadListingDirectory(info, directoryId)
 }
 
 export const directoryHelpers = dh

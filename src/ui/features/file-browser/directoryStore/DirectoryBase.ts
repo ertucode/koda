@@ -6,8 +6,13 @@ import { GenericError } from '@common/GenericError'
 import { VimEngine } from '@common/VimEngine'
 import { Brands } from '@common/Brands'
 
-export type DirectoryInfo = { type: 'path'; fullPath: string } | { type: 'tags'; color: TagColor }
+export type DirectoryInfo =
+  | { type: 'path'; fullPath: string }
+  | { type: 'tags'; color: TagColor }
+  | { type: 'recents' }
 export type DirectoryType = DirectoryInfo['type']
+export type ListingDirectoryInfo = Exclude<DirectoryInfo, { type: 'path' }>
+export type DirectoryViewMode = 'list' | 'grid'
 
 export type DirectoryId = Brands.DirectoryId
 export type DerivedDirectoryItem = VimEngine.BufferItem
@@ -29,7 +34,7 @@ export type DirectoryContextDirectory = {
   error: GenericError | undefined
   historyStack: HistoryStack<DirectoryInfo>
   pendingSelection: string | string[] | null
-  viewMode: 'list' | 'grid'
+  viewMode: DirectoryViewMode
   localSort: DirectoryLocalSort | undefined
 }
 

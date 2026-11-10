@@ -2,6 +2,7 @@ import { getWindowElectron } from "@/getWindowElectron";
 import { useWhenViewed } from "@/lib/hooks/useWhenViewed";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { useState } from "react";
+import { videoThumbnailCache } from "../../videoThumbnailCache";
 
 export function VideoThumbnail({
   item,
@@ -13,7 +14,15 @@ export function VideoThumbnail({
   const [data, setData] = useState<string | null>(null);
 
   const ref = useWhenViewed(() => {
-    getWindowElectron().generateVideoThumbnail(fullPath).then(setData);
+    videoThumbnailCache
+      .getOrGenerate(fullPath, item.modifiedTimestamp, () =>
+        getWindowElectron().generateVideoThumbnail(fullPath),
+      )
+      .then(setData)
+      .catch((error: unknown) => {
+        console.error(`Failed to generate video thumbnail for ${fullPath}:`, error);
+        setData(null);
+      });
   });
 
   return (
