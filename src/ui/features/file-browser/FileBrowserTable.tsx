@@ -120,6 +120,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     columns,
     data: filteredDirectoryData,
   })
+  const minimumTableWidth = table.headers.reduce((width, header) => width + (header.size ?? header.minSize ?? 0), 0)
   const contextMenu = useContextMenu<{ item: DerivedDirectoryItem; index: number } | undefined>()
   useEffect(() => {
     return directoryStore.on('showContextMenu', ({ element, item, directoryId: dId }) => {
@@ -178,7 +179,10 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
         <VimCursor />
         <VimFuzzyHighlight />
         <LoadingOverlay />
-        <table className="w-full table table-zebra table-xs rounded-none overflow-hidden table-fixed">
+        <table
+          className="w-full table table-zebra table-xs rounded-none overflow-hidden table-fixed"
+          style={{ minWidth: minimumTableWidth }}
+        >
           <thead>
             <tr>
               {table.headers.map(header => {
@@ -231,7 +235,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
                     style={{
                       width: header.size,
                       maxWidth: header.size,
-                      minWidth: header.size,
+                      minWidth: header.minSize ?? header.size,
                     }}
                   >
                     <div className="flex items-center gap-1">

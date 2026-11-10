@@ -20,6 +20,7 @@ export function useTable<T>(opts: UseTableOptions<T>) {
         id: columnId(col),
         sortKey: columnSortKey(col),
         size: col.size,
+        minSize: col.minSize,
       }
     })
   }, [cols])

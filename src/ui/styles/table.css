@@ -126,3 +126,13 @@
     }
   }
 }
+
+.file-name-cell {
+  container-type: inline-size;
+}
+
+@container (max-width: 240px) {
+  .file-name-parent-path {
+    display: none;
+  }
+}

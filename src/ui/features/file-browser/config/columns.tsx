@@ -101,6 +101,7 @@ export function createColumns(ctx: ColumnsContext): ColumnDef<DerivedDirectoryIt
       id: 'name',
       sortKey: 'name',
       header: 'Name',
+      minSize: 120,
       cell: (row, { index: idx }) => {
         if (ctx.isInsert(idx)) return <VimInsertItem row={row} />
 
@@ -164,13 +165,16 @@ function DirectoryNameCell({ item, ctx }: { item: RealDirectoryItem; ctx: Column
   const parentFolder = row.fullPath ? PathHelpers.parent(row.fullPath) : null
 
   return (
-    <div className="flex items-center min-w-0 gap-2">
-      <span data-no-drag-to-select className="block truncate leading-none" title={row.name}>
+    <div className="file-name-cell flex items-center min-w-0 gap-2">
+      <span data-no-drag-to-select className="block min-w-0 truncate leading-none" title={row.name}>
         {item.str}
       </span>
       {tags && <TagCircles tags={tags} />}
       {parentFolder && parentFolder.name && ctx.directoryType === 'tags' && (
-        <span className="text-gray-400 text-xs truncate flex-shrink-0 leading-none" title={parentFolder.path}>
+        <span
+          className="file-name-parent-path min-w-0 truncate text-gray-400 text-xs leading-none"
+          title={parentFolder.path}
+        >
           {parentFolder.path}
         </span>
       )}

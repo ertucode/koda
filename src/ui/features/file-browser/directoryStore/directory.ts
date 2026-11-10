@@ -536,7 +536,7 @@ export const loadDirectoryPath = async (dir: string, _directoryId: DirectoryId |
 }
 
 export const loadTaggedFiles = async (color: TagColor, _directoryId: DirectoryId | undefined) => {
-  const directoryId = getActiveDirectory(directoryStore.getSnapshot().context, _directoryId).directoryId
+  const directoryId = _directoryId ?? getActiveDirectory(directoryStore.getSnapshot().context, _directoryId).directoryId
   const getFilesWithTag = (color: TagColor) =>
     Object.entries(tagsStore.get().context.fileTags)
       .filter(([_, tags]) => tags.includes(color))
