@@ -10,6 +10,7 @@ const DirectoryDataSchema = z.array(
   z
     .object({
       id: z.string(),
+      viewMode: z.enum(['list', 'grid']).optional(),
     })
     .and(
       z

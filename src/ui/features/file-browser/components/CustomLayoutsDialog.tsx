@@ -5,7 +5,16 @@ import { useSelector } from '@xstate/store/react'
 import { layoutStore, layoutStoreHelpers, selectLayouts, CustomLayout } from '../layoutStore'
 import { LayoutPreview } from './LayoutPreview'
 import { Button } from '@/lib/components/button'
-import { TrashIcon, StarIcon, GripVerticalIcon, SaveIcon, PencilIcon, CheckIcon, XIcon } from 'lucide-react'
+import {
+  TrashIcon,
+  StarIcon,
+  GripVerticalIcon,
+  SaveIcon,
+  PencilIcon,
+  CheckIcon,
+  XIcon,
+  RefreshCwIcon,
+} from 'lucide-react'
 import { confirmation } from '@/lib/components/confirmation'
 import { toast } from '@/lib/components/toast'
 import { IJsonModel } from 'flexlayout-react'
@@ -16,11 +25,13 @@ import z from 'zod'
 interface LayoutCardProps {
   layout?: CustomLayout
   isCurrentLayout?: boolean
+  isBuiltIn?: boolean
   currentLayoutJson?: IJsonModel
   onSave?: (name: string) => void
   onRename?: (id: string, name: string) => void
   onDelete?: (id: string, name: string) => void
   onSetDefault?: (id: string) => void
+  onUpdateFromCurrent?: (layout: CustomLayout) => void
   onApply?: (layout: CustomLayout) => void
   isDragging?: boolean
   isOver?: boolean
@@ -33,11 +44,13 @@ interface LayoutCardProps {
 function LayoutCard({
   layout,
   isCurrentLayout,
+  isBuiltIn,
   currentLayoutJson,
   onSave,
   onRename,
   onDelete,
   onSetDefault,
+  onUpdateFromCurrent,
   onApply,
   isDragging,
   isOver,
@@ -102,7 +115,7 @@ function LayoutCard({
 
   return (
     <div
-      draggable={!isCurrentLayout && !isEditing}
+      draggable={!isCurrentLayout && !isBuiltIn && !isEditing}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
@@ -112,13 +125,13 @@ function LayoutCard({
         ${isCurrentLayout ? 'border-primary bg-primary/5' : 'border-base-content/20'}
         ${isDragging ? 'opacity-50' : ''}
         ${isOver ? 'border-primary' : ''}
-        ${!isCurrentLayout && !isEditing ? 'cursor-move' : ''}
+        ${!isCurrentLayout && !isBuiltIn && !isEditing ? 'cursor-move' : ''}
         hover:border-base-content/40 transition-colors
       `}
     >
       {/* Header */}
       <div className="flex items-center gap-2">
-        {!isCurrentLayout && <GripVerticalIcon className="w-4 h-4 text-base-content/30 flex-shrink-0" />}
+        {!isCurrentLayout && !isBuiltIn && <GripVerticalIcon className="w-4 h-4 text-base-content/30 flex-shrink-0" />}
 
         {isCurrentLayout ? (
           // Current layout - always shows input
@@ -164,10 +177,12 @@ function LayoutCard({
           // Existing layout - display mode
           <>
             <div className="flex-1 font-medium text-sm truncate">{layout?.name}</div>
-            <button onClick={handleStartEdit} className="btn btn-xs btn-circle btn-ghost" title="Rename">
-              <PencilIcon className="w-3 h-3" />
-            </button>
-            {layout && onSetDefault && (
+            {!isBuiltIn && (
+              <button onClick={handleStartEdit} className="btn btn-xs btn-circle btn-ghost" title="Rename">
+                <PencilIcon className="w-3 h-3" />
+              </button>
+            )}
+            {!isBuiltIn && layout && onSetDefault && (
               <button
                 onClick={() => onSetDefault(layout.id)}
                 className={`btn btn-xs btn-circle ${layout.isDefault ? 'btn-primary' : 'btn-ghost'}`}
@@ -176,7 +191,7 @@ function LayoutCard({
                 <StarIcon className="w-3 h-3" />
               </button>
             )}
-            {layout && onDelete && (
+            {!isBuiltIn && layout && onDelete && (
               <button
                 onClick={() => onDelete(layout.id, layout.name)}
                 className="btn btn-xs btn-circle btn-ghost text-error"
@@ -203,12 +218,24 @@ function LayoutCard({
       </div>
 
       {/* Metadata */}
-      <div className="text-xs text-base-content/50">
+      <div className="flex items-center justify-between gap-2 text-xs text-base-content/50">
         {isCurrentLayout ? (
           <span className="font-medium">Current Layout</span>
+        ) : isBuiltIn ? (
+          <span className="font-medium">Built-in Layout</span>
         ) : layout ? (
-          new Date(layout.createdAt).toLocaleDateString()
+          <span>{new Date(layout.createdAt).toLocaleDateString()}</span>
         ) : null}
+        {!isCurrentLayout && !isBuiltIn && layout && onUpdateFromCurrent && (
+          <button
+            className="btn btn-xs btn-ghost text-primary"
+            onClick={() => onUpdateFromCurrent(layout)}
+            title="Replace this saved layout with the current layout"
+          >
+            <RefreshCwIcon className="w-3 h-3" />
+            Update from current
+          </button>
+        )}
       </div>
     </div>
   )
@@ -219,12 +246,33 @@ export const CustomLayoutsDialog = function CustomLayoutsDialog() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [currentLayoutJson, setCurrentLayoutJson] = useState<IJsonModel | null>(null)
+  const [builtInLayout, setBuiltInLayout] = useState<CustomLayout | null>(null)
 
   useEffect(() => {
-    // Load current layout when dialog opens
-    import('../initializeDirectory').then(({ layoutModel }) => {
-      setCurrentLayoutJson(layoutModel.toJson())
-    })
+    Promise.all([import('../initializeDirectory'), import('../directoryStore/directory')]).then(
+      ([{ createDefaultLayout, layoutModel }, { directoryStore }]) => {
+        const snapshot = directoryStore.getSnapshot()
+        const directories = snapshot.context.directoryOrder.map(id => {
+          const directory = snapshot.context.directoriesById[id]
+          return {
+            id,
+            ...directory.directory,
+            viewMode: directory.viewMode,
+          }
+        })
+
+        setBuiltInLayout({
+          id: 'built-in-layout',
+          name: 'Built-in',
+          layoutJson: createDefaultLayout(directories),
+          directories,
+          activeDirectoryId: snapshot.context.activeDirectoryId,
+          createdAt: 0,
+          isDefault: false,
+        })
+        setCurrentLayoutJson(layoutModel.toJson())
+      }
+    )
   }, [])
 
   const handleDragStart = (index: number) => {
@@ -264,6 +312,7 @@ export const CustomLayoutsDialog = function CustomLayoutsDialog() {
         return {
           id,
           ...directory.directory,
+          viewMode: directory.viewMode,
         }
       })
       const activeDirectoryId = snapshot.context.activeDirectoryId
@@ -305,6 +354,39 @@ export const CustomLayoutsDialog = function CustomLayoutsDialog() {
 
   const handleSetDefault = (id: string) => {
     layoutStoreHelpers.setDefaultLayout(id)
+  }
+
+  const handleUpdateFromCurrent = (layout: CustomLayout) => {
+    if (!currentLayoutJson) return
+
+    confirmation.trigger.confirm({
+      title: 'Replace Saved Layout',
+      message: `Replace "${layout.name}" with the current layout and directories?`,
+      confirmText: 'Replace',
+      onConfirm: async () => {
+        const { directoryStore } = await import('../directoryStore/directory')
+        const snapshot = directoryStore.getSnapshot()
+        const directories = snapshot.context.directoryOrder.map(id => {
+          const directory = snapshot.context.directoriesById[id]
+          return {
+            id,
+            ...directory.directory,
+            viewMode: directory.viewMode,
+          }
+        })
+
+        layoutStoreHelpers.updateLayout(layout.id, {
+          layoutJson: currentLayoutJson,
+          directories,
+          activeDirectoryId: snapshot.context.activeDirectoryId,
+        })
+        toast.show({
+          title: 'Layout Updated',
+          message: `Layout "${layout.name}" now matches the current layout.`,
+          severity: 'success',
+        })
+      },
+    })
   }
 
   const handleApplyLayout = async (layout: CustomLayout) => {
@@ -358,10 +440,12 @@ export const CustomLayoutsDialog = function CustomLayoutsDialog() {
   // All layouts including current at the top
   type LayoutItem =
     | { isCurrentLayout: true; currentLayoutJson: IJsonModel | null }
+    | { layout: CustomLayout; isBuiltIn: true }
     | { layout: CustomLayout; actualIndex: number }
 
   const allLayouts: LayoutItem[] = [
     { isCurrentLayout: true, currentLayoutJson },
+    ...(builtInLayout ? [{ layout: builtInLayout, isBuiltIn: true as const }] : []),
     ...layouts.map((layout, index) => ({
       layout,
       actualIndex: index,
@@ -400,6 +484,17 @@ export const CustomLayoutsDialog = function CustomLayoutsDialog() {
                   )
                 }
 
+                if ('isBuiltIn' in item && item.isBuiltIn) {
+                  return (
+                    <LayoutCard
+                      key={item.layout.id}
+                      layout={item.layout}
+                      isBuiltIn
+                      onApply={handleApplyLayout}
+                    />
+                  )
+                }
+
                 const { layout, actualIndex } = item as {
                   layout: CustomLayout
                   actualIndex: number
@@ -414,6 +509,7 @@ export const CustomLayoutsDialog = function CustomLayoutsDialog() {
                     onRename={handleRename}
                     onDelete={handleDelete}
                     onSetDefault={handleSetDefault}
+                    onUpdateFromCurrent={handleUpdateFromCurrent}
                     onApply={handleApplyLayout}
                     isDragging={isDragging}
                     isOver={isOver}

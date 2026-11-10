@@ -17,6 +17,7 @@ import {
   DirectoryContextDirectory,
   DirectoryInfo,
   DirectoryLocalSort,
+  DirectoryViewMode,
   DerivedDirectoryItem,
 } from './DirectoryBase'
 import { defaultSelection, getActiveDirectory, getFullPathForBuffer, selectBuffer } from './directoryPureHelpers'
@@ -462,7 +463,7 @@ export const directoryStore = createStore({
     initDirectories: (
       _,
       event: {
-        directories: (DirectoryInfo & { id: string })[]
+        directories: (DirectoryInfo & { id: string; viewMode?: DirectoryViewMode })[]
         activeDirectoryId: string
       }
     ) => {
@@ -480,7 +481,7 @@ export const directoryStore = createStore({
               historyStack: new HistoryStack<DirectoryInfo>([directory]),
               pendingSelection: null as string | string[] | null,
               // View mode
-              viewMode: getInitialDirectoryViewMode(directory),
+              viewMode: directory.viewMode ?? getInitialDirectoryViewMode(directory),
               // Local sort state
               localSort: undefined,
             }

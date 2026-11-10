@@ -63,6 +63,7 @@ export namespace LayoutDevMode {
       return {
         id,
         ...directory.directory,
+        viewMode: directory.viewMode,
       }
     })
     const activeDirectoryId = snapshot.context.activeDirectoryId
@@ -77,7 +78,7 @@ export namespace LayoutDevMode {
   }
 }
 
-function createDefaultLayout(directories: InitDirectories) {
+export function createDefaultLayout(directories: InitDirectories): IJsonModel {
   const directoryTabs = directories.map((dir, index) => ({
     type: 'tab' as const,
     name: `Directory ${index + 1}`,
