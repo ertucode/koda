@@ -26,6 +26,7 @@ import {
   ArrowUpToLineIcon,
   LayersIcon,
   PackagePlusIcon,
+  PlayIcon,
 } from 'lucide-react'
 import { setDefaultPath } from './defaultPath'
 import { dialogActions } from './dialogStore'
@@ -280,6 +281,24 @@ export const FileTableRowContextMenu = ({
               view: '~/Applications (current user)',
             },
           ],
+        }
+      : null
+
+  const openAppItem: ContextMenuItem | null =
+    item.type === 'dir' && item.name.toLowerCase().endsWith('.app')
+      ? {
+          onClick: async () => {
+            try {
+              await getWindowElectron().openFile(fullPath)
+              close()
+            } catch (error) {
+              toast.show({
+                severity: 'error',
+                message: `Failed to open app: ${error instanceof Error ? error.message : String(error)}`,
+              })
+            }
+          },
+          view: <TextWithIcon icon={PlayIcon}>Open App</TextWithIcon>,
         }
       : null
 
@@ -580,6 +599,7 @@ export const FileTableRowContextMenu = ({
     const directoryMenuItems: (ContextMenuItem | null)[] = [
       ...(inlineCommandItems || []),
       openDirectoryInNewTab,
+      openAppItem,
       installAppItem,
       { isSeparator: true },
       {
