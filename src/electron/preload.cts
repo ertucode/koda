@@ -8,6 +8,7 @@ import {
   WindowElectron,
   CreateFromClipboardType,
   PathFinderOptions,
+  InstallAppTarget,
 } from '../common/Contracts'
 import { TaskEvents } from '../common/Tasks'
 import { ArchiveTypes } from '../common/ArchiveTypes'
@@ -59,6 +60,7 @@ electron.contextBridge.exposeInMainWorld('electron', {
     ipcInvoke('getDirectorySizes', { parentPath, specificDirName, knownSizes }),
   generateVideoThumbnail: (filePath: string) => ipcInvoke('generateVideoThumbnail', filePath),
   generateAppIcon: (filePath: string) => ipcInvoke('generateAppIcon', filePath),
+  installApp: (appPath: string, target: InstallAppTarget) => ipcInvoke('installApp', { appPath, target }),
   batchRenameFiles: (
     items: Array<{
       fullPath: string

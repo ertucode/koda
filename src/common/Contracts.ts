@@ -41,6 +41,13 @@ export type ApplicationInfo = {
   icon?: string
 }
 
+export type InstallAppTarget = 'system' | 'user'
+
+export type InstallAppResult = {
+  path?: string
+  cancelled: boolean
+}
+
 export type AudioMetadata = {
   title?: string
   artist?: string
@@ -174,6 +181,7 @@ export type EventResponseMapping = {
   getDirectorySizes: Promise<Record<string, number>>
   generateVideoThumbnail: Promise<string>
   generateAppIcon: Promise<string>
+  installApp: Promise<GenericResult<InstallAppResult>>
   getAudioMetadata: Promise<AudioMetadata | { error: string }>
   'task:event': TaskEvents
   'generic:event': GenericEvent
@@ -318,6 +326,7 @@ export type EventRequestMapping = {
   }
   generateVideoThumbnail: string
   generateAppIcon: string
+  installApp: { appPath: string; target: InstallAppTarget }
   getAudioMetadata: string
   startArchive: {
     archiveType: ArchiveTypes.ArchiveType
@@ -433,6 +442,7 @@ export type WindowElectron = {
   ) => Promise<Record<string, number>>
   generateVideoThumbnail: (filePath: string) => Promise<string>
   generateAppIcon: (filePath: string) => Promise<string>
+  installApp: (appPath: string, target: InstallAppTarget) => Promise<GenericResult<InstallAppResult>>
   getAudioMetadata: (filePath: string) => Promise<AudioMetadata | { error: string }>
   onTaskEvent: (cb: (e: TaskEvents) => void) => void
   onGenericEvent: (cb: (e: GenericEvent) => void) => void

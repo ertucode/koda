@@ -43,6 +43,7 @@ import { getServerConfig } from './server-config.js'
 import { getAudioMetadata } from './utils/get-audio-metadata.js'
 import { applyVimChanges } from './utils/apply-vim-changes.js'
 import { moveItems, undoMoveItems } from './utils/move-items.js'
+import { installApp } from './utils/install-app.js'
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined
@@ -245,6 +246,7 @@ app.on('ready', () => {
   )
   ipcHandle('generateVideoThumbnail', filePath => generateVideoThumbnail(filePath))
   ipcHandle('generateAppIcon', filePath => generateAppIcon(filePath))
+  ipcHandle('installApp', request => installApp(request.appPath, request.target))
   ipcHandle('getAudioMetadata', filePath => getAudioMetadata(filePath))
   ipcHandle('startArchive', request => startArchive(request))
   ipcHandle('startUnarchive', request => startUnarchive(request))

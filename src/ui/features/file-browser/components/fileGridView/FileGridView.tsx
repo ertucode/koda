@@ -80,11 +80,9 @@ const GridItem = memo(function GridItem({ item, index, directoryId, onContextMen
 
 function FileThumbnail({ item, fullPath }: { item: GetFilesAndFoldersInDirectoryItem; fullPath: string }) {
   if (item.type === 'dir') {
-    // Check if this is a .app bundle in /Applications or /System/Applications
     const isApp = item.name.endsWith('.app')
-    const isInApplicationsFolder = fullPath.startsWith('/Applications/') || fullPath.startsWith('/System/Applications/')
 
-    if (isApp && isInApplicationsFolder) {
+    if (isApp) {
       return <AppIconThumbnail item={item} fullPath={fullPath} />
     }
 

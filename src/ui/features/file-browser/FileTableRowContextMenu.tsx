@@ -25,6 +25,7 @@ import {
   EyeIcon,
   ArrowUpToLineIcon,
   LayersIcon,
+  PackagePlusIcon,
 } from 'lucide-react'
 import { setDefaultPath } from './defaultPath'
 import { dialogActions } from './dialogStore'
@@ -251,6 +252,36 @@ export const FileTableRowContextMenu = ({
     },
     view: <TextWithIcon icon={ClipboardCopyIcon}>Copy Path</TextWithIcon>,
   }
+
+  const installApp = async (target: 'system' | 'user') => {
+    const result = await getWindowElectron().installApp(fullPath, target)
+    if (!result.success) {
+      toast.show(result)
+    } else if (!result.data.cancelled) {
+      toast.show({
+        severity: 'success',
+        message: `Installed ${item.name} in ${target === 'system' ? '/Applications' : '~/Applications'}`,
+      })
+    }
+    close()
+  }
+
+  const installAppItem: ContextMenuItem | null =
+    item.type === 'dir' && item.name.toLowerCase().endsWith('.app')
+      ? {
+          view: <TextWithIcon icon={PackagePlusIcon}>Install App</TextWithIcon>,
+          submenu: [
+            {
+              onClick: () => void installApp('system'),
+              view: '/Applications (requires administrator)',
+            },
+            {
+              onClick: () => void installApp('user'),
+              view: '~/Applications (current user)',
+            },
+          ],
+        }
+      : null
 
   // Archive selected files/folders
   const archiveItem: ContextMenuItem = {
@@ -549,6 +580,7 @@ export const FileTableRowContextMenu = ({
     const directoryMenuItems: (ContextMenuItem | null)[] = [
       ...(inlineCommandItems || []),
       openDirectoryInNewTab,
+      installAppItem,
       { isSeparator: true },
       {
         onClick: () => {
