@@ -13,14 +13,16 @@ export type CommandDefinition = {
   command: string
   label: string
   customizable?: boolean
+  handler: (e: KeyboardEvent | undefined) => void
+  enabledIn?: React.RefObject<HTMLElement | null> | ((e: KeyboardEvent | undefined) => boolean)
 }
 
 export type ShortcutCommand = CommandDefinition & {
-  code: ShortcutCode | ShortcutCode[]
-  handler: (e: KeyboardEvent | undefined) => void
-  enabledIn?: React.RefObject<HTMLElement | null> | ((e: KeyboardEvent | undefined) => boolean)
+  code?: ShortcutCode | ShortcutCode[]
   notCode?: ShortcutCode | ShortcutCode[]
 }
+
+type ResolvedShortcutCommand = ShortcutCommand & { code: ShortcutCode | ShortcutCode[] }
 
 export type SequenceCommand = CommandDefinition & {
   sequence: string[]
@@ -57,7 +59,11 @@ export namespace GlobalShortcuts {
     sequences: [],
   }
 
-  function convertShortcutCommand(item: ShortcutCommand): ShortcutWithHandler {
+  function hasShortcut(item: ShortcutCommand): item is ResolvedShortcutCommand {
+    return item.code !== undefined
+  }
+
+  function convertShortcutCommand(item: ResolvedShortcutCommand): ShortcutWithHandler {
     return {
       command: item.command,
       code: item.code,
@@ -142,7 +148,7 @@ export namespace GlobalShortcuts {
       const shortcutsWithCustom = applyCustomShortcuts(item.originalShortcuts, customShortcuts)
       const sequencesWithCustom = applyCustomSequences(item.originalSequences, customShortcuts)
 
-      const convertedShortcuts = shortcutsWithCustom.map(convertShortcutCommand)
+      const convertedShortcuts = shortcutsWithCustom.filter(hasShortcut).map(convertShortcutCommand)
       const convertedSequences = sequencesWithCustom.map(convertSequenceCommand)
 
       item.shortcuts = compileShortcuts(convertedShortcuts)
@@ -164,7 +170,7 @@ export namespace GlobalShortcuts {
     const shortcutsWithCustom = applyCustomShortcuts(item.shortcuts, customShortcuts)
     const sequencesWithCustom = applyCustomSequences(item.sequences, customShortcuts)
 
-    const convertedShortcuts = shortcutsWithCustom.map(convertShortcutCommand)
+    const convertedShortcuts = shortcutsWithCustom.filter(hasShortcut).map(convertShortcutCommand)
     const convertedSequences = sequencesWithCustom.map(convertSequenceCommand)
 
     const compiled = {
@@ -183,11 +189,16 @@ export namespace GlobalShortcuts {
     }
 
     for (const i of item.shortcuts) {
-      shortcutRegistryAPI.register(i.command, i.label, convertShortcutCommand(i))
+      shortcutRegistryAPI.register(
+        i.command,
+        i.label,
+        i.handler,
+        hasShortcut(i) ? convertShortcutCommand(i) : undefined
+      )
     }
 
     for (const i of item.sequences) {
-      shortcutRegistryAPI.register(i.command, i.label, convertSequenceCommand(i))
+      shortcutRegistryAPI.register(i.command, i.label, i.handler, convertSequenceCommand(i))
     }
   }
 

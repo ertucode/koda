@@ -113,14 +113,14 @@ export function useShortcuts(
     if (opts?.hideInPalette || opts?.isDisabled) return;
     shortcuts.forEach((shortcut) => {
       if (!shortcut || shortcut === true) return;
-      const command = (shortcut as any).command || shortcut.label;
-      shortcutRegistryAPI.register(command, shortcut.label, shortcut as DefinedShortcutInput);
+      const command = shortcut.command || shortcut.label;
+      shortcutRegistryAPI.register(command, shortcut.label, shortcut.handler, shortcut as DefinedShortcutInput);
     });
 
     return () => {
       shortcuts.forEach((shortcut) => {
         if (!shortcut || shortcut === true) return;
-        const command = (shortcut as any).command || shortcut.label;
+        const command = shortcut.command || shortcut.label;
         shortcutRegistryAPI.unregister(command);
       });
     };

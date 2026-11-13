@@ -23,6 +23,8 @@ import { getWindowElectron } from '@/getWindowElectron'
 import { toast } from '@/lib/components/toast'
 import { TableItemFinder } from '@/lib/libs/table/TableItemFinder'
 import { fileBrowserSettingsStore } from './settings'
+import { startMoveItems } from './moveItems'
+import { FlattenDialog } from './components/FlattenDialog'
 
 const SHORTCUTS_KEY = 'file-browser'
 
@@ -194,16 +196,40 @@ export const FileBrowserShortcuts = {
           command: 'file_browser_delete',
           code: { code: 'Backspace', metaKey: true },
           handler: () => {
-            const items = directorySelection.getSelectedRealsOrCurrentReal(undefined)
-            if (items)
-              directoryHelpers.handleDelete(
-                items.map(i => i.item),
-                getFilteredData(),
-                undefined
-              )
+            const selection = directorySelection.getSelectedItemsOrCurrent(undefined)
+            if (selection)
+              directoryHelpers.handleDelete(selection.items, getFilteredData(), selection.directoryId)
           },
           enabledIn: () => true,
           label: 'Delete selected items',
+        },
+        {
+          command: 'file_browser_move_items_up',
+          handler: () => {
+            const selection = directorySelection.getSelectedItemsOrCurrent(undefined)
+            if (!selection) return
+            void startMoveItems(selection.items, selection.directoryId, 'move-up')
+          },
+          label: 'Move selected items one level up',
+        },
+        {
+          command: 'file_browser_flatten_folders',
+          handler: () => {
+            const selection = directorySelection.getSelectedItemsOrCurrent(undefined)
+            if (!selection) return
+            if (!selection.items.every(item => item.type === 'dir')) {
+              toast.show({
+                severity: 'info',
+                message: 'Select only folders to flatten them',
+              })
+              return
+            }
+            dialogActions.open({
+              component: FlattenDialog,
+              props: { items: selection.items, directoryId: selection.directoryId },
+            })
+          },
+          label: 'Flatten selected folders',
         },
         {
           command: 'file_browser_new_item',
@@ -234,13 +260,12 @@ export const FileBrowserShortcuts = {
           code: { code: 'KeyR', metaKey: true, shiftKey: true },
           handler: e => {
             e?.preventDefault()
-            const itemsToRename = directorySelection.getSelectedRealsOrCurrentReal(undefined)
-            if (!itemsToRename) return
-            const itemsToRenameMapped = itemsToRename.filter(i => i.type === 'real').map(i => i.item)
+            const selection = directorySelection.getSelectedItemsOrCurrent(undefined)
+            if (!selection) return
             dialogActions.open({
               component: BatchRenameDialog,
               props: {
-                items: itemsToRenameMapped,
+                items: selection.items,
               },
             })
           },
@@ -252,16 +277,15 @@ export const FileBrowserShortcuts = {
           code: { code: 'KeyC', metaKey: true },
           handler: e => {
             // Check if user is selecting text
-            const selection = window.getSelection()
-            if (selection && selection.toString().length > 0) {
+            const textSelection = window.getSelection()
+            if (textSelection && textSelection.toString().length > 0) {
               return // Allow default text copy
             }
 
             e?.preventDefault()
-            const itemsToCopy = directorySelection.getSelectedRealsOrCurrentReal(undefined)
-            if (!itemsToCopy) return
-            const itemsToCopyMapped = itemsToCopy.filter(i => i.type === 'real').map(i => i.item)
-            clipboardHelpers.copy(itemsToCopyMapped, false, undefined)
+            const selection = directorySelection.getSelectedItemsOrCurrent(undefined)
+            if (!selection) return
+            clipboardHelpers.copy(selection.items, false, selection.directoryId)
           },
           enabledIn: () => true,
           label: 'Copy selected items',
@@ -271,16 +295,15 @@ export const FileBrowserShortcuts = {
           code: { code: 'KeyX', metaKey: true },
           handler: e => {
             // Check if user is selecting text
-            const selection = window.getSelection()
-            if (selection && selection.toString().length > 0) {
+            const textSelection = window.getSelection()
+            if (textSelection && textSelection.toString().length > 0) {
               return // Allow default text cut
             }
 
             e?.preventDefault()
-            const itemsToCut = directorySelection.getSelectedRealsOrCurrentReal(undefined)
-            if (!itemsToCut) return
-            const itemsToCutMapped = itemsToCut.filter(i => i.type === 'real').map(i => i.item)
-            clipboardHelpers.copy(itemsToCutMapped, true, undefined)
+            const selection = directorySelection.getSelectedItemsOrCurrent(undefined)
+            if (!selection) return
+            clipboardHelpers.copy(selection.items, true, selection.directoryId)
           },
           enabledIn: () => true,
           label: 'Cut selected items',

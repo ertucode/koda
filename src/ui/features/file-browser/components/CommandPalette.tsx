@@ -28,6 +28,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
     const codeMap = new Map<string, string[]>() // code -> commands[]
 
     for (const shortcut of shortcuts) {
+      if (!shortcut.shortcut) continue
       const code = isSequenceShortcut(shortcut.shortcut)
         ? `seq:${shortcut.shortcut.sequence.join(',')}`
         : Array.isArray(shortcut.shortcut.code)
@@ -80,12 +81,16 @@ export const CommandPalette = function CommandPalette(_props: {}) {
         const hasCustom = shortcutCustomizationHelpers.hasCustomShortcut(shortcut.command)
         const displayShortcut = hasCustom
           ? customShortcuts[shortcut.command]
-          : isSequenceShortcut(shortcut.shortcut)
-            ? { sequence: shortcut.shortcut.sequence }
-            : shortcut.shortcut.code
+          : !shortcut.shortcut
+            ? undefined
+            : isSequenceShortcut(shortcut.shortcut)
+              ? { sequence: shortcut.shortcut.sequence }
+              : shortcut.shortcut.code
 
         let keymapStr = ''
-        if (typeof displayShortcut === 'object' && 'sequence' in displayShortcut) {
+        if (!displayShortcut) {
+          keymapStr = ''
+        } else if (typeof displayShortcut === 'object' && 'sequence' in displayShortcut) {
           keymapStr = displayShortcut.sequence.join(' ')
         } else if (Array.isArray(displayShortcut)) {
           keymapStr = displayShortcut.map(shortcutToString).join(' or ')
@@ -127,7 +132,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
           e?.preventDefault()
           if (filteredShortcuts[selectedIndex]) {
             dialogActions.close()
-            filteredShortcuts[selectedIndex].shortcut.handler(undefined)
+            filteredShortcuts[selectedIndex].handler(undefined)
           }
         },
         label: '',
@@ -318,9 +323,11 @@ export const CommandPalette = function CommandPalette(_props: {}) {
               const isDuplicate = duplicateCommands.has(shortcut.command)
               const displayShortcut = hasCustom
                 ? customShortcuts[shortcut.command]
-                : isSequenceShortcut(shortcut.shortcut)
-                  ? { sequence: shortcut.shortcut.sequence }
-                  : shortcut.shortcut.code
+                : !shortcut.shortcut
+                  ? undefined
+                  : isSequenceShortcut(shortcut.shortcut)
+                    ? { sequence: shortcut.shortcut.sequence }
+                    : shortcut.shortcut.code
 
               return (
                 <div
@@ -334,7 +341,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
                   onClick={() => {
                     if (!isEditing) {
                       dialogActions.close()
-                      shortcut.shortcut.handler(undefined)
+                      shortcut.handler(undefined)
                     }
                   }}
                 >
@@ -412,7 +419,7 @@ export const CommandPalette = function CommandPalette(_props: {}) {
                           <Edit2Icon className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500" />
                           <div className="flex items-center gap-1 h-6">
                             {/* Show custom shortcut if defined */}
-                            {hasCustom && (
+                            {hasCustom && displayShortcut && (
                               <>
                                 <kbd
                                   className={clsx(
@@ -426,24 +433,28 @@ export const CommandPalette = function CommandPalette(_props: {}) {
                                       ? displayShortcut.map(shortcutToString).join(' or ')
                                       : shortcutToString(displayShortcut)}
                                 </kbd>
-                                <span className="text-xs text-gray-400">→</span>
+                                {shortcut.defaultShortcut && <span className="text-xs text-gray-400">→</span>}
                               </>
                             )}
                             {/* Show original shortcut */}
-                            <kbd
-                              className={clsx(
-                                'px-2 py-1 text-xs font-semibold border rounded hover:opacity-80',
-                                hasCustom
-                                  ? 'text-gray-500 bg-gray-50 border-gray-200 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-700 line-through'
-                                  : 'text-gray-800 bg-gray-100 border-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600'
-                              )}
-                            >
-                              {isSequenceShortcut(shortcut.defaultShortcut)
-                                ? shortcut.defaultShortcut.sequence.join(' ')
-                                : Array.isArray(shortcut.defaultShortcut.code)
-                                  ? shortcut.defaultShortcut.code.map(shortcutToString).join(' or ')
-                                  : shortcutToString(shortcut.defaultShortcut.code)}
-                            </kbd>
+                            {shortcut.defaultShortcut ? (
+                              <kbd
+                                className={clsx(
+                                  'px-2 py-1 text-xs font-semibold border rounded hover:opacity-80',
+                                  hasCustom
+                                    ? 'text-gray-500 bg-gray-50 border-gray-200 dark:bg-gray-800 dark:text-gray-500 dark:border-gray-700 line-through'
+                                    : 'text-gray-800 bg-gray-100 border-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600'
+                                )}
+                              >
+                                {isSequenceShortcut(shortcut.defaultShortcut)
+                                  ? shortcut.defaultShortcut.sequence.join(' ')
+                                  : Array.isArray(shortcut.defaultShortcut.code)
+                                    ? shortcut.defaultShortcut.code.map(shortcutToString).join(' or ')
+                                    : shortcutToString(shortcut.defaultShortcut.code)}
+                              </kbd>
+                            ) : !hasCustom ? (
+                              <span className="text-xs text-base-content/40">Unassigned</span>
+                            ) : null}
                           </div>
                         </div>
                       </div>

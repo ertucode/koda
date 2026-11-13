@@ -1,67 +1,82 @@
-// Global registry for all active shortcuts
-// Uses a Map with command IDs as keys to store shortcuts
+import { DefinedShortcutInput, ShortcutCode, isSequenceShortcut } from './useShortcuts'
+import { shortcutCustomizationStore } from './shortcutCustomization'
 
-import { DefinedShortcutInput, ShortcutCode, isSequenceShortcut } from "./useShortcuts";
-import { shortcutCustomizationStore } from "./shortcutCustomization";
+export type RegisteredCommand = {
+  command: string
+  label: string
+  handler: (event: KeyboardEvent | undefined) => void
+  shortcut?: DefinedShortcutInput
+  defaultShortcut?: DefinedShortcutInput
+}
 
-export type RegisteredShortcut = {
-  command: string;
-  label: string;
-  shortcut: DefinedShortcutInput;
-  defaultShortcut: DefinedShortcutInput;
-};
+const commandRegistry = new Map<string, RegisteredCommand>()
 
-const shortcutRegistry = new Map<string, RegisteredShortcut>();
+function shortcutFromCustom(
+  registered: RegisteredCommand,
+  custom: ShortcutCode | ShortcutCode[] | { sequence: string[] }
+): DefinedShortcutInput {
+  if (typeof custom === 'object' && !Array.isArray(custom) && 'sequence' in custom) {
+    return {
+      command: registered.command,
+      sequence: custom.sequence,
+      handler: registered.handler,
+      label: registered.label,
+    }
+  }
+
+  return {
+    command: registered.command,
+    code: custom,
+    handler: registered.handler,
+    label: registered.label,
+  }
+}
 
 export const shortcutRegistryAPI = {
-  register: (command: string, label: string, shortcut: DefinedShortcutInput) => {
-    shortcutRegistry.set(command, { 
+  register: (
+    command: string,
+    label: string,
+    handler: (event: KeyboardEvent | undefined) => void,
+    shortcut?: DefinedShortcutInput
+  ) => {
+    commandRegistry.set(command, {
       command,
-      label, 
+      label,
+      handler,
       shortcut,
       defaultShortcut: shortcut,
-    });
+    })
   },
 
   unregister: (command: string) => {
-    shortcutRegistry.delete(command);
+    commandRegistry.delete(command)
   },
 
-  getAll: () => {
-    const customShortcuts = shortcutCustomizationStore.get().context.customShortcuts;
-    
-    return Array.from(shortcutRegistry.values()).map((registered) => {
-      const customKey = customShortcuts[registered.command];
-      
-      if (!customKey) {
-        return registered;
+  getAll: (): RegisteredCommand[] => {
+    const customShortcuts = shortcutCustomizationStore.get().context.customShortcuts
+
+    return Array.from(commandRegistry.values()).map(registered => {
+      const customKey = customShortcuts[registered.command]
+      if (!customKey) return registered
+
+      if (!registered.shortcut) {
+        return { ...registered, shortcut: shortcutFromCustom(registered, customKey) }
       }
 
-      // Apply custom shortcut override
-      const customizedShortcut = { ...registered.shortcut };
-      
+      const customizedShortcut = { ...registered.shortcut }
       if (isSequenceShortcut(customizedShortcut)) {
-        // Handle sequence shortcuts
-        if (typeof customKey === "object" && "sequence" in customKey) {
-          customizedShortcut.sequence = customKey.sequence;
+        if (typeof customKey === 'object' && !Array.isArray(customKey) && 'sequence' in customKey) {
+          customizedShortcut.sequence = customKey.sequence
         }
       } else {
-        // Handle regular shortcuts
-        if (Array.isArray(customKey)) {
-          customizedShortcut.code = customKey as ShortcutCode[];
-        } else {
-          customizedShortcut.code = customKey as ShortcutCode;
-        }
+        customizedShortcut.code = customKey as ShortcutCode | ShortcutCode[]
       }
 
-      return {
-        ...registered,
-        shortcut: customizedShortcut,
-      };
-    });
+      return { ...registered, shortcut: customizedShortcut }
+    })
   },
 
   clear: () => {
-    shortcutRegistry.clear();
+    commandRegistry.clear()
   },
-};
+}

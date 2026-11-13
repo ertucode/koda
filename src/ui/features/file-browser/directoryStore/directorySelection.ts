@@ -491,18 +491,24 @@ export const directorySelection = {
     })
   },
 
-  getSelectedRealsOrCurrentReal: (directoryId: DirectoryId | undefined) => {
+  getSelectedItemsOrCurrent: (directoryId: DirectoryId | undefined) => {
     const snapshot = directoryStore.getSnapshot()
-    const buffer = selectBuffer(snapshot.context, directoryId)
+    const active = getActiveDirectory(snapshot.context, directoryId)
+    const buffer = selectBuffer(snapshot.context, active.directoryId)
     if (!buffer) return undefined
 
     const selection = buffer.selection.indexes
     const result = [...selection].map(i => buffer.items[i]).filter(i => i.type === 'real')
+    let selected = result
     if (result.length <= 1) {
       const item = buffer.items[buffer.cursor.line]
-      if (item.type === 'real') return [item]
-      return undefined
+      if (item.type !== 'real') return undefined
+      selected = [item]
     }
-    return result
+
+    return {
+      directoryId: active.directoryId,
+      items: selected.map(item => item.item),
+    }
   },
 }
