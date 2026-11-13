@@ -2,7 +2,7 @@ import { ArchiveTypes } from './ArchiveTypes.js'
 import { GenericResult } from './GenericError.js'
 
 export type TaskDefinition = Tasks.Base &
-  (Tasks.Archive | Tasks.Unarchive | Tasks.Paste | Tasks.Delete | Tasks.RunCommand | Tasks.VimChanges)
+  (Tasks.Archive | Tasks.Unarchive | Tasks.Paste | Tasks.Delete | Tasks.RunCommand | Tasks.VimChanges | Tasks.MoveItems)
 
 export type TaskCreate<T extends TaskDefinition['type']> = $DistributiveOmit<
   Extract<TaskDefinition, { type: T }>,
@@ -19,6 +19,18 @@ export namespace Tasks {
     directoryId: string
     cursorLine: number | undefined
     selection: { indexes: Set<number>; last: number | undefined }
+    moveUndo?: MoveUndoMetadata
+  }
+
+  export type MoveRecord = {
+    sourcePath: string
+    destinationPath: string
+  }
+
+  export type MoveUndoMetadata = {
+    moves: MoveRecord[]
+    removedDirectories: string[]
+    undone?: boolean
   }
 
   export type Base = {
@@ -80,6 +92,17 @@ export namespace Tasks {
     metadata: {
       changeCount: number
       affectedDirectories: string[]
+    }
+    result?: GenericResult<void>
+  }
+
+  export type MoveItems = {
+    type: 'move-items'
+    metadata: {
+      operation: 'move-up' | 'flatten'
+      sourcePaths: string[]
+      destinationDirectories: string[]
+      depth?: number | 'infinity'
     }
     result?: GenericResult<void>
   }

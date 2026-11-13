@@ -124,6 +124,14 @@ export function subscribeToTasks() {
           directoryHelpers.checkAndReloadDirectories(PathHelpers.expandHome(homeDirectory, dir), undefined)
         }
       }
+    } else if (task.type === 'move-items') {
+      const paths = [
+        ...task.metadata.sourcePaths.map(source => PathHelpers.parent(source).path),
+        ...task.metadata.destinationDirectories,
+      ]
+      for (const directoryPath of new Set(paths)) {
+        directoryHelpers.checkAndReloadDirectories(PathHelpers.expandHome(homeDirectory, directoryPath), undefined)
+      }
     }
   })
 }

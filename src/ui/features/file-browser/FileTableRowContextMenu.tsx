@@ -23,6 +23,8 @@ import {
   BoxSelectIcon,
   FileTextIcon,
   EyeIcon,
+  ArrowUpToLineIcon,
+  LayersIcon,
 } from 'lucide-react'
 import { setDefaultPath } from './defaultPath'
 import { dialogActions } from './dialogStore'
@@ -47,6 +49,8 @@ import { NewItemDialog } from './components/NewItemDialog'
 import { ArchiveDialog } from './components/ArchiveDialog'
 import { UnarchiveDialog } from './components/UnarchiveDialog'
 import { Base64PreviewDialog } from './components/Base64PreviewDialog'
+import { FlattenDialog } from './components/FlattenDialog'
+import { startMoveItems } from './moveItems'
 
 export const FileTableRowContextMenu = ({
   close,
@@ -153,6 +157,35 @@ export const FileTableRowContextMenu = ({
       </TextWithIcon>
     ),
   }
+
+  const moveUpItem: ContextMenuItem = {
+    onClick: () => {
+      void startMoveItems(selectedItems, directoryId, 'move-up')
+      close()
+    },
+    view: (
+      <TextWithIcon icon={ArrowUpToLineIcon}>
+        Move one level up{isSelected && selectionIndexes.size > 1 ? ` (${selectionIndexes.size} items)` : ''}
+      </TextWithIcon>
+    ),
+  }
+
+  const flattenItem: ContextMenuItem | null = selectedItems.every(selected => selected.type === 'dir')
+    ? {
+        onClick: () => {
+          dialogActions.open({
+            component: FlattenDialog,
+            props: { items: selectedItems, directoryId },
+          })
+          close()
+        },
+        view: (
+          <TextWithIcon icon={LayersIcon}>
+            Flatten{selectedItems.length > 1 ? ` (${selectedItems.length} folders)` : ''}…
+          </TextWithIcon>
+        ),
+      }
+    : null
 
   const deleteItem: ContextMenuItem = {
     onClick: () => {
@@ -530,6 +563,8 @@ export const FileTableRowContextMenu = ({
       { isSeparator: true },
       copyItem,
       cutItem,
+      moveUpItem,
+      flattenItem,
       pasteItem,
       renameItem,
       batchRenameItem,
@@ -559,6 +594,7 @@ export const FileTableRowContextMenu = ({
     { isSeparator: true },
     copyItem,
     cutItem,
+    moveUpItem,
     pasteItem,
     deleteItem,
     renameItem,

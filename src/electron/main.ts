@@ -42,6 +42,7 @@ import { runCommand } from './utils/run-command.js'
 import { getServerConfig } from './server-config.js'
 import { getAudioMetadata } from './utils/get-audio-metadata.js'
 import { applyVimChanges } from './utils/apply-vim-changes.js'
+import { moveItems, undoMoveItems } from './utils/move-items.js'
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined
@@ -275,6 +276,8 @@ app.on('ready', () => {
 
   ipcHandle('runCommand', runCommand)
   ipcHandle('applyVimChanges', applyVimChanges)
+  ipcHandle('moveItems', moveItems)
+  ipcHandle('undoMoveItems', undoMoveItems)
 
   ipcHandle('setAlwaysOnTop', async (alwaysOnTop: boolean, event) => {
     const window = BrowserWindow.fromWebContents(event.sender)

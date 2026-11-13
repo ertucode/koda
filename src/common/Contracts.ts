@@ -147,6 +147,8 @@ export type EventResponseMapping = {
   >
   deleteFiles: Promise<GenericResult<void>>
   applyVimChanges: Promise<GenericResult<void>>
+  moveItems: Promise<GenericResult<void>>
+  undoMoveItems: Promise<GenericResult<void>>
   createFileOrFolder: Promise<GenericResult<{ path: string }>>
   createFromClipboard: Promise<GenericResult<{ path: string }>>
   readFileAsBase64: Promise<GenericResult<{ base64: string }>>
@@ -270,6 +272,13 @@ export type EventRequestMapping = {
   }
   deleteFiles: { filePaths: string[]; clientMetadata: Tasks.ClientMetadata; isSafe: boolean }
   applyVimChanges: VimEngine.Change[]
+  moveItems: {
+    operation: 'move-up' | 'flatten'
+    sourcePaths: string[]
+    depth?: number | 'infinity'
+    clientMetadata: Tasks.ClientMetadata
+  }
+  undoMoveItems: Tasks.MoveUndoMetadata
   createFileOrFolder: {
     parentDir: string
     name: string
@@ -379,6 +388,8 @@ export type WindowElectron = {
     isSafe: boolean
   ) => Promise<GenericResult<void>>
   applyVimChanges: (changes: VimEngine.Change[]) => Promise<GenericResult<void>>
+  moveItems: (request: EventRequestMapping['moveItems']) => Promise<GenericResult<void>>
+  undoMoveItems: (undo: Tasks.MoveUndoMetadata) => Promise<GenericResult<void>>
   createFileOrFolder: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
   createFromClipboard: (filePath: string, type: CreateFromClipboardType) => Promise<GenericResult<{ path: string }>>
   readFileAsBase64: (filePath: string) => Promise<GenericResult<{ base64: string }>>

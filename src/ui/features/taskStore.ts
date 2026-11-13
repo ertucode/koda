@@ -95,6 +95,22 @@ export const taskStore = createStore({
         } as TaskDefinition,
       },
     }),
+    markMoveUndone: (context: TaskStoreContext, event: { id: string }) => {
+      const task = context.tasks[event.id];
+      if (!task || task.type !== 'move-items' || !task.clientMetadata?.moveUndo) return context;
+      return {
+        tasks: {
+          ...context.tasks,
+          [event.id]: {
+            ...task,
+            clientMetadata: {
+              ...task.clientMetadata,
+              moveUndo: { ...task.clientMetadata.moveUndo, undone: true },
+            },
+          },
+        },
+      };
+    },
   },
 });
 

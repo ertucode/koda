@@ -18,6 +18,8 @@ import {
   Info,
   TerminalIcon,
   Edit3Icon,
+  ArrowUpToLineIcon,
+  RotateCcwIcon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { clsx } from "@/lib/functions/clsx";
@@ -27,6 +29,8 @@ import { directoryHelpers } from "./file-browser/directoryStore/directory";
 import { getWindowElectron } from "@/getWindowElectron";
 import { Dialog } from "@/lib/components/dialog";
 import { Typescript } from "@common/Typescript";
+import { toast } from "@/lib/components/toast";
+import { homeDirectory } from "@/getWindowElectron";
 
 function getTaskTypeLabel(task: TaskDefinition): string {
   switch (task.type) {
@@ -42,6 +46,8 @@ function getTaskTypeLabel(task: TaskDefinition): string {
       return "Run Command";
     case "vim-changes":
       return "Applying VIM Changes";
+    case "move-items":
+      return task.metadata.operation === "flatten" ? "Flattening folders" : "Moving items up";
     default:
       return Typescript.assertUnreachable(task);
   }
@@ -83,6 +89,8 @@ function getTaskIcon(task: TaskDefinition) {
       return TerminalIcon;
     case "vim-changes":
       return Edit3Icon;
+    case "move-items":
+      return ArrowUpToLineIcon;
     default:
       return Typescript.assertUnreachable(task);
   }
@@ -313,6 +321,25 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
     );
   }
 
+  if (task.type === "move-items") {
+    const count = task.metadata.sourcePaths.length;
+    const depth = task.metadata.depth;
+    return (
+      <div className="mt-2 space-y-1.5 text-xs">
+        <div className="flex items-center gap-1.5 text-base-content/70">
+          <FileIcon className="h-3 w-3 flex-shrink-0" />
+          <span>{count === 1 ? "1 item" : `${count} items`}</span>
+          {task.metadata.operation === "flatten" && (
+            <span>· {depth === "infinity" ? "all levels" : `${depth ?? 1} level${depth === 1 ? "" : "s"}`}</span>
+          )}
+        </div>
+        <div className="truncate text-base-content/60" title={task.metadata.sourcePaths.join("\n")}>
+          {formatPath(task.metadata.sourcePaths[0])}
+        </div>
+      </div>
+    );
+  }
+
   Typescript.assertUnreachable(task);
 }
 
@@ -328,7 +355,9 @@ function TaskItem({
   const label = getTaskTypeLabel(task);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isUndoing, setIsUndoing] = useState(false);
   const hasInfo = task.info && task.info.length > 0;
+  const moveUndo = task.type === "move-items" ? task.clientMetadata?.moveUndo : undefined;
 
   // Calculate estimated time remaining based on createdIso and progress
   const estimatedTimeRemaining = (() => {
@@ -354,17 +383,48 @@ function TaskItem({
 
   // Auto-dismiss successful tasks after 5 seconds (unless info dialog is open or item is hovered)
   useEffect(() => {
-    if (status === "success" && !showInfoDialog && !isHovered) {
+    if (status === "success" && (!moveUndo || moveUndo.undone) && !showInfoDialog && !isHovered) {
       const timer = setTimeout(() => {
         onDismiss();
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [status, onDismiss, showInfoDialog, isHovered]);
+  }, [status, onDismiss, showInfoDialog, isHovered, moveUndo]);
 
   const handleCancel = async () => {
     const electron = getWindowElectron();
     await electron.abortTask(task.id);
+  };
+
+  const handleUndo = async () => {
+    if (!moveUndo || moveUndo.undone) return;
+    setIsUndoing(true);
+    try {
+      const result = await getWindowElectron().undoMoveItems(moveUndo);
+      if (!result.success) {
+        toast.show(result);
+        return;
+      }
+      taskStore.send({ type: "markMoveUndone", id: task.id });
+      const directories = new Set<string>();
+      for (const move of moveUndo.moves) {
+        directories.add(PathHelpers.parent(move.sourcePath).path);
+        directories.add(PathHelpers.parent(move.destinationPath).path);
+      }
+      for (const directory of moveUndo.removedDirectories) {
+        directories.add(PathHelpers.parent(directory).path);
+      }
+      for (const directory of directories) {
+        directoryHelpers.checkAndReloadDirectories(PathHelpers.expandHome(homeDirectory, directory), undefined);
+      }
+    } catch (error) {
+      toast.show({
+        severity: "error",
+        message: error instanceof Error ? error.message : "Undo failed",
+      });
+    } finally {
+      setIsUndoing(false);
+    }
   };
 
   return (
@@ -491,8 +551,18 @@ function TaskItem({
             )}
 
             {status === "success" && (
-              <div className="mt-2 text-xs text-success font-medium">
-                Completed successfully
+              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-success font-medium">
+                <span>{moveUndo?.undone ? "Undone" : "Completed successfully"}</span>
+                {moveUndo && !moveUndo.undone && (
+                  <button
+                    className="btn btn-xs btn-ghost text-base-content"
+                    onClick={handleUndo}
+                    disabled={isUndoing}
+                  >
+                    <RotateCcwIcon className="size-3" />
+                    {isUndoing ? "Undoing…" : "Undo"}
+                  </button>
+                )}
               </div>
             )}
           </div>

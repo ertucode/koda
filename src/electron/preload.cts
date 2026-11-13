@@ -30,6 +30,8 @@ electron.contextBridge.exposeInMainWorld('electron', {
   deleteFiles: (filePaths: string[], clientMetadata: any, isSafe: boolean) =>
     ipcInvoke('deleteFiles', { filePaths, clientMetadata, isSafe }),
   applyVimChanges: (changes: any) => ipcInvoke('applyVimChanges', changes),
+  moveItems: request => ipcInvoke('moveItems', request),
+  undoMoveItems: undo => ipcInvoke('undoMoveItems', undo),
   createFileOrFolder: (parentDir: string, name: string) => ipcInvoke('createFileOrFolder', { parentDir, name }),
   createFromClipboard: (filePath: string, type: CreateFromClipboardType) =>
     ipcInvoke('createFromClipboard', { filePath, type }),
