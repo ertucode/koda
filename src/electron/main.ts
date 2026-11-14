@@ -2,7 +2,6 @@ import { app, BrowserWindow, Menu, screen, ipcMain, shell, clipboard } from 'ele
 import path from 'path'
 import os, { homedir } from 'os'
 import { ipcHandle, isDev } from './util.js'
-import fs from 'fs'
 import fsSync from 'fs'
 import { getPreloadPath, getPreviewPreloadPath, getUIPath } from './pathResolver.js'
 import { getFilesAndFoldersInDirectory, getFileInfoByPaths } from './utils/get-files-and-folders-in-directory.js'
@@ -30,7 +29,11 @@ import { xlsxWorkerPool } from './utils/xlsx-worker-pool.js'
 import { TaskManager } from './TaskManager.js'
 import { startArchive, startUnarchive } from './utils/start-archive-task.js'
 import { Archive } from './utils/archive/Archive.js'
-import { getApplicationsForFile, openFileWithApplication } from './utils/get-applications-for-file.js'
+import {
+  getApplicationsForFile,
+  normalizeMacApplicationPath,
+  openFileWithApplication,
+} from './utils/get-applications-for-file.js'
 import { initializeDatabase } from './db/index.js'
 import {
   clearDefaultApplicationForExtension,
@@ -258,12 +261,14 @@ app.on('ready', () => {
     if (applicationPath === '__choose__') {
       const res = await openSelectAppWindow('/Applications')
       if (!res) return
-      await openFileWithApplication(filePath, res)
-      recordOpenedApplicationForFile(filePath, res)
+      const normalizedPath = normalizeMacApplicationPath(res)
+      await openFileWithApplication(filePath, normalizedPath)
+      recordOpenedApplicationForFile(filePath, normalizedPath)
       return
     }
-    await openFileWithApplication(filePath, applicationPath)
-    recordOpenedApplicationForFile(filePath, applicationPath)
+    const normalizedPath = normalizeMacApplicationPath(applicationPath)
+    await openFileWithApplication(filePath, normalizedPath)
+    recordOpenedApplicationForFile(filePath, normalizedPath)
   })
   ipcHandle('setDefaultApplicationForExtension', async ({ extension, appPath, appName }) => {
     setDefaultApplicationForExtension(extension, appPath, appName)
@@ -372,17 +377,6 @@ app.on('ready', () => {
     if (window) {
       const resolver = selectAppPromises.get(window.id)
       if (resolver) {
-        if (appPath) {
-          if (appPath.endsWith('.app') && appPath.startsWith('/Applications')) {
-            const actualFolder = `${appPath}/Contents/MacOS`
-            if (!fs.existsSync(actualFolder)) {
-              throw new Error(`App at ${appPath} does not exist`)
-            }
-
-            const itemFromFolder = fs.readdirSync(actualFolder)[0]
-            appPath = `${appPath}/Contents/MacOS/${itemFromFolder}`
-          }
-        }
         resolver(appPath)
         selectAppPromises.delete(window.id)
         window.close()

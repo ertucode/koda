@@ -18,6 +18,11 @@ export type ApplicationInfo = {
   icon?: string
 }
 
+export function normalizeMacApplicationPath(applicationPath: string): string {
+  const bundleMatch = applicationPath.match(/^(.*\.app)\/Contents\/MacOS(?:\/.*)?$/)
+  return bundleMatch?.[1] ?? applicationPath
+}
+
 export async function getApplicationsForFile(filePath: string): Promise<ApplicationInfo[]> {
   const expandedPath = expandHome(filePath)
   const p = platform()
@@ -77,7 +82,7 @@ async function mergeStoredApplications(filePath: string, apps: ApplicationInfo[]
   const baseApps = apps.filter(app => app.path !== '__choose__')
   const storedAppInfos: ApplicationInfo[] = storedApps.map(app => ({
     name: app.appName,
-    path: app.appPath,
+    path: platform() === 'darwin' ? normalizeMacApplicationPath(app.appPath) : app.appPath,
     isDefault: app.isDefault,
     isCustom: true,
   }))
@@ -91,7 +96,11 @@ async function mergeStoredApplications(filePath: string, apps: ApplicationInfo[]
     merged.push({ ...app })
   }
 
-  const storedDefaultPath = storedApps.find(app => app.isDefault)?.appPath
+  const rawStoredDefaultPath = storedApps.find(app => app.isDefault)?.appPath
+  const storedDefaultPath =
+    rawStoredDefaultPath && platform() === 'darwin'
+      ? normalizeMacApplicationPath(rawStoredDefaultPath)
+      : rawStoredDefaultPath
   if (storedDefaultPath) {
     for (const app of merged) {
       const isDefault = app.path === storedDefaultPath
@@ -373,7 +382,8 @@ export async function openFileWithApplication(filePath: string, applicationPath:
 
   let cmd: string
   if (p === 'darwin') {
-    cmd = `open -a "${applicationPath}" "${expandedPath}"`
+    const normalizedApplicationPath = normalizeMacApplicationPath(applicationPath)
+    cmd = `open -a "${normalizedApplicationPath}" "${expandedPath}"`
   } else if (p === 'linux') {
     // For .desktop files, extract the Exec command
     try {
