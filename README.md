@@ -16,7 +16,3 @@
 - File encryption
 - tree view
 - themes
-
-# EH TODO
-
-- fix pending selection to be actually pending selection, not after selection
